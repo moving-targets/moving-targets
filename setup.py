@@ -17,7 +17,7 @@ with open('README.md', 'r') as readme:
 # sets the library metadata up
 setup(
     name="moving-targets",
-    version="1.0.1",
+    version="0.1.0",
     maintainer="Luca Giuliani",
     maintainer_email="luca.giuliani13@unibo.it",
     author="University of Bologna - DISI",

@@ -326,3 +326,17 @@ class Backend:
             The vector of logarithms.
         """
         raise AssertionError(self._ERROR_MESSAGE + 'logarithms')
+
+    def dot(self, vector1: np.ndarray, vector2: np.ndarray) -> Any:
+        """Performs the vector product between two vectors.
+
+        :param vector1:
+            The first vector.
+
+        :param vector2:
+            The second vector.
+
+        :return:
+            The dot product between vector1 and vector2.
+        """
+        return self.sum(vector1 * vector2)
