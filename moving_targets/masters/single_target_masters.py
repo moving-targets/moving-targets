@@ -208,13 +208,21 @@ class SingleTargetRegression(SingleTargetMaster):
         backend = get_bk(backend) if isinstance(backend, str) else backend
         y_loss = reg_loss(y_loss) if isinstance(y_loss, str) else y_loss
         p_loss = reg_loss(p_loss) if isinstance(p_loss, str) else p_loss
-        super(SingleTargetRegression, self).__init__(backend=backend, y_loss=y_loss, p_loss=p_loss, vtype='continuous',
-                                                     lb=lb, ub=ub, satisfied=satisfied, alpha=alpha, beta=beta, stats=stats)
+        super(SingleTargetRegression, self).__init__(backend=backend,
+                                                     satisfied=satisfied,
+                                                     y_loss=y_loss,
+                                                     p_loss=p_loss,
+                                                     vtype='continuous',
+                                                     lb=lb,
+                                                     ub=ub,
+                                                     alpha=alpha,
+                                                     beta=beta,
+                                                     stats=stats)
 
     def _beta_error_variables(self, x, y, p, v) -> np.ndarray:
         # for the regression case, the error may be introduced due to the presence of lower/upper bounds which are not
         # considered in the explicit constraint satisfiability routine, thus we will return clipped predictions
-        return p.clip(min=self.lb, max=self.ub)
+        return p if self.lb is None and self.ub is None else p.clip(min=self.lb, max=self.ub)
 
 
 class SingleTargetClassification(SingleTargetMaster):
@@ -256,8 +264,16 @@ class SingleTargetClassification(SingleTargetMaster):
         y_loss = cls_loss(y_loss) if isinstance(y_loss, str) else y_loss
         p_loss = cls_loss(p_loss) if isinstance(p_loss, str) else p_loss
         vtype = 'continuous' if (y_loss.use_continuous_targets or p_loss.use_continuous_targets) else 'binary'
-        super(SingleTargetClassification, self).__init__(backend=backend, y_loss=y_loss, p_loss=p_loss, vtype=vtype, lb=0,
-                                                         ub=1, satisfied=satisfied, alpha=alpha, beta=beta, stats=stats)
+        super(SingleTargetClassification, self).__init__(backend=backend,
+                                                         satisfied=satisfied,
+                                                         y_loss=y_loss,
+                                                         p_loss=p_loss,
+                                                         vtype=vtype,
+                                                         lb=0,
+                                                         ub=1,
+                                                         alpha=alpha,
+                                                         beta=beta,
+                                                         stats=stats)
 
     def _beta_error_variables(self, x, y, p, v) -> np.ndarray:
         # for the classification case, if the loss uses class probabilities the minimal error must be computed between
