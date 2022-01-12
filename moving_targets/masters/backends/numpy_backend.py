@@ -28,12 +28,7 @@ class NumpyBackend(Backend):
     def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
         raise AssertionError(self._ERROR_MESSAGE + 'no constraint can be added')
 
-    def add_variables(self,
-                      *keys: int,
-                      vtype: str,
-                      lb: Optional[Number] = None,
-                      ub: Optional[Number] = None,
-                      name: Optional[str] = None) -> np.ndarray:
+    def add_variables(self, *keys: int, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> np.ndarray:
         raise AssertionError(self._ERROR_MESSAGE + 'no variable can be added')
 
     def get_objective(self) -> Number:

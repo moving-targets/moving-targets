@@ -45,13 +45,9 @@ class CplexBackend(Backend):
         self.model.add_constraints(constraints, names=name)
         return self
 
-    def add_variables(self,
-                      *keys: int,
-                      vtype: str,
-                      lb: Optional[Number] = None,
-                      ub: Optional[Number] = None,
-                      name: Optional[str] = None) -> np.ndarray:
+    def add_variables(self, *keys: int, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> np.ndarray:
         assert vtype in ['binary', 'integer', 'continuous'], self._ERROR_MESSAGE + f"vtype '{vtype}'"
+        # handle dimensionality
         if len(keys) == 1:
             fn = getattr(self.model, f'{vtype}_var_dict')
             kw = dict(keys=keys[0])
@@ -63,8 +59,15 @@ class CplexBackend(Backend):
             kw = dict(keys1=keys[0], keys2=keys[1], keys3=keys[2])
         else:
             raise AssertionError(self._ERROR_MESSAGE + 'variables having more than three dimensions')
-        kw.update({} if vtype == 'binary' else {'lb': lb, 'ub': ub})
-        return np.array(list(fn(**kw, name=name).values())).reshape(keys)
+        # handle bounds wrt variable type
+        if vtype == 'binary':
+            assert lb == 0 and ub == 1, f"Binary variable type accepts [0, 1] bounds only, but [{lb}, {ub}] was passed."
+        else:
+            kw.update({'lb': lb, 'ub': ub})
+        # handle variables
+        variables_dict = fn(**kw, name=name)
+        variables_list = list(variables_dict.values())
+        return np.array(variables_list).reshape(keys)
 
     def get_objective(self) -> Number:
         return self.solution.objective_value

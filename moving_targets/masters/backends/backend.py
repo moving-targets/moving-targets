@@ -136,8 +136,8 @@ class Backend:
 
     def add_integer_variables(self,
                               *keys: int,
-                              lb: Optional[Number] = None,
-                              ub: Optional[Number] = None,
+                              lb: Number = 0,
+                              ub: Number = float('inf'),
                               name: Optional[str] = None) -> np.ndarray:
         """Creates an array of integer model variables.
 
@@ -159,8 +159,8 @@ class Backend:
         return self.add_variables(*keys, vtype='integer', name=name, lb=lb, ub=ub)
 
     def add_integer_variable(self,
-                             lb: Optional[Number] = 0,
-                             ub: Optional[Number] = None,
+                             lb: Number = 0,
+                             ub: Number = float('inf'),
                              name: Optional[str] = None) -> np.ndarray:
         """Creates an integer model variable.
 
@@ -180,8 +180,8 @@ class Backend:
 
     def add_continuous_variables(self,
                                  *keys: int,
-                                 lb: Optional[Number] = None,
-                                 ub: Optional[Number] = None,
+                                 lb: Number = -float('inf'),
+                                 ub: Number = float('inf'),
                                  name: Optional[str] = None) -> np.ndarray:
         """Creates an array of continuous model variables.
 
@@ -203,8 +203,8 @@ class Backend:
         return self.add_variables(*keys, vtype='continuous', name=name, lb=lb, ub=ub)
 
     def add_continuous_variable(self,
-                                lb: Optional[Number] = None,
-                                ub: Optional[Number] = None,
+                                lb: Number = -float('inf'),
+                                ub: Number = float('inf'),
                                 name: Optional[str] = None) -> np.ndarray:
         """Creates a continuous model variable.
 
@@ -222,12 +222,27 @@ class Backend:
         """
         return self.add_variable(vtype='continuous', name=name, lb=lb, ub=ub)
 
-    def add_variables(self,
-                      *keys: int,
-                      vtype: str,
-                      lb: Optional[Number] = None,
-                      ub: Optional[Number] = None,
-                      name: Optional[str] = None) -> np.ndarray:
+    def add_variable(self, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> Any:
+        """Creates a model variable.
+
+        :param vtype:
+            The variables type, usually 'binary' or 'continuous'.
+
+        :param lb:
+            The variable lower bound.
+
+        :param ub:
+            The variable upper bound.
+
+        :param name:
+            The variable name.
+
+        :return:
+            The model variable.
+        """
+        return self.add_variables(1, vtype=vtype, name=name, lb=lb, ub=ub)[0]
+
+    def add_variables(self, *keys: int, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> np.ndarray:
         """Creates an array of model variables.
 
         :param keys:
@@ -249,30 +264,6 @@ class Backend:
             The array of model variables.
         """
         raise NotImplementedError(not_implemented_message(name='add_variables'))
-
-    def add_variable(self,
-                     vtype: str,
-                     lb: Optional[Number] = None,
-                     ub: Optional[Number] = None,
-                     name: Optional[str] = None) -> Any:
-        """Creates a model variable.
-
-        :param vtype:
-            The variables type, usually 'binary' or 'continuous'.
-
-        :param lb:
-            The variable lower bound.
-
-        :param ub:
-            The variable upper bound.
-
-        :param name:
-            The variable name.
-
-        :return:
-            The model variable.
-        """
-        return self.add_variables(1, vtype=vtype, name=name, lb=lb, ub=ub)[0]
 
     def get_objective(self) -> Number:
         raise NotImplementedError(not_implemented_message(name='get_objective'))

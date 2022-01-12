@@ -59,12 +59,7 @@ class CvxpyBackend(Backend):
         self.model += constraints
         return self
 
-    def add_variables(self,
-                      *keys: int,
-                      vtype: str,
-                      lb: Optional[Number] = None,
-                      ub: Optional[Number] = None,
-                      name: Optional[str] = None) -> np.ndarray:
+    def add_variables(self, *keys: int, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> np.ndarray:
         def _recursive_addition(_keys: List[int], _name: str):
             _key = _keys.pop(0)
             if len(_keys) == 0:
@@ -75,8 +70,8 @@ class CvxpyBackend(Backend):
         assert vtype in self._VTYPES.keys(), self._ERROR_MESSAGE + f"vtype '{vtype}'"
         kw = self._VTYPES[vtype]
         var = np.array(_recursive_addition(_keys=list(keys), _name=name))
-        self.add_constraints([] if lb is None else [v >= lb for v in var.flatten()])
-        self.add_constraints([] if ub is None else [v <= ub for v in var.flatten()])
+        self.add_constraints([v >= lb for v in var.flatten()])
+        self.add_constraints([v <= ub for v in var.flatten()])
         return var
 
     def get_objective(self) -> Number:

@@ -70,22 +70,10 @@ class GurobiBackend(Backend):
         self.model.addConstrs((c for c in constraints), name=name)
         return self
 
-    def add_variables(self,
-                      *keys: int,
-                      vtype: str,
-                      lb: Optional[Number] = None,
-                      ub: Optional[Number] = None,
-                      name: Optional[str] = None) -> np.ndarray:
-        if vtype == 'binary':
-            vtype = self._gp.GRB.BINARY
-        elif vtype == 'integer':
-            vtype = self._gp.GRB.INTEGER
-        elif vtype == 'continuous':
-            vtype = self._gp.GRB.CONTINUOUS
-        else:
-            raise AssertionError(self._ERROR_MESSAGE + f"vtype '{vtype}'")
-        kw = {k: v for k, v in [('lb', lb), ('ub', ub)] if v is not None}
-        var = self.model.addVars(*keys, vtype=vtype, name=name, **kw).values()
+    def add_variables(self, *keys: int, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> np.ndarray:
+        assert hasattr(self._gp.GRB, vtype.upper()), self._ERROR_MESSAGE + f"vtype '{vtype}'"
+        vtype = getattr(self._gp.GRB, vtype.upper())
+        var = self.model.addVars(*keys, vtype=vtype, name=name, lb=lb, ub=ub).values()
         self.model.update()
         return np.array(var).reshape(keys)
 

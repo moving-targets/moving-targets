@@ -9,6 +9,7 @@ from moving_targets.masters.losses.loss import Loss
 from moving_targets.masters.master import Master
 from moving_targets.util import probabilities
 from moving_targets.util.errors import not_implemented_message
+from moving_targets.util.typing import Number
 
 
 class SingleTargetMaster(Master):
@@ -18,8 +19,8 @@ class SingleTargetMaster(Master):
                  backend: Backend,
                  satisfied: Callable,
                  vtype: str,
-                 lb: Optional[float],
-                 ub: Optional[float],
+                 lb: Number,
+                 ub: Number,
                  alpha: Optional[float],
                  beta: Optional[float],
                  y_loss: Loss,
@@ -65,10 +66,10 @@ class SingleTargetMaster(Master):
         self.vtype: str = vtype
         """The model variables vtype."""
 
-        self.lb: Optional[float] = lb
+        self.lb: Number = lb
         """The model variables lower bounds."""
 
-        self.ub: Optional[float] = ub
+        self.ub: Number = ub
         """The model variables upper bounds."""
 
         self._y_loss: Loss = y_loss
@@ -168,8 +169,8 @@ class SingleTargetRegression(SingleTargetMaster):
     def __init__(self,
                  backend: Union[str, Backend],
                  satisfied: Callable,
-                 lb: Optional[float] = None,
-                 ub: Optional[float] = None,
+                 lb: Number = -float('inf'),
+                 ub: Number = float('inf'),
                  alpha: Optional[float] = 1.0,
                  beta: Optional[float] = 1.0,
                  y_loss: Union[str, Loss] = 'mse',
@@ -222,7 +223,7 @@ class SingleTargetRegression(SingleTargetMaster):
     def _beta_error_variables(self, x, y, p, v) -> np.ndarray:
         # for the regression case, the error may be introduced due to the presence of lower/upper bounds which are not
         # considered in the explicit constraint satisfiability routine, thus we will return clipped predictions
-        return p if self.lb is None and self.ub is None else p.clip(min=self.lb, max=self.ub)
+        return p.clip(min=self.lb, max=self.ub)
 
 
 class SingleTargetClassification(SingleTargetMaster):
