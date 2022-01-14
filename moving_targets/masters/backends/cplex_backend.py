@@ -36,6 +36,10 @@ class CplexBackend(Backend):
         solution = self.model.solve()
         return solution
 
+    def clear(self) -> Any:
+        self.model.end()
+        super(CplexBackend, self).clear()
+
     def minimize(self, cost) -> Any:
         self.model.minimize(cost)
         return self

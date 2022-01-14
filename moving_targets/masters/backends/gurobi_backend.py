@@ -42,16 +42,19 @@ class GurobiBackend(Backend):
         self.solver_args: Dict[str, Any] = solver_args
         """Parameters of the solver to be set via the `model.SetParam()` function."""
 
+        self._env: Optional = None
+        """The gurobi environment instance."""
+
         if time_limit is not None and 'TimeLimit' not in self.solver_args:
             self.solver_args['TimeLimit'] = time_limit
         if solution_limit is not None and 'SolutionLimit' not in self.solver_args:
             self.solver_args['SolutionLimit'] = solution_limit
 
     def _build_model(self) -> Any:
-        env = self._gp.Env(empty=True)
-        env.setParam('OutputFlag', self.verbose)
-        env.start()
-        model = self._gp.Model(env=env, name='model')
+        self._env = self._gp.Env(empty=True)
+        self._env.setParam('OutputFlag', self.verbose)
+        self._env.start()
+        model = self._gp.Model(env=self._env, name='model')
         for param, value in self.solver_args.items():
             model.setParam(param, value)
         return model
@@ -60,6 +63,11 @@ class GurobiBackend(Backend):
         self.model.update()
         self.model.optimize()
         return None if self.model.SolCount == 0 else self.model
+
+    def clear(self) -> Any:
+        self._env.dispose()
+        self.model.dispose()
+        super(GurobiBackend, self).clear()
 
     def minimize(self, cost) -> Any:
         self.model.setObjective(cost, self._gp.GRB.MINIMIZE)

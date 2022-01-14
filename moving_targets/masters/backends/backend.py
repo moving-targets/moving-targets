@@ -28,7 +28,7 @@ class Backend:
         :param msg:
             The warning explanation.
         """
-        if not(exp is None and aux is None) and exp != aux:
+        if not (exp is None and aux is None) and exp != aux:
             cls._LOGGER.warning(f"'aux={aux}' has no effect on '{cls.__name__}' since this solver {msg}.")
 
     def __init__(self):
@@ -62,7 +62,9 @@ class Backend:
         :return:
             The backend itself.
         """
-        assert self.model is None, "A model instance is already present, please solve that before building a new one"
+        if self.model is not None:
+            self._LOGGER.warning("A model instance was already present and has been overwritten. If that was " +
+                                 "intentional consider calling 'backend.clear()' before creating a new one.")
         self.model = self._build_model()
         self.solution = None
         return self
@@ -74,7 +76,16 @@ class Backend:
             The backend itself.
         """
         self.solution = self._solve_model()
+        return self
+
+    def clear(self) -> Any:
+        """Clears the backend resources.
+
+        :return:
+            The backend itself.
+        """
         self.model = None
+        self.solution = None
         return self
 
     def minimize(self, cost) -> Any:

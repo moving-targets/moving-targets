@@ -207,4 +207,5 @@ class Master(StatsLogger):
             p_loss=None if p_loss is None else self.backend.get_value(p_loss),
             objective=self.backend.get_objective()
         )
+        self.backend.clear()
         return self.solution(x=x, y=y, p=pred, v=var)

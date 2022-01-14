@@ -119,6 +119,7 @@ class TestBackend(AbstractTest):
                     mt_value = mt_loss(backend, numeric_values, model_variables, sample_weight)
                     mt_value_as_objective = backend.minimize(mt_value).solve().get_objective()
                     mt_value_as_expression = backend.get_value(mt_value)
+                    backend.clear()
                     # compute reference objective
                     if task == 'indicator':
                         model_values = probabilities.get_classes(model_values)
