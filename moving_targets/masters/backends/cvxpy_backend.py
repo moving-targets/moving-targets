@@ -82,10 +82,10 @@ class CvxpyBackend(Backend):
         return var
 
     def get_objective(self) -> Number:
-        return self.solution.value
+        return self.solution._value
 
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
-        return np.reshape([v.value.squeeze() for v in expressions.flatten()], expressions.shape)
+        return np.reshape([v._value.squeeze() for v in expressions.flatten()], expressions.shape)
 
     def sum(self, vector: np.ndarray, aux: Optional[str] = None) -> Any:
         return self.aux(expressions=vector.sum(), aux_vtype=aux)

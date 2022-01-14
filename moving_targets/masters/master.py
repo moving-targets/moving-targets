@@ -4,8 +4,10 @@ from typing import Any, Optional, List, Union, Set
 
 from moving_targets.callbacks import StatsLogger
 from moving_targets.masters.backends.backend import Backend
+from moving_targets.masters.optimizers import ConstantValue
+from moving_targets.masters.optimizers.optimizer import Optimizer
 from moving_targets.util.errors import not_implemented_message
-from moving_targets.util.typing import Dataset
+from moving_targets.util.typing import Dataset, Number
 
 
 class Master(StatsLogger):
@@ -15,10 +17,20 @@ class Master(StatsLogger):
     def _parameters() -> Set[str]:
         return {'alpha', 'beta', 'use_beta', 'y_loss', 'p_loss', 'objective'}
 
-    def __init__(self, backend: Backend, stats: Union[bool, List[str]] = False):
+    def __init__(self,
+                 backend: Backend,
+                 alpha: Union[None, Number, Optimizer],
+                 beta: Union[None, Number, Optimizer],
+                 stats: Union[bool, List[str]] = False):
         """
         :param backend:
             The `Backend` instance encapsulating the optimization solver.
+
+        :param alpha:
+            Either a constant alpha value, an alpha optimizer, or None if no alpha step is wanted.
+
+        :param beta:
+            Either a constant beta value, a beta optimizer, or None if no beta step is wanted.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters in ['alpha',
@@ -28,6 +40,12 @@ class Master(StatsLogger):
 
         self.backend: Backend = backend
         """The `Backend` instance encapsulating the optimization solver."""
+
+        self._alpha: Optional[Optimizer] = ConstantValue(initial_value=alpha) if isinstance(alpha, Number) else alpha
+        """The alpha optimizer, or None if no alpha step is wanted."""
+
+        self._beta: Optional[Optimizer] = ConstantValue(initial_value=beta) if isinstance(beta, Number) else beta
+        """The beta optimizer, or None if no beta step is wanted."""
 
         self._macs: Optional = None
         """Reference to the MACS object encapsulating the `Master`."""
@@ -57,49 +75,6 @@ class Master(StatsLogger):
             The model variables.
         """
         raise NotImplementedError(not_implemented_message(name='build'))
-
-    def alpha(self, x, y, p, v) -> float:
-        """Computes the alpha for the given iteration.
-
-        :param x:
-            The training samples.
-
-        :param y:
-            The training labels.
-
-        :param p:
-            The `Learner` predictions.
-
-        :param v:
-            The model variables.
-
-        :return:
-            The alpha value for the given iteration.
-        """
-        raise NotImplementedError(not_implemented_message(name='alpha'))
-
-    def beta(self, x, y, p, v) -> float:
-        """Computes the beta for the given iteration.
-
-        :param x:
-            The training samples.
-
-        :param y:
-            The training labels.
-
-        :param p:
-            The `Learner` predictions.
-
-        :param v:
-            The model variables.
-
-        :param v:
-            The model variables.
-
-        :return:
-            The beta value for the given iteration.
-        """
-        raise NotImplementedError(not_implemented_message(name='beta'))
 
     def use_beta(self, x, y, p, v) -> bool:
         """Decides whether or not to use the beta step for the given iteration.
@@ -207,14 +182,14 @@ class Master(StatsLogger):
         if p_loss is None:
             self.backend.minimize(cost=y_loss)
         elif self.use_beta(x=x, y=y, p=pred, v=var):
-            beta = self.beta(x=x, y=y, p=pred, v=var)
-            self._log_stats(use_beta=1, beta=beta)
-            self.backend.add_constraint(constraint=p_loss <= beta)
+            self.backend.add_constraint(constraint=p_loss <= self._beta())
             self.backend.minimize(cost=y_loss)
+            self._log_stats(use_beta=1, beta=self._beta())
+            self._beta.update(macs=self._macs, x=x, y=y, p=pred)
         else:
-            alpha = self.alpha(x=x, y=y, p=pred, v=var)
-            self._log_stats(use_beta=0, alpha=alpha)
-            self.backend.minimize(cost=y_loss + (1.0 / alpha) * p_loss)
+            self.backend.minimize(cost=y_loss + (1.0 / self._alpha()) * p_loss)
+            self._log_stats(use_beta=0, alpha=self._alpha())
+            self._alpha.update(macs=self._macs, x=x, y=y, p=pred)
         # solve the problem and get the adjusted labels
         if self.backend.solve().solution is None:
             warnings.warn(f'Model is infeasible at iteration {self._macs.iteration}, stop training.')
