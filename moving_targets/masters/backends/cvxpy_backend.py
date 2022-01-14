@@ -40,19 +40,23 @@ class CvxpyBackend(Backend):
         self.solver_args: Dict[str, Any] = solver_args
         """Parameters of the solver to be passed to the `model.solve()` function."""
 
+        # noinspection PyTypeChecker
+        self._objective = self._cp.Minimize(0.0)
+        """The model objective (by default, this is set to no objective by passing None)."""
+
     def _build_model(self) -> Any:
         return []
 
     def _solve_model(self) -> Optional:
+        model = self._cp.Problem(self._objective, self.model)
         try:
-            self.model.solve(solver=self.solver, **self.solver_args)
-            return None if self.model.status in ['infeasible', 'unbounded'] else self.model
+            model.solve(solver=self.solver, **self.solver_args)
+            return None if model.status in ['infeasible', 'unbounded'] else model
         except self._cp.error.SolverError:
             raise AssertionError(self._ERROR_MESSAGE + 'the given operation')
 
     def minimize(self, cost) -> Any:
-        objective = self._cp.Minimize(cost)
-        self.model = self._cp.Problem(objective, self.model)
+        self._objective = self._cp.Minimize(cost)
         return self
 
     def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
@@ -60,12 +64,15 @@ class CvxpyBackend(Backend):
         return self
 
     def add_variables(self, *keys: int, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> np.ndarray:
-        def _recursive_addition(_keys: List[int], _name: str):
+        def _get_name(_name: Optional[str], _index: int) -> Optional[str]:
+            return None if _name is None else f'{_name}_{_index}'
+
+        def _recursive_addition(_keys: List[int], _name: Optional[str]):
             _key = _keys.pop(0)
             if len(_keys) == 0:
-                return [self._cp.Variable((1,), name=f'{_name}_{i}', **kw) for i in range(_key)]
+                return [self._cp.Variable((1,), name=_get_name(_name, i), **kw) for i in range(_key)]
             else:
-                return [_recursive_addition(_keys=_keys.copy(), _name=f'{_name}_{i}') for i in range(_key)]
+                return [_recursive_addition(_keys=_keys.copy(), _name=_get_name(_name, i)) for i in range(_key)]
 
         assert vtype in self._VTYPES.keys(), self._ERROR_MESSAGE + f"vtype '{vtype}'"
         kw = self._VTYPES[vtype]
@@ -80,14 +87,16 @@ class CvxpyBackend(Backend):
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return np.reshape([v.value.squeeze() for v in expressions.flatten()], expressions.shape)
 
-    def sum(self, vector: np.ndarray) -> Any:
-        return vector.sum()
+    def sum(self, vector: np.ndarray, aux: Optional[str] = None) -> Any:
+        return self.aux(expressions=vector.sum(), aux_vtype=aux)
 
-    def sqr(self, vector: np.ndarray) -> np.ndarray:
-        return vector ** 2
+    def sqr(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        return self.aux(expressions=vector ** 2, aux_vtype=aux)
 
-    def abs(self, vector: np.ndarray) -> np.ndarray:
-        return np.reshape([self._cp.abs(v) for v in vector.flatten()], vector.shape)
+    def abs(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        expressions = np.reshape([self._cp.abs(v) for v in vector.flatten()], vector.shape)
+        return self.aux(expressions=expressions, aux_vtype=aux)
 
-    def log(self, vector: np.ndarray) -> np.ndarray:
-        return np.reshape([self._cp.log(v) for v in vector.flatten()], vector.shape)
+    def log(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        expressions = np.reshape([self._cp.log(v) for v in vector.flatten()], vector.shape)
+        return self.aux(expressions=expressions, aux_vtype=aux)

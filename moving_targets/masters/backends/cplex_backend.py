@@ -75,11 +75,19 @@ class CplexBackend(Backend):
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return np.reshape([v.solution_value for v in expressions.flatten()], expressions.shape)
 
-    def sum(self, vector: np.ndarray) -> Any:
-        return self.model.sum(vector)
+    def sum(self, vector: np.ndarray, aux: Optional[str] = None) -> Any:
+        from docplex.mp.quad import QuadExpr
+        expression = self.model.sum(vector)
+        if isinstance(expression, QuadExpr):
+            self._aux_warning(exp=None, aux=aux, msg='cannot impose equality constraints on quadratic expressions')
+            return expression
+        else:
+            return self.aux(expressions=expression, aux_vtype=aux)
 
-    def sqr(self, vector: np.ndarray) -> np.ndarray:
+    def sqr(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        self._aux_warning(exp=None, aux=aux, msg='cannot impose equality constraints on quadratic expressions')
         return vector ** 2
 
-    def abs(self, vector: np.ndarray) -> np.ndarray:
-        return np.reshape([self.model.abs(v) for v in vector.flatten()], vector.shape)
+    def abs(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        expressions = np.reshape([self.model.abs(v) for v in vector.flatten()], vector.shape)
+        return self.aux(expressions=expressions, aux_vtype=aux)

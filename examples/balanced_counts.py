@@ -16,7 +16,7 @@ from moving_targets.util import probabilities
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF BALANCED COUNTS
 class BalancedCounts(SingleTargetClassification):
-    def __init__(self, backend='gurobi', loss='mse', alpha=1.0, beta=1.0):
+    def __init__(self, backend='gurobi', loss='mse', alpha=1, beta=1):
         # backend : the backend instance or backend alias
         # loss    : the loss function computed between the model variables and the learner predictions
         # alpha   : the non-negative real number which is used to calibrate the two losses in the alpha step

@@ -37,7 +37,11 @@ class NumpyBackend(Backend):
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return expressions
 
+    def sum_expr(self, vector: np.ndarray) -> Any:
+        return np.sum(vector)
+
     def sum(self, vector: np.ndarray) -> Any:
+        # since the super method calls 'add_continuous_variable' which raises an error, override it
         return np.sum(vector)
 
     def sqr(self, vector: np.ndarray) -> np.ndarray:

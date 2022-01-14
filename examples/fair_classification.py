@@ -14,7 +14,7 @@ from moving_targets.metrics import DIDI, CrossEntropy, Accuracy
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF FAIR CLASSIFICATION
 class FairClassification(SingleTargetClassification):
-    def __init__(self, protected, backend='gurobi', loss='mse', violation=0.2, alpha=1.0, beta=1.0):
+    def __init__(self, protected, backend='gurobi', loss='mse', violation=0.2, alpha=1, beta=1):
         # protected  : the name of the protected feature
         # backend    : the backend instance or backend alias
         # loss       : the loss function computed between the model variables and the learner predictions
