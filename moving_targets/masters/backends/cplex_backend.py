@@ -4,13 +4,12 @@ import numpy as np
 
 from moving_targets.masters.backends import Backend
 from moving_targets.util.errors import MissingDependencyError
-from moving_targets.util.typing import Number
 
 
 class CplexBackend(Backend):
     """`Backend` implementation for the Cplex Solver."""
 
-    def __init__(self, time_limit: Optional[Number] = None):
+    def __init__(self, time_limit: Optional[float] = None):
         """
         :param time_limit:
             The solver time limit.
@@ -24,7 +23,7 @@ class CplexBackend(Backend):
         except ModuleNotFoundError:
             raise MissingDependencyError(package='docplex')
 
-        self.time_limit: Optional[Number] = time_limit
+        self.time_limit: Optional[float] = time_limit
         """The solver time limit."""
 
     def _build_model(self) -> Any:
@@ -45,7 +44,7 @@ class CplexBackend(Backend):
         self.model.add_constraints(constraints, names=name)
         return self
 
-    def add_variables(self, *keys: int, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> np.ndarray:
+    def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
         assert vtype in ['binary', 'integer', 'continuous'], self._ERROR_MESSAGE + f"vtype '{vtype}'"
         # handle dimensionality
         if len(keys) == 1:
@@ -69,7 +68,7 @@ class CplexBackend(Backend):
         variables_list = list(variables_dict.values())
         return np.array(variables_list).reshape(keys)
 
-    def get_objective(self) -> Number:
+    def get_objective(self) -> float:
         return self.solution.objective_value
 
     def get_values(self, expressions: np.ndarray) -> np.ndarray:

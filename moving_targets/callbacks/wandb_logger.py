@@ -2,6 +2,8 @@
 
 from typing import Dict, Optional
 
+import numpy as np
+
 from moving_targets.callbacks.logger import Logger
 from moving_targets.util.errors import MissingDependencyError
 from moving_targets.util.typing import Dataset
@@ -45,12 +47,12 @@ class WandBLogger(Logger):
         self.config: Dict = wandb_kwargs
         """The Weights&Biases run configuration."""
 
-    def on_process_start(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_process_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._wandb.init(project=self._project, entity=self._entity, name=self._run_name, config=self.config)
 
-    def on_iteration_end(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._wandb.log({k: self._cache[k] for k in sorted(self._cache)})
         self._cache = {}
 
-    def on_process_end(self, macs, val_data: Optional[Dataset], **additional_kwargs):
+    def on_process_end(self, macs, val_data: Optional[Dataset]):
         self._wandb.finish()

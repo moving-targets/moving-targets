@@ -10,6 +10,8 @@ from moving_targets import MACS
 from moving_targets.callbacks import Callback
 from moving_targets.learners import LogisticRegression
 from moving_targets.masters import SingleTargetClassification
+from moving_targets.masters.losses import classification_loss
+from moving_targets.masters.optimizers import BetaClassSatisfiability
 from moving_targets.metrics import Accuracy, ClassFrequenciesStd, CrossEntropy
 from moving_targets.util import probabilities
 
@@ -30,6 +32,8 @@ class BalancedCounts(SingleTargetClassification):
             max_count = np.ceil(len(y) / len(classes))
             return np.all(counts <= max_count)
 
+        loss = classification_loss(loss)
+        beta = None if beta is None else BetaClassSatisfiability(initial_value=beta, loss=loss)
         super().__init__(backend=backend, satisfied=satisfied, alpha=alpha, beta=beta, y_loss='hd', p_loss=loss)
 
     # here we define the problem formulation, i.e., variables and constraints
@@ -70,20 +74,20 @@ class ClassesHistogram(Callback):
         self.num_columns = num_columns
         self.plt_kwargs = plt_kwargs
 
-    def on_process_start(self, macs, x, y, val_data, **additional_kwargs):
+    def on_process_start(self, macs, x, y, val_data):
         # initially, we store the original targets
         self.data = pd.DataFrame.from_dict({'y': y})
 
-    def on_training_end(self, macs, x, y, val_data, **additional_kwargs):
+    def on_training_end(self, macs, x, y, val_data):
         # when the training ends, we use the macs instance to store both the predicted classes and the iterations
         self.data[f'pred_{macs.iteration}'] = probabilities.get_classes(macs.predict(x))
         self.iterations.append(macs.iteration)
 
-    def on_adjustment_end(self, macs, x, y, adjusted_y, val_data, **additional_kwargs):
+    def on_adjustment_end(self, macs, x, y, adjusted_y, val_data):
         # we store the adjusted targets as well, but there is no need to store the iteration since it was already done
         self.data[f'adj_{macs.iteration}'] = adjusted_y
 
-    def on_process_end(self, macs, val_data, **additional_kwargs):
+    def on_process_end(self, macs, val_data):
         # at the end of the process, we plot the results
         plt.figure(**self.plt_kwargs)
         num_rows = int(np.ceil(len(self.iterations) / self.num_columns))

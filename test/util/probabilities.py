@@ -78,5 +78,6 @@ class TestProbabilities(AbstractTest):
             self.assertTrue(str(exception).startswith('Tuples differ: (10, 4) != (10, 5)'))
 
     def test_categories_integer(self):
-        fn = lambda classes: get_onehot(vector=classes, classes=self.CATEGORIES)
-        self._test(inp=self.CATEGORIES_CLASSES, ref=self.CATEGORIES_ONEHOT, fn=fn)
+        self._test(inp=self.CATEGORIES_CLASSES,
+                   ref=self.CATEGORIES_ONEHOT,
+                   fn=lambda classes: get_onehot(vector=classes, classes=self.CATEGORIES))

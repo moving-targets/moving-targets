@@ -4,15 +4,14 @@ import numpy as np
 
 from moving_targets.masters.backends import Backend
 from moving_targets.util.errors import MissingDependencyError
-from moving_targets.util.typing import Number
 
 
 class GurobiBackend(Backend):
     """`Backend` implementation for the Gurobi Solver."""
 
     def __init__(self,
-                 time_limit: Optional[Number] = None,
-                 solution_limit: Optional[Number] = None,
+                 time_limit: Optional[float] = None,
+                 solution_limit: Optional[float] = None,
                  verbose: bool = False,
                  **solver_args):
         """
@@ -70,14 +69,14 @@ class GurobiBackend(Backend):
         self.model.addConstrs((c for c in constraints), name=name)
         return self
 
-    def add_variables(self, *keys: int, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> np.ndarray:
+    def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
         assert hasattr(self._gp.GRB, vtype.upper()), self._ERROR_MESSAGE + f"vtype '{vtype}'"
         vtype = getattr(self._gp.GRB, vtype.upper())
         var = self.model.addVars(*keys, vtype=vtype, name=name, lb=lb, ub=ub).values()
         self.model.update()
         return np.array(var).reshape(keys)
 
-    def get_objective(self) -> Number:
+    def get_objective(self) -> float:
         return self.solution.objVal
 
     def get_values(self, expressions: np.ndarray) -> np.ndarray:

@@ -4,7 +4,6 @@ import numpy as np
 
 from moving_targets.masters.backends import Backend
 from moving_targets.util.errors import MissingDependencyError
-from moving_targets.util.typing import Number
 
 
 class CvxpyBackend(Backend):
@@ -63,7 +62,7 @@ class CvxpyBackend(Backend):
         self.model += constraints
         return self
 
-    def add_variables(self, *keys: int, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> np.ndarray:
+    def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
         def _get_name(_name: Optional[str], _index: int) -> Optional[str]:
             return None if _name is None else f'{_name}_{_index}'
 
@@ -81,11 +80,11 @@ class CvxpyBackend(Backend):
         self.add_constraints([v <= ub for v in var.flatten()])
         return var
 
-    def get_objective(self) -> Number:
-        return self.solution._value
+    def get_objective(self) -> float:
+        return self.solution.value
 
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
-        return np.reshape([v._value.squeeze() for v in expressions.flatten()], expressions.shape)
+        return np.reshape([v.value.squeeze() for v in expressions.flatten()], expressions.shape)
 
     def sum(self, vector: np.ndarray, aux: Optional[str] = None) -> Any:
         return self.aux(expressions=vector.sum(), aux_vtype=aux)

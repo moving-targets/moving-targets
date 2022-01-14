@@ -20,12 +20,12 @@ class History(Logger):
         self._history: List = []
         """An internal list which will be used to create the final DataFrame object at the end of the training."""
 
-    def on_iteration_end(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         # Creates a dataframe from the cached items and appends them to a list indexed by iteration.
         self._history.append(pd.DataFrame([self._cache.values()], columns=self._cache.keys()))
         self._cache = {}
 
-    def on_process_end(self, macs, val_data: Optional[Dataset], **additional_kwargs):
+    def on_process_end(self, macs, val_data: Optional[Dataset]):
         # Creates a single dataframe by concatenating the sub-dataframes from each iteration.
         if len(self._history) > 0:
             self._history = pd.concat(self._history, ignore_index=True)
@@ -41,7 +41,7 @@ class History(Logger):
             List of strings representing the names of the columns to plot. If None, plots all the columns.
 
         :param num_subplots:
-            Number of row/columns in the final subplot, respectively to the value of the orient_rows argument.
+            float of row/columns in the final subplot, respectively to the value of the orient_rows argument.
             If a string is passed, that is used to display the subplots according to a common prefix (e.g.,
             if num_subplots = '/' and the features are ['trn/loss', 'trn/metric', 'val/loss', 'val/metric'],
             then there will be a row/column for the 'trn' prefix and another one for the 'val' prefix).

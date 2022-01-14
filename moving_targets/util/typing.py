@@ -1,9 +1,8 @@
 """Type aliases."""
 
-from typing import Union, Tuple, Dict, Any
+from typing import Tuple, Dict, Any
 
-Number = Union[int, float]
-"""A scalar."""
+import numpy as np
 
-Dataset = Dict[str, Tuple[Any, Any]]
+Dataset = Dict[str, Tuple[Any, np.ndarray]]
 """A dictionary where the key is string representing the name of the split, and the value is tuple (x, y)."""

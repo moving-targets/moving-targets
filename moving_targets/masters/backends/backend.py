@@ -5,7 +5,6 @@ from typing import Any, Union, List, Optional
 import numpy as np
 
 from moving_targets.util.errors import not_implemented_message
-from moving_targets.util.typing import Number
 
 
 class Backend:
@@ -155,8 +154,8 @@ class Backend:
 
     def add_integer_variables(self,
                               *keys: int,
-                              lb: Number = 0,
-                              ub: Number = float('inf'),
+                              lb: float = 0,
+                              ub: float = float('inf'),
                               name: Optional[str] = None) -> np.ndarray:
         """Creates an array of integer model variables.
 
@@ -178,8 +177,8 @@ class Backend:
         return self.add_variables(*keys, vtype='integer', name=name, lb=lb, ub=ub)
 
     def add_integer_variable(self,
-                             lb: Number = 0,
-                             ub: Number = float('inf'),
+                             lb: float = 0,
+                             ub: float = float('inf'),
                              name: Optional[str] = None) -> np.ndarray:
         """Creates an integer model variable.
 
@@ -199,8 +198,8 @@ class Backend:
 
     def add_continuous_variables(self,
                                  *keys: int,
-                                 lb: Number = -float('inf'),
-                                 ub: Number = float('inf'),
+                                 lb: float = -float('inf'),
+                                 ub: float = float('inf'),
                                  name: Optional[str] = None) -> np.ndarray:
         """Creates an array of continuous model variables.
 
@@ -222,8 +221,8 @@ class Backend:
         return self.add_variables(*keys, vtype='continuous', name=name, lb=lb, ub=ub)
 
     def add_continuous_variable(self,
-                                lb: Number = -float('inf'),
-                                ub: Number = float('inf'),
+                                lb: float = -float('inf'),
+                                ub: float = float('inf'),
                                 name: Optional[str] = None) -> np.ndarray:
         """Creates a continuous model variable.
 
@@ -241,7 +240,7 @@ class Backend:
         """
         return self.add_variable(vtype='continuous', name=name, lb=lb, ub=ub)
 
-    def add_variable(self, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> Any:
+    def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
         """Creates a model variable.
 
         :param vtype:
@@ -261,7 +260,7 @@ class Backend:
         """
         return self.add_variables(1, vtype=vtype, name=name, lb=lb, ub=ub)[0]
 
-    def add_variables(self, *keys: int, vtype: str, lb: Number, ub: Number, name: Optional[str] = None) -> np.ndarray:
+    def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
         """Creates an array of model variables.
 
         :param keys:
@@ -284,7 +283,7 @@ class Backend:
         """
         raise NotImplementedError(not_implemented_message(name='add_variables'))
 
-    def get_objective(self) -> Number:
+    def get_objective(self) -> float:
         """Gets the objective value of the solved model.
 
         :return:
@@ -303,7 +302,7 @@ class Backend:
         """
         raise NotImplementedError(not_implemented_message(name='get_values'))
 
-    def get_value(self, expression: Any) -> Number:
+    def get_value(self, expression: Any) -> float:
         """Gets the value of an expressions as found in the model solution.
 
         :param expression:
@@ -317,8 +316,8 @@ class Backend:
     def aux(self,
             expressions: Union[Any, np.ndarray],
             aux_vtype: Optional[str] = 'continuous',
-            aux_lb: Number = -float('inf'),
-            aux_ub: Number = float('inf'),
+            aux_lb: float = -float('inf'),
+            aux_ub: float = float('inf'),
             aux_name: Optional[str] = None) -> np.ndarray:
         """If the 'aux_vtype' parameter is none, it simply return the input expressions, otherwise it builds and return
         an auxiliary variable (or a vector of variables) having the given vtype and the respective other properties,

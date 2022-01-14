@@ -9,7 +9,6 @@ from moving_targets.masters.losses.loss import Loss
 from moving_targets.masters.master import Master
 from moving_targets.masters.optimizers import Optimizer
 from moving_targets.util import probabilities
-from moving_targets.util.typing import Number
 
 
 class SingleTargetMaster(Master):
@@ -19,10 +18,10 @@ class SingleTargetMaster(Master):
                  backend: Backend,
                  satisfied: Callable,
                  vtype: str,
-                 lb: Number,
-                 ub: Number,
-                 alpha: Union[None, Number, Optimizer],
-                 beta: Union[None, Number, Optimizer],
+                 lb: float,
+                 ub: float,
+                 alpha: Union[None, float, Optimizer],
+                 beta: Union[None, float, Optimizer],
                  y_loss: Loss,
                  p_loss: Loss,
                  stats: Union[bool, List[str]] = False):
@@ -66,10 +65,10 @@ class SingleTargetMaster(Master):
         self.vtype: str = vtype
         """The model variables vtype."""
 
-        self.lb: Number = lb
+        self.lb: float = lb
         """The model variables lower bounds."""
 
-        self.ub: Number = ub
+        self.ub: float = ub
         """The model variables upper bounds."""
 
         self._y_loss: Loss = y_loss
@@ -81,11 +80,11 @@ class SingleTargetMaster(Master):
         self._satisfied: Callable = satisfied
         """The `Callable` function that returns True if and only the expected constraints are satisfied."""
 
-    def build(self, x, y, p) -> Any:
+    def build(self, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         assert y.ndim == 1, "This master works for single-targets tasks only"
         return self.backend.add_variables(len(y), vtype=self.vtype, lb=self.lb, ub=self.ub, name='y')
 
-    def use_beta(self, x, y, p, v) -> bool:
+    def use_beta(self, x, y: np.ndarray, p: np.ndarray, v: np.ndarray) -> bool:
         # if p is None (i.e., initial_step == 'projection' and iteration == 0), this method should not be called at all
         # since the strategies will collapse to the same formulation, i.e., minimizing the y_loss only
         if p is None:
@@ -97,13 +96,13 @@ class SingleTargetMaster(Master):
         else:
             return self._satisfied(x, y, p)
 
-    def y_loss(self, x, y, p, v) -> Any:
+    def y_loss(self, x, y: np.ndarray, p: np.ndarray, v: np.ndarray) -> Any:
         return self._y_loss(backend=self.backend, numeric_variables=y, model_variables=v)
 
-    def p_loss(self, x, y, p, v) -> Any:
+    def p_loss(self, x, y: np.ndarray, p: np.ndarray, v: np.ndarray) -> Any:
         return self._p_loss(backend=self.backend, numeric_variables=p, model_variables=v)
 
-    def solution(self, x, y, p, v) -> Any:
+    def solution(self, x, y: np.ndarray, p: np.ndarray, v: np.ndarray) -> Any:
         return self.backend.get_values(expressions=v)
 
 
@@ -113,10 +112,10 @@ class SingleTargetRegression(SingleTargetMaster):
     def __init__(self,
                  backend: Union[str, Backend],
                  satisfied: Callable,
-                 lb: Number = -float('inf'),
-                 ub: Number = float('inf'),
-                 alpha: Union[None, Number, Optimizer] = 1.0,
-                 beta: Union[None, Number, Optimizer] = None,
+                 lb: float = -float('inf'),
+                 ub: float = float('inf'),
+                 alpha: Union[None, float, Optimizer] = 1.0,
+                 beta: Union[None, float, Optimizer] = None,
                  y_loss: Union[str, Loss] = 'mse',
                  p_loss: Union[str, Loss] = 'mse',
                  stats: Union[bool, List[str]] = False):
@@ -171,8 +170,8 @@ class SingleTargetClassification(SingleTargetMaster):
     def __init__(self,
                  backend: Union[str, Backend],
                  satisfied: Callable,
-                 alpha: Union[None, Number, Optimizer] = 1.0,
-                 beta: Union[None, Number, Optimizer] = None,
+                 alpha: Union[None, float, Optimizer] = 1.0,
+                 beta: Union[None, float, Optimizer] = None,
                  y_loss: Union[str, Loss] = 'hd',
                  p_loss: Union[str, Loss] = 'mse',
                  stats: Union[bool, List[str]] = False):
@@ -215,7 +214,7 @@ class SingleTargetClassification(SingleTargetMaster):
                                                          beta=beta,
                                                          stats=stats)
 
-    def build(self, x, y, p) -> Any:
+    def build(self, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         assert y.ndim == 1, "This Master works for univariate classification tasks only"
         samples, classes = len(y), len(np.unique(y))
         # for the binary case, it relies on the super implementation it should return a one-dimensional vector
@@ -227,7 +226,7 @@ class SingleTargetClassification(SingleTargetMaster):
             self.backend.add_constraints([self.backend.sum(row) == 1 for row in variables])
             return variables
 
-    def solution(self, x, y, p, v) -> Any:
+    def solution(self, x, y: np.ndarray, p: np.ndarray, v: np.ndarray) -> Any:
         # the get_classes() util function is used both to retrieve the class index in the multiclass classification
         # scenario and to retrieve the binary class in case continuous model variables have been used
         solutions = super(SingleTargetClassification, self).solution(x, y, p, v)

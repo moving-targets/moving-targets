@@ -3,6 +3,8 @@
 import sys
 from typing import List, Set, Optional
 
+import numpy as np
+
 from moving_targets.callbacks.logger import Logger
 from moving_targets.util.typing import Dataset
 
@@ -56,38 +58,38 @@ class FileLogger(Logger):
         self._logged_once: bool = False
         """An internal variable used to write the initial line separator."""
 
-    def on_process_start(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_process_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         # reset file content for overwriting
         if self.filepath is not None:
             open(self.filepath, 'w').close()
 
         self._write_on_file(macs, 'PROCESS START', 'on_process_start')
 
-    def on_process_end(self, macs, val_data: Optional[Dataset], **additional_kwargs):
+    def on_process_end(self, macs, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'PROCESS END', 'on_process_end')
 
-    def on_pretraining_start(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_pretraining_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'PRETRAINING START', 'on_pretraining_start')
 
-    def on_pretraining_end(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_pretraining_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'PRETRAINING END', 'on_pretraining_end')
 
-    def on_iteration_start(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_iteration_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, f'ITERATION START', 'on_iteration_start')
 
-    def on_iteration_end(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, f'ITERATION END', 'on_iteration_end')
 
-    def on_training_start(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_training_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'TRAINING START', 'on_training_start')
 
-    def on_training_end(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_training_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'TRAINING END', 'on_training_end')
 
-    def on_adjustment_start(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_adjustment_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'ADJUSTMENT START', 'on_adjustment_start')
 
-    def on_adjustment_end(self, macs, x, y, adjusted_y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'ADJUSTMENT END', 'on_adjustment_end')
 
     def _write_on_file(self, macs, message: str, routine_name: str):

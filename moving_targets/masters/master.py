@@ -2,12 +2,14 @@
 import warnings
 from typing import Any, Optional, List, Union, Set
 
+import numpy as np
+
 from moving_targets.callbacks import StatsLogger
 from moving_targets.masters.backends.backend import Backend
 from moving_targets.masters.optimizers import ConstantValue
 from moving_targets.masters.optimizers.optimizer import Optimizer
 from moving_targets.util.errors import not_implemented_message
-from moving_targets.util.typing import Dataset, Number
+from moving_targets.util.typing import Dataset
 
 
 class Master(StatsLogger):
@@ -19,8 +21,8 @@ class Master(StatsLogger):
 
     def __init__(self,
                  backend: Backend,
-                 alpha: Union[None, Number, Optimizer],
-                 beta: Union[None, Number, Optimizer],
+                 alpha: Union[None, float, Optimizer],
+                 beta: Union[None, float, Optimizer],
                  stats: Union[bool, List[str]] = False):
         """
         :param backend:
@@ -36,15 +38,21 @@ class Master(StatsLogger):
             Either a boolean value indicating whether or not to log statistics, or a list of parameters in ['alpha',
             'beta', 'use_beta', 'y_loss', 'p_loss', 'objective'] whose statistics must be logged.
         """
+        def _get_optimizer(value):
+            if isinstance(value, float) or isinstance(value, int):
+                return ConstantValue(initial_value=value)
+            else:
+                return value
+
         super(Master, self).__init__(stats=stats, logger='Master')
 
         self.backend: Backend = backend
         """The `Backend` instance encapsulating the optimization solver."""
 
-        self._alpha: Optional[Optimizer] = ConstantValue(initial_value=alpha) if isinstance(alpha, Number) else alpha
+        self._alpha: Optional[Optimizer] = _get_optimizer(value=alpha)
         """The alpha optimizer, or None if no alpha step is wanted."""
 
-        self._beta: Optional[Optimizer] = ConstantValue(initial_value=beta) if isinstance(beta, Number) else beta
+        self._beta: Optional[Optimizer] = _get_optimizer(value=beta)
         """The beta optimizer, or None if no beta step is wanted."""
 
         self._macs: Optional = None
@@ -53,13 +61,13 @@ class Master(StatsLogger):
     def log(self, **cache):
         self._macs.log(**cache)
 
-    def on_process_start(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_process_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._macs = macs
 
-    def on_process_end(self, macs, val_data: Optional[Dataset], **additional_kwargs):
+    def on_process_end(self, macs, val_data: Optional[Dataset]):
         self._macs = None
 
-    def build(self, x, y, p) -> Any:
+    def build(self, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         """Creates the model variables and adds the problem constraints.
 
         :param x:
@@ -76,7 +84,7 @@ class Master(StatsLogger):
         """
         raise NotImplementedError(not_implemented_message(name='build'))
 
-    def use_beta(self, x, y, p, v) -> bool:
+    def use_beta(self, x, y: np.ndarray, p: np.ndarray, v: np.ndarray) -> bool:
         """Decides whether or not to use the beta step for the given iteration.
 
         :param x:
@@ -99,7 +107,7 @@ class Master(StatsLogger):
         """
         raise NotImplementedError(not_implemented_message(name='use_beta'))
 
-    def y_loss(self, x, y, p, v) -> Any:
+    def y_loss(self, x, y: np.ndarray, p: np.ndarray, v: np.ndarray) -> Any:
         """Computes the loss of the model variables wrt real targets.
 
         :param x:
@@ -119,7 +127,7 @@ class Master(StatsLogger):
         """
         raise NotImplementedError(not_implemented_message(name='y_loss'))
 
-    def p_loss(self, x, y, p, v) -> Any:
+    def p_loss(self, x, y: np.ndarray, p: np.ndarray, v: np.ndarray) -> Any:
         """Computes the loss of the model variables wrt predictions.
 
         :param x:
@@ -139,7 +147,7 @@ class Master(StatsLogger):
         """
         raise NotImplementedError(not_implemented_message(name='p_loss'))
 
-    def solution(self, x, y, p, v) -> Any:
+    def solution(self, x, y: np.ndarray, p: np.ndarray, v: np.ndarray) -> Any:
         """Processes and returns the solutions given by the optimization model.
 
         :param x:
@@ -182,14 +190,14 @@ class Master(StatsLogger):
         if p_loss is None:
             self.backend.minimize(cost=y_loss)
         elif self.use_beta(x=x, y=y, p=pred, v=var):
-            self.backend.add_constraint(constraint=p_loss <= self._beta())
+            beta = self._beta(macs=self._macs, x=x, y=y, p=pred)
+            self._log_stats(use_beta=1, beta=beta)
+            self.backend.add_constraint(constraint=p_loss <= beta)
             self.backend.minimize(cost=y_loss)
-            self._log_stats(use_beta=1, beta=self._beta())
-            self._beta.update(macs=self._macs, x=x, y=y, p=pred)
         else:
-            self.backend.minimize(cost=y_loss + (1.0 / self._alpha()) * p_loss)
-            self._log_stats(use_beta=0, alpha=self._alpha())
-            self._alpha.update(macs=self._macs, x=x, y=y, p=pred)
+            alpha = self._alpha(macs=self._macs, x=x, y=y, p=pred)
+            self._log_stats(use_beta=0, alpha=alpha)
+            self.backend.minimize(cost=y_loss + (1.0 / alpha) * p_loss)
         # solve the problem and get the adjusted labels
         if self.backend.solve().solution is None:
             warnings.warn(f'Model is infeasible at iteration {self._macs.iteration}, stop training.')

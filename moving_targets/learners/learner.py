@@ -1,6 +1,8 @@
 """Basic Learner Interface."""
 from typing import Any, Optional, Set, Union, List
 
+import numpy as np
+
 from moving_targets.callbacks import StatsLogger
 from moving_targets.util.errors import not_implemented_message
 from moving_targets.util.typing import Dataset
@@ -27,10 +29,10 @@ class Learner(StatsLogger):
     def log(self, **cache):
         self._macs.log(**cache)
 
-    def on_process_start(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_process_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._macs = macs
 
-    def on_process_end(self, macs, val_data: Optional[Dataset], **additional_kwargs):
+    def on_process_end(self, macs, val_data: Optional[Dataset]):
         self._macs = None
 
     def fit(self, x, y, **additional_kwargs):

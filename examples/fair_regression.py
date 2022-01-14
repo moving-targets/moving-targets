@@ -8,6 +8,8 @@ from sklearn.model_selection import train_test_split
 from moving_targets import MACS
 from moving_targets.learners import LinearRegression
 from moving_targets.masters import SingleTargetRegression
+from moving_targets.masters.losses import regression_loss
+from moving_targets.masters.optimizers import BetaBoundedSatisfiability
 from moving_targets.metrics import DIDI, R2, MSE
 
 
@@ -21,7 +23,6 @@ class FairRegression(SingleTargetRegression):
         # lb         : the model variables lower bounds.
         # ub         : the model variables upper bounds.
         # alpha      : the non-negative real number which is used to calibrate the two losses in the alpha step
-        # beta       : the non-negative real number which is used to constraint the p_loss in the beta step
         # time_limit : the maximal time for which the master can run during each iteration.
         # ------------------------------------------------------------------------------------------------------
         # didi       : a DIDI metric instance used to compute both the indicator matrices and the satisfiability
@@ -31,6 +32,8 @@ class FairRegression(SingleTargetRegression):
         # the constraint is satisfied if the percentage DIDI is lower or equal to the expected violation; moreover,
         # since we know that the predictions must be positive, so we clip them to 0.0 in order to avoid (wrong)
         # negative predictions to influence the satisfiability computation
+        loss = regression_loss(loss)
+        beta = None if beta is None else BetaBoundedSatisfiability(initial_value=beta, loss=loss, lb=lb, ub=ub)
         super().__init__(satisfied=lambda x, y, p: self.didi(x=x, y=y, p=p.clip(0.0)) <= self.violation,
                          backend=backend, lb=lb, ub=ub, alpha=alpha, beta=beta, y_loss=loss, p_loss=loss)
 

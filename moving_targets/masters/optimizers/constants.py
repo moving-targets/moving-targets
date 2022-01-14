@@ -1,18 +1,19 @@
+import numpy as np
+
 from moving_targets.masters.optimizers.optimizer import Optimizer
-from moving_targets.util.typing import Number
 
 
 class ConstantValue(Optimizer):
     """Constant optimizer which can be used for both alpha and beta."""
 
-    def _strategy(self, value, macs, x, y, p) -> Number:
-        return value
+    def __call__(self, macs, x, y: np.ndarray, p: np.ndarray) -> float:
+        return self.initial_value
 
 
 class ConstantSlope(Optimizer):
-    """Optimizer which reduces the hyper-parameter value by the same factor after each update."""
+    """Optimizer which reduces the hyper-parameter value by the same factor after each iteration."""
 
-    def __init__(self, initial_value: Number, slope: Number = 2):
+    def __init__(self, initial_value: float, slope: float = 2):
         """
         :param initial_value:
             The initial value for the hyper-parameter to optimize.
@@ -24,8 +25,8 @@ class ConstantSlope(Optimizer):
 
         super(ConstantSlope, self).__init__(initial_value=initial_value)
 
-        self.factor = slope
+        self.slope = slope
         """The slope used to decrease the hyper-parameter value"""
 
-    def _strategy(self, value, macs, x, y, p) -> Number:
-        return value / self.factor
+    def __call__(self, macs, x, y: np.ndarray, p: np.ndarray) -> float:
+        return self.initial_value / (self.slope ** macs.iteration)

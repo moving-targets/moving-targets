@@ -5,7 +5,6 @@ from moving_targets.masters.losses import Loss
 from moving_targets.masters.optimizers.optimizer import Optimizer
 from moving_targets.util import probabilities
 from moving_targets.util.errors import not_implemented_message
-from moving_targets.util.typing import Number
 
 
 class BetaSatisfiabilityOptimizer(Optimizer):
@@ -29,7 +28,7 @@ class BetaSatisfiabilityOptimizer(Optimizer):
     variables in order to let the master compute this error relying on its inner loss.
     """
 
-    def __init__(self, initial_value: Number, loss: Loss):
+    def __init__(self, initial_value: float, loss: Loss):
         """
         :param initial_value:
             The initial value for the hyper-parameter to optimize.
@@ -42,7 +41,7 @@ class BetaSatisfiabilityOptimizer(Optimizer):
         self.loss = loss
         """The master 'p_loss' instance."""
 
-    def _expected_variables(self, macs, x, y, p) -> np.ndarray:
+    def _expected_variables(self, macs, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         """Computes the expected "model" representation of the predictions.
 
         :param macs:
@@ -62,7 +61,8 @@ class BetaSatisfiabilityOptimizer(Optimizer):
         """
         raise NotImplementedError(not_implemented_message(name='_expected_variables'))
 
-    def _strategy(self, value, macs, x, y, p) -> Number:
+    def __call__(self, macs, x, y: np.ndarray, p: np.ndarray) -> float:
+        value = self.initial_value
         if p is not None:
             # in order to implement the adaptive strategy used to avoid model infeasibility due to the beta constraint
             # we rely on the NumpyBackend instance which can compute the value of the given loss between two numpy
@@ -81,7 +81,7 @@ class BetaClassSatisfiability(BetaSatisfiabilityOptimizer):
     that is not dependent from the constraint satisfaction.
     """
 
-    def _expected_variables(self, macs, x, y, p) -> np.ndarray:
+    def _expected_variables(self, macs, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         # the classes are obtained using the 'get_classes' method and then onehot encoded for compatibility
         classes = probabilities.get_classes(prob=p)
         return probabilities.get_onehot(vector=classes, classes=len(np.unique(y)), onehot_binary=False)
@@ -91,12 +91,12 @@ class BetaBoundedSatisfiability(BetaSatisfiabilityOptimizer):
     """Beta Satisfiability Optimizer which adjusts the hyper-parameter value by computing the minimal error amount
     between the model predictions and their constrained representation which must satisfy the lower and upper bounds.
 
-    This may be useful when dealing with regression losses that is unconstrained (due to the emplyed machine learning
+    This may be useful when dealing with regression losses that is unconstrained (due to the employed machine learning
     model) while putting some lower/upper bounds constraints in the solver, since in that case there will be an amount
     of error in the p_loss that is not dependent from the constraint satisfaction.
     """
 
-    def __init__(self, initial_value: Number, loss: Loss, lb: Number = -float('inf'), ub: Number = float('inf')):
+    def __init__(self, initial_value: float, loss: Loss, lb: float = -float('inf'), ub: float = float('inf')):
         """
         :param initial_value:
             The initial value for the hyper-parameter to optimize.
@@ -112,12 +112,12 @@ class BetaBoundedSatisfiability(BetaSatisfiabilityOptimizer):
         """
         super(BetaBoundedSatisfiability, self).__init__(initial_value=initial_value, loss=loss)
 
-        self.lb: Number = lb
+        self.lb: float = lb
         """The model variables lower bounds."""
 
-        self.ub: Number = ub
+        self.ub: float = ub
         """The model variables upper bounds."""
 
-    def _expected_variables(self, macs, x, y, p) -> np.ndarray:
+    def _expected_variables(self, macs, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         # the constrained representation is obtained by projecting the predictions in the feasible space via clipping
         return p.clip(min=self.lb, max=self.ub)

@@ -2,6 +2,8 @@
 import time
 from typing import List, Dict, Callable, Union, Optional, Any, Set
 
+import numpy as np
+
 from moving_targets.callbacks.callback import Callback
 from moving_targets.callbacks.console_logger import ConsoleLogger
 from moving_targets.callbacks.file_logger import FileLogger
@@ -191,22 +193,22 @@ class MACS(StatsLogger):
         """
         return self._compute_metrics(x=x, y=y, p=self.predict(x), prefix=None)
 
-    def on_iteration_start(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_iteration_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._log_stats(iteration=self.iteration)
         self._time = time.time()
 
-    def on_adjustment_end(self, macs, x, y, adjusted_y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y, val_data: Optional[Dataset]):
         # log metrics on adjusted data
         self.log(**self._compute_metrics(x=x, y=y, p=adjusted_y, prefix='adjusted'))
 
-    def on_training_end(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_training_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         # log metrics on training data
         self.log(**self._compute_metrics(x=x, y=y, p=self.predict(x), prefix='predictions'))
         # log metrics on validation data
         for name, (xv, yv) in val_data.items():
             self.log(**self._compute_metrics(x=xv, y=yv, p=self.predict(xv), prefix=name))
 
-    def on_iteration_end(self, macs, x, y, val_data: Optional[Dataset], **additional_kwargs):
+    def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._log_stats(elapsed_time=time.time() - self._time)
 
     def _compute_metrics(self, x, y, p, prefix: Optional[str] = None):
