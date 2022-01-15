@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 
 from moving_targets.masters.backends import NumpyBackend
@@ -7,20 +9,19 @@ from moving_targets.util import probabilities
 from moving_targets.util.errors import not_implemented_message
 
 
-class BetaSatisfiabilityOptimizer(Optimizer):
-    """Abstract Optimizer which should be used to control the behaviour of beta when dealing with satisfiability.
+class BetaSatisfiability(Optimizer):
+    """Dynamic Optimizer which should be used to control the behaviour of beta when dealing with satisfiability.
 
     Indeed, when using the beta step, it may be necessary to adopt an adaptive strategy in order to avoid the MACS
     process to stop due to the constraint 'p_loss <= beta' leading to infeasibility, since there are some cases in
-    which the constraint satisfiability does not imply a null p_loss due to, e.g.:
-      > the adoption of class probabilities instead of class targets in classification problems, in fact, since
-        most of the classification losses (apart from HammingDistance) use class probabilities while the
-        satisfiability is usually computed on class targets instead, there will always be a minimal amount of error
-        due to the loss discrepancy between binary and continuous variables
-      > the presence of some lower/upper bounds in regression problems that are not considered in the constraint
-        satisfiability definition but are required by the model variables definition, which may happen for example
-        if we know that our targets must be non-negative (thus we force our lower bound to be 0) but the learner
-        might return some negative predictions that will introduce an error in the p_loss
+    which the constraint satisfiability does not imply a null p_loss due to, e.g., (1) the usage of class probabilities
+    instead of class targets in classification problems, in fact, since most of the classification losses (apart from
+    HammingDistance) use class probabilities while the satisfiability is usually computed on class targets instead,
+    there will always be a minimal amount of error due to the loss discrepancy between binary and continuous variables,
+    or (2) the presence of some lower/upper bounds in regression problems that are not considered in the constraint
+    satisfiability definition but are required by the model variables definition, which may happen for example if we
+    know that our targets must be non-negative (thus we force our lower bound to be 0) but the learner might return
+    some negative predictions that will introduce an error in the p_loss.
 
     Still, this minimal error can be measured as the loss between the predictions and their "model" representation,
     which involves variable bounds in the case of regression and the handling of targets and probabilities in the case
@@ -28,15 +29,16 @@ class BetaSatisfiabilityOptimizer(Optimizer):
     variables in order to let the master compute this error relying on its inner loss.
     """
 
-    def __init__(self, initial_value: float, loss: Loss):
+    def __init__(self, base: Union[float, Optimizer], loss: Loss):
         """
-        :param initial_value:
-            The initial value for the hyper-parameter to optimize.
+        :param base:
+            Either a fixed floating point value representing the initial value for the hyper-parameter to optimize, or
+            a wrapped custom optimizer which returns a dynamic value to reduce by the given factor after each iteration.
 
         :param loss:
             The master 'p_loss' instance.
         """
-        super(BetaSatisfiabilityOptimizer, self).__init__(initial_value=initial_value)
+        super(BetaSatisfiability, self).__init__(base=base)
 
         self.loss = loss
         """The master 'p_loss' instance."""
@@ -62,7 +64,7 @@ class BetaSatisfiabilityOptimizer(Optimizer):
         raise NotImplementedError(not_implemented_message(name='_expected_variables'))
 
     def __call__(self, macs, x, y: np.ndarray, p: np.ndarray) -> float:
-        value = self.initial_value
+        value = super(BetaSatisfiability, self).__call__(macs, x, y, p)
         if p is not None:
             # in order to implement the adaptive strategy used to avoid model infeasibility due to the beta constraint
             # we rely on the NumpyBackend instance which can compute the value of the given loss between two numpy
@@ -72,7 +74,7 @@ class BetaSatisfiabilityOptimizer(Optimizer):
         return value
 
 
-class BetaClassSatisfiability(BetaSatisfiabilityOptimizer):
+class BetaClassSatisfiability(BetaSatisfiability):
     """Beta Satisfiability Optimizer which adjusts the hyper-parameter value by computing the minimal error amount
     between the predicted probabilities and their class representation.
 
@@ -87,7 +89,7 @@ class BetaClassSatisfiability(BetaSatisfiabilityOptimizer):
         return probabilities.get_onehot(vector=classes, classes=len(np.unique(y)), onehot_binary=False)
 
 
-class BetaBoundedSatisfiability(BetaSatisfiabilityOptimizer):
+class BetaBoundedSatisfiability(BetaSatisfiability):
     """Beta Satisfiability Optimizer which adjusts the hyper-parameter value by computing the minimal error amount
     between the model predictions and their constrained representation which must satisfy the lower and upper bounds.
 
@@ -96,10 +98,11 @@ class BetaBoundedSatisfiability(BetaSatisfiabilityOptimizer):
     of error in the p_loss that is not dependent from the constraint satisfaction.
     """
 
-    def __init__(self, initial_value: float, loss: Loss, lb: float = -float('inf'), ub: float = float('inf')):
+    def __init__(self, base: float, loss: Loss, lb: float = -float('inf'), ub: float = float('inf')):
         """
-        :param initial_value:
-            The initial value for the hyper-parameter to optimize.
+        :param base:
+            Either a fixed floating point value representing the initial value for the hyper-parameter to optimize, or
+            a wrapped custom optimizer which returns a dynamic value to reduce by the given factor after each iteration.
 
         :param loss:
             The master 'p_loss' instance.
@@ -110,7 +113,7 @@ class BetaBoundedSatisfiability(BetaSatisfiabilityOptimizer):
         :param ub:
             The model variables upper bounds.
         """
-        super(BetaBoundedSatisfiability, self).__init__(initial_value=initial_value, loss=loss)
+        super(BetaBoundedSatisfiability, self).__init__(base=base, loss=loss)
 
         self.lb: float = lb
         """The model variables lower bounds."""

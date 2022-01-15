@@ -6,7 +6,6 @@ import numpy as np
 
 from moving_targets.callbacks import StatsLogger
 from moving_targets.masters.backends.backend import Backend
-from moving_targets.masters.optimizers import ConstantValue
 from moving_targets.masters.optimizers.optimizer import Optimizer
 from moving_targets.util.errors import not_implemented_message
 from moving_targets.util.typing import Dataset
@@ -21,38 +20,33 @@ class Master(StatsLogger):
 
     def __init__(self,
                  backend: Backend,
-                 alpha: Union[None, float, Optimizer],
-                 beta: Union[None, float, Optimizer],
+                 alpha: Optional[Optimizer],
+                 beta: Optional[Optimizer],
                  stats: Union[bool, List[str]] = False):
         """
         :param backend:
             The `Backend` instance encapsulating the optimization solver.
 
         :param alpha:
-            Either a constant alpha value, an alpha optimizer, or None if no alpha step is wanted.
+            Either an optimizer for the alpha value, or None if no alpha step is wanted.
 
         :param beta:
-            Either a constant beta value, a beta optimizer, or None if no beta step is wanted.
+            Either an optimizer for the beta value, or None if no beta step is wanted.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters in ['alpha',
             'beta', 'use_beta', 'y_loss', 'p_loss', 'objective'] whose statistics must be logged.
         """
-        def _get_optimizer(value):
-            if isinstance(value, float) or isinstance(value, int):
-                return ConstantValue(initial_value=value)
-            else:
-                return value
 
         super(Master, self).__init__(stats=stats, logger='Master')
 
         self.backend: Backend = backend
         """The `Backend` instance encapsulating the optimization solver."""
 
-        self._alpha: Optional[Optimizer] = _get_optimizer(value=alpha)
+        self._alpha: Optional[Optimizer] = alpha
         """The alpha optimizer, or None if no alpha step is wanted."""
 
-        self._beta: Optional[Optimizer] = _get_optimizer(value=beta)
+        self._beta: Optional[Optimizer] = beta
         """The beta optimizer, or None if no beta step is wanted."""
 
         self._macs: Optional = None
@@ -207,5 +201,6 @@ class Master(StatsLogger):
             p_loss=None if p_loss is None else self.backend.get_value(p_loss),
             objective=self.backend.get_objective()
         )
+        solution = self.solution(x=x, y=y, p=pred, v=var)
         self.backend.clear()
-        return self.solution(x=x, y=y, p=pred, v=var)
+        return solution

@@ -528,9 +528,12 @@ class Backend:
         """
         a = a if a.ndim == 2 else a.reshape((1, len(a)))
         b = b if b.ndim == 2 else b.reshape((len(b), 1))
-        r = np.empty((a.shape[0], b.shape[1]))
+        # we use a list of lists instead of an array to let numpy handle the data type on its own
+        r = []
         for i, row in enumerate(a):
+            r.append([])
             for j, column in enumerate(b.T):
                 pairwise_products = self.multiply(a=row, b=column, aux=aux)
-                r[i, j] = self.sum(pairwise_products, aux=aux)
+                r[i].append(self.sum(pairwise_products, aux=aux))
+        r = np.array(r)
         return r[0, 0] if r.size == 1 else r.squeeze()

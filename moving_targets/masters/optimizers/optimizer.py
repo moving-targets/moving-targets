@@ -2,20 +2,19 @@
 
 import numpy as np
 
-from moving_targets.util.errors import not_implemented_message
-
 
 class Optimizer:
     """Basic interface for a Moving Targets Master Optimizer."""
 
-    def __init__(self, initial_value: float):
+    def __init__(self, base):
         """
-        :param initial_value:
-            The initial value for the hyper-parameter to optimize.
+        :param base:
+            Either a fixed floating point value representing the initial value for the hyper-parameter to optimize, or
+            a wrapped custom optimizer which returns a dynamic value to reduce by the given factor after each iteration.
         """
 
-        self.initial_value: float = initial_value
-        """The initial value for the hyper-parameter to optimize."""
+        self.base = lambda macs, x, y, p: base if isinstance(base, float) or isinstance(base, int) else base
+        """The base value of the hyper-parameter to optimize or a base optimizer wrapper."""
 
     def __call__(self, macs, x, y: np.ndarray, p: np.ndarray) -> float:
         """Returns the current value for the hyper-parameter, computed via the custom optimization strategy.
@@ -35,4 +34,4 @@ class Optimizer:
         :return:
             The current value of the hyper-parameter to optimize.
         """
-        raise NotImplementedError(not_implemented_message(name='__call__'))
+        return self.base(macs=macs, x=x, y=y, p=p)

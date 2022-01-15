@@ -10,8 +10,6 @@ from moving_targets import MACS
 from moving_targets.callbacks import Callback
 from moving_targets.learners import LogisticRegression
 from moving_targets.masters import SingleTargetClassification
-from moving_targets.masters.losses import classification_loss
-from moving_targets.masters.optimizers import BetaClassSatisfiability
 from moving_targets.metrics import Accuracy, ClassFrequenciesStd, CrossEntropy
 from moving_targets.util import probabilities
 
@@ -32,8 +30,6 @@ class BalancedCounts(SingleTargetClassification):
             max_count = np.ceil(len(y) / len(classes))
             return np.all(counts <= max_count)
 
-        loss = classification_loss(loss)
-        beta = None if beta is None else BetaClassSatisfiability(initial_value=beta, loss=loss)
         super().__init__(backend=backend, satisfied=satisfied, alpha=alpha, beta=beta, y_loss='hd', p_loss=loss)
 
     # here we define the problem formulation, i.e., variables and constraints

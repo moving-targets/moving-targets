@@ -9,8 +9,6 @@ from moving_targets import MACS
 from moving_targets.learners import LogisticRegression
 from moving_targets.masters import SingleTargetClassification
 from moving_targets.masters.backends import GurobiBackend
-from moving_targets.masters.losses import classification_loss
-from moving_targets.masters.optimizers import BetaClassSatisfiability
 from moving_targets.metrics import DIDI, CrossEntropy, Accuracy
 
 
@@ -30,8 +28,6 @@ class FairClassification(SingleTargetClassification):
         self.violation = violation
         self.didi = DIDI(protected=protected, classification=True, percentage=True)
         # the constraint is satisfied if the percentage DIDI is lower or equal to the expected violation
-        loss = classification_loss(loss)
-        beta = None if beta is None else BetaClassSatisfiability(initial_value=beta, loss=loss)
         super().__init__(satisfied=lambda x, y, p: self.didi(x=x, y=y, p=p) <= self.violation,
                          backend=backend, alpha=alpha, beta=beta, y_loss='hd', p_loss=loss)
 

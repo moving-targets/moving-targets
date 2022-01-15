@@ -1,5 +1,5 @@
 """Abstract Default Masters."""
-from typing import Any, Callable, Union, List
+from typing import Any, Callable, Union, List, Optional
 
 import numpy as np
 
@@ -7,7 +7,7 @@ from moving_targets.masters.backends import Backend, get_backend as get_bk
 from moving_targets.masters.losses import regression_loss as reg_loss, classification_loss as cls_loss
 from moving_targets.masters.losses.loss import Loss
 from moving_targets.masters.master import Master
-from moving_targets.masters.optimizers import Optimizer
+from moving_targets.masters.optimizers import Optimizer, BetaBoundedSatisfiability, BetaClassSatisfiability
 from moving_targets.util import probabilities
 
 
@@ -20,8 +20,8 @@ class SingleTargetMaster(Master):
                  vtype: str,
                  lb: float,
                  ub: float,
-                 alpha: Union[None, float, Optimizer],
-                 beta: Union[None, float, Optimizer],
+                 alpha: Optional[Optimizer],
+                 beta: Optional[Optimizer],
                  y_loss: Loss,
                  p_loss: Loss,
                  stats: Union[bool, List[str]] = False):
@@ -152,6 +152,8 @@ class SingleTargetRegression(SingleTargetMaster):
         backend = get_bk(backend) if isinstance(backend, str) else backend
         y_loss = reg_loss(y_loss) if isinstance(y_loss, str) else y_loss
         p_loss = reg_loss(p_loss) if isinstance(p_loss, str) else p_loss
+        alpha = None if alpha is None else Optimizer(base=alpha)
+        beta = None if beta is None else BetaBoundedSatisfiability(base=beta, loss=p_loss, lb=lb, ub=ub)
         super(SingleTargetRegression, self).__init__(backend=backend,
                                                      satisfied=satisfied,
                                                      y_loss=y_loss,
@@ -202,6 +204,8 @@ class SingleTargetClassification(SingleTargetMaster):
         backend = get_bk(backend) if isinstance(backend, str) else backend
         y_loss = cls_loss(y_loss) if isinstance(y_loss, str) else y_loss
         p_loss = cls_loss(p_loss) if isinstance(p_loss, str) else p_loss
+        alpha = None if alpha is None else Optimizer(base=alpha)
+        beta = None if beta is None else BetaClassSatisfiability(base=beta, loss=p_loss)
         vtype = 'continuous' if (y_loss.use_continuous_targets or p_loss.use_continuous_targets) else 'binary'
         super(SingleTargetClassification, self).__init__(backend=backend,
                                                          satisfied=satisfied,
