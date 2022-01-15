@@ -91,26 +91,26 @@ class GurobiBackend(Backend):
         values = [v.x if isinstance(v, self._gp.Var) else v.getValue() for v in expressions.flatten()]
         return np.reshape(values, expressions.shape)
 
-    def sum(self, vector: np.ndarray, aux: Optional[str] = None) -> Any:
-        return self.aux(expressions=np.sum(vector), aux_vtype=aux)
+    def sum(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
+        return self.aux(expressions=np.sum(a), aux_vtype=aux)
 
-    def sqr(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
-        return self.aux(expressions=vector ** 2, aux_vtype=aux)
+    def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        return self.aux(expressions=a ** 2, aux_vtype=aux)
 
-    def abs(self, vector: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
+    def abs(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
         self._aux_warning(exp='continuous', aux=aux, msg='needs aux variables to compute absolute values')
         # creating auxiliary variables is necessary since 'addGenConstrAbs' does not accept expressions
-        aux_vector = self.aux(expressions=vector.flatten(), aux_vtype='continuous')
+        aux_vector = self.aux(expressions=a.flatten(), aux_vtype='continuous')
         abs_vector = self.add_continuous_variables(len(aux_vector), lb=0.0, ub=float('inf'))
         for aux_var, abs_var in zip(aux_vector, abs_vector):
             self.model.addGenConstrAbs(abs_var, aux_var)
-        return np.reshape(abs_vector, vector.shape)
+        return np.reshape(abs_vector, a.shape)
 
-    def log(self, vector: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
+    def log(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
         self._aux_warning(exp='continuous', aux=aux, msg='needs aux variables to compute logarithms')
         # creating auxiliary variables is necessary since 'addGenConstrExp' does not accept expressions
-        aux_vector = self.aux(expressions=vector.flatten(), aux_vtype='continuous')
+        aux_vector = self.aux(expressions=a.flatten(), aux_vtype='continuous')
         log_vector = self.add_continuous_variables(len(aux_vector), lb=-float('inf'), ub=float('inf'))
         for aux_var, log_var in zip(aux_vector, log_vector):
             self.model.addGenConstrExp(log_var, aux_var)
-        return np.reshape(log_vector, vector.shape)
+        return np.reshape(log_vector, a.shape)

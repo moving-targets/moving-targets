@@ -23,7 +23,7 @@ class RegressionLoss(Loss):
         assert norm in [1, 2], f"norm must be either '1' for absolute errors or '2' for squared errors, but is {norm}"
         super(RegressionLoss, self).__init__(aggregation=aggregation, name=name)
 
-        self._norm: Callable = (lambda b, v: b.abs(v)) if norm == 1 else (lambda b, v: b.sqr(v))
+        self._norm: Callable = (lambda b, v: b.abs(v)) if norm == 1 else (lambda b, v: b.square(v))
         """The norm strategy."""
 
     def _losses(self, backend: Backend, numeric_variables: np.ndarray, model_variables: np.ndarray) -> np.ndarray:

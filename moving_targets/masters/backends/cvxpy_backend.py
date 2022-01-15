@@ -86,16 +86,16 @@ class CvxpyBackend(Backend):
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return np.reshape([v.value.squeeze() for v in expressions.flatten()], expressions.shape)
 
-    def sum(self, vector: np.ndarray, aux: Optional[str] = None) -> Any:
-        return self.aux(expressions=vector.sum(), aux_vtype=aux)
+    def sum(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
+        return self.aux(expressions=a.sum(), aux_vtype=aux)
 
-    def sqr(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
-        return self.aux(expressions=vector ** 2, aux_vtype=aux)
+    def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        return self.aux(expressions=a ** 2, aux_vtype=aux)
 
-    def abs(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
-        expressions = np.reshape([self._cp.abs(v) for v in vector.flatten()], vector.shape)
+    def abs(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        expressions = np.reshape([self._cp.abs(v) for v in a.flatten()], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)
 
-    def log(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
-        expressions = np.reshape([self._cp.log(v) for v in vector.flatten()], vector.shape)
+    def log(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        expressions = np.reshape([self._cp.log(v) for v in a.flatten()], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)

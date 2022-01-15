@@ -36,15 +36,15 @@ class NumpyBackend(Backend):
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return expressions
 
-    def sum(self, vector: np.ndarray, aux: Optional[str] = None) -> Any:
+    def sum(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
         # since the super method calls 'add_continuous_variable' which raises an error, override it
-        return np.sum(vector)
+        return np.sum(a)
 
-    def sqr(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
-        return vector ** 2
+    def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        return a ** 2
 
-    def abs(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
-        return np.abs(vector)
+    def abs(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        return np.abs(a)
 
-    def log(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
-        return np.log(vector)
+    def log(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        return np.log(a)

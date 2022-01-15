@@ -362,11 +362,11 @@ class Backend:
             self.add_constraints([v == e for v, e in zip(variables.flatten(), expressions.flatten())])
             return variables[0] if variables.size == 1 else variables
 
-    def sum(self, vector: np.ndarray, aux: Optional[str] = None) -> Any:
-        """Computes the sum of a vector of variables.
+    def sum(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
+        """Computes the sum of an array of variables.
 
-        :param vector:
-            A vector of model variables.
+        :param a:
+            An array of model variables.
 
         :param aux:
             If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
@@ -379,11 +379,11 @@ class Backend:
         """
         raise NotImplementedError(not_implemented_message(name='sum'))
 
-    def mean(self, vector: np.ndarray, aux: Optional[str] = None) -> Any:
-        """Computes the mean of a vector of variables.
+    def mean(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
+        """Computes the mean of an array of variables.
 
-        :param vector:
-            A vector of model variables.
+        :param a:
+            An array of model variables.
 
         :param aux:
             If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
@@ -394,14 +394,14 @@ class Backend:
         :return:
             The variables mean.
         """
-        sum_expression = self.sum(vector, aux=aux)
-        return self.aux(sum_expression / len(vector), aux_vtype=aux)
+        sum_expression = self.sum(a, aux=aux)
+        return self.aux(sum_expression / a.size, aux_vtype=aux)
 
-    def sqr(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
-        """Computes the squared values over a vector of variables.
+    def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        """Computes the squared values over an array of variables.
 
-        :param vector:
-            A vector of model variables.
+        :param a:
+            An array of model variables.
 
         :param aux:
             If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
@@ -414,11 +414,11 @@ class Backend:
         """
         raise AssertionError(self._ERROR_MESSAGE + 'squared values')
 
-    def abs(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def abs(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         """Computes the absolute values over a vector of variables.
 
-        :param vector:
-            A vector of model variables.
+        :param a:
+            An array of model variables.
 
         :param aux:
             If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
@@ -431,11 +431,11 @@ class Backend:
         """
         raise AssertionError(self._ERROR_MESSAGE + 'absolute values')
 
-    def log(self, vector: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
-        """Computes the logarithms over a vector of variables.
+    def log(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        """Computes the logarithms over an array of variables.
 
-        :param vector:
-            A vector of model variables.
+        :param a:
+            An array of model variables.
 
         :param aux:
             If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
@@ -448,34 +448,14 @@ class Backend:
         """
         raise AssertionError(self._ERROR_MESSAGE + 'logarithms')
 
-    def add(self, vector1: np.ndarray, vector2: np.ndarray, aux: Optional[str] = None):
-        """Performs the pairwise sum between two vectors.
+    def add(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+        """Performs the pairwise sum between two arrays.
 
-        :param vector1:
-            The first vector.
+        :param a:
+            The first array.
 
-        :param vector2:
-            The second vector.
-
-        :param aux:
-            If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
-
-        :return:
-            The array of pairwise sums between vector1 and vector2.
-        """
-        return self.aux(expressions=vector1 + vector2, aux_vtype=aux)
-
-    def multiply(self, vector1: np.ndarray, vector2: np.ndarray, aux: Optional[str] = None):
-        """Performs the pairwise product between two vectors.
-
-        :param vector1:
-            The first vector.
-
-        :param vector2:
-            The second vector.
+        :param b:
+            The second array.
 
         :param aux:
             If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
@@ -484,18 +464,18 @@ class Backend:
             constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :return:
-            The array of pairwise products between vector1 and vector2.
+            The array of pairwise sums between a and b.
         """
-        return self.aux(expressions=vector1 * vector2, aux_vtype=aux)
+        return self.aux(expressions=a + b, aux_vtype=aux)
 
-    def divide(self, vector1: np.ndarray, vector2: np.ndarray, aux: Optional[str] = None):
-        """Performs the pairwise division between two vectors.
+    def multiply(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+        """Performs the pairwise product between two arrays.
 
-        :param vector1:
-            The first vector.
+        :param a:
+            The first array.
 
-        :param vector2:
-            The second vector.
+        :param b:
+            The second array.
 
         :param aux:
             If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
@@ -504,18 +484,18 @@ class Backend:
             constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :return:
-            The array of pairwise divisions between vector1 and vector2.
+            The array of pairwise products between a and b.
         """
-        return self.aux(expressions=vector1 / vector2, aux_vtype=aux)
+        return self.aux(expressions=a * b, aux_vtype=aux)
 
-    def dot(self, vector1: np.ndarray, vector2: np.ndarray, aux: Optional[str] = None) -> Any:
-        """Performs the vector product between two vectors.
+    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+        """Performs the pairwise division between two arrays.
 
-        :param vector1:
-            The first vector.
+        :param a:
+            The first array.
 
-        :param vector2:
-            The second vector.
+        :param b:
+            The second array.
 
         :param aux:
             If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
@@ -524,7 +504,33 @@ class Backend:
             constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :return:
-            The dot product between vector1 and vector2.
+            The array of pairwise divisions between a and b.
         """
-        product_expression = self.multiply(vector1=vector1, vector2=vector2, aux=aux)
-        return self.aux(expressions=self.sum(product_expression), aux_vtype=aux)
+        return self.aux(expressions=a / b, aux_vtype=aux)
+
+    def dot(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None) -> Union[Any, np.ndarray]:
+        """Performs the vector product between two arrays.
+
+        :param a:
+            The first array (at most 2d).
+
+        :param b:
+            The second array (at most 2d).
+
+        :param aux:
+            If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
+            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
+            huge datasets since they can considerably speedup the model formulation; still, imposing equality
+            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+
+        :return:
+            The dot product between a and b.
+        """
+        a = a if a.ndim == 2 else a.reshape((1, len(a)))
+        b = b if b.ndim == 2 else b.reshape((len(b), 1))
+        r = np.empty((a.shape[0], b.shape[1]))
+        for i, row in enumerate(a):
+            for j, column in enumerate(b.T):
+                pairwise_products = self.multiply(a=row, b=column, aux=aux)
+                r[i, j] = self.sum(pairwise_products, aux=aux)
+        return r[0, 0] if r.size == 1 else r.squeeze()
