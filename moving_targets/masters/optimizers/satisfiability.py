@@ -98,7 +98,7 @@ class BetaBoundedSatisfiability(BetaSatisfiability):
     of error in the p_loss that is not dependent from the constraint satisfaction.
     """
 
-    def __init__(self, base: float, loss: Loss, lb: float = -float('inf'), ub: float = float('inf')):
+    def __init__(self, base: Union[float, Optimizer], loss: Loss, lb: float = -float('inf'), ub: float = float('inf')):
         """
         :param base:
             Either a fixed floating point value representing the initial value for the hyper-parameter to optimize, or
