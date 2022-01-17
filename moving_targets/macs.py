@@ -50,7 +50,7 @@ class MACS(StatsLogger):
             Either a boolean value indicating whether or not to log statistics, or a list of parameters in
             ['iteration', 'elapsed_time'] whose statistics must be logged.
         """
-        super(MACS, self).__init__(stats=stats, logger='MACS')
+        super(MACS, self).__init__(stats=stats, name='MACS')
         assert init_step in ['pretraining', 'projection'], f"'{init_step}' is not a valid initial step"
 
         self.master: Master = master
@@ -211,9 +211,24 @@ class MACS(StatsLogger):
     def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._log_stats(elapsed_time=time.time() - self._time)
 
-    def _compute_metrics(self, x, y, p, prefix: Optional[str] = None):
+    def _compute_metrics(self, x, y, p, prefix: Optional[str] = None) -> Dict[str, float]:
         prefix = "" if prefix is None else f'{prefix}/'
-        return {f'{prefix}{metric.__name__}': metric(x, y, p) for metric in self.metrics}
+        metrics = {}
+        for metric in self.metrics:
+            value = metric(x, y, p)
+            if isinstance(value, float):
+                # if the metric is a single metric, directly assign the value
+                metrics[f'{prefix}{metric.__name__}'] = value
+            elif isinstance(value, dict):
+                # if the metric is a multi metric, assign each value per feature by using an underscore as a separator
+                for k, v in value.items():
+                    metrics[f'{prefix}{metric.__name__}_{k}'] = v
+            else:
+                # handle array-like return type by giving a warning
+                self.logger.warning(f"Metric '{metric.__name__}' should return either a float or a dictionary.")
+                for i, v in enumerate(value):
+                    metrics[f'{prefix}{metric.__name__}_{i}'] = v
+        return metrics
 
     def _update_callbacks(self, callbacks: List[Callback], routine: Callable):
         """Runs the given routine for each one of the given callbacks, plus the routine for the `MACS` object itself

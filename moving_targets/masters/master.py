@@ -39,7 +39,7 @@ class Master(StatsLogger):
             'beta', 'use_beta', 'y_loss', 'p_loss', 'objective'] whose statistics must be logged.
         """
 
-        super(Master, self).__init__(stats=stats, logger='Master')
+        super(Master, self).__init__(stats=stats, name='Master')
 
         self.backend: Backend = backend
         """The `Backend` instance encapsulating the optimization solver."""

@@ -1,6 +1,6 @@
 """Constraints Metrics."""
 
-from typing import Optional, Callable
+from typing import Optional, Callable, List, Union, Dict
 
 import numpy as np
 import pandas as pd
@@ -236,3 +236,53 @@ class MonotonicViolation(Metric):
         # then filter out values under the threshold
         violations[violations < self.eps] = 0.0
         return self.aggregate(violations)
+
+
+class CausalIndependence(Metric):
+    """Measure of Causal Independence obtained as the weight(s) of a linear regressor trained on a sub-dataset with the
+    given feature(s) only.
+
+    Let A be the (N, K) matrix of inputs related to the given features, where <N> is the number of data samples and <K>
+    is the number of given features, then A[i, j] represents the i-th value of the j-th given feature in the dataset.
+    We measure the casual relationship between each given feature and the output by training a linear regressor on the
+    pair (A, y), thus solving the linear system:
+        A.T @ w = (A.T @ A) @ y,
+    with w being the learned weights respective to each one of the given features. The level of independence between
+    A[i] and y is thus measured as abs(w[i]), since lower w[i] means that the i-th feature is not informative enough to
+    let the regressor capture a trend to predict y.
+    """
+
+    def __init__(self, features: List, aggregation: Union[None, str, Callable] = 'sum', name: str = 'independence'):
+        """
+        :param features:
+            The list of features to inspect.
+
+        :param aggregation:
+            The aggregation policy in case of multiple features. It can be either a string in ['sum', 'mean', 'max'], a
+            custom callable function taking the vector 'w' as parameter, or None to get in output the weight for each
+            feature without any aggregation.
+
+        :param name:
+            The name of the metric.
+        """
+        super(CausalIndependence, self).__init__(name=name)
+
+        self.features: List = features
+        """The list of features to inspect."""
+
+        self.aggregation: Optional[Callable] = None
+        """The aggregation policy in case of multiple features."""
+
+        if aggregation is None:
+            # if the given aggregation is None, return the weights as a dictionary indexed by feature
+            self.aggregation = lambda w: {f: v for f, v in zip(self.features, w)}
+        elif isinstance(aggregation, str):
+            # if the given aggregation is a string, use np.sum(), np.mean(), or np.max(), respectively
+            assert aggregation in ['sum', 'mean', 'max'], f"'{aggregation}' is not a supported aggregation policy"
+            self.aggregation = getattr(np, aggregation)
+        else:
+            self.aggregation = aggregation
+
+    def __call__(self, x, y, p) -> Union[float, Dict[str, float]]:
+        w, _, _, _ = np.linalg.lstsq(x[self.features], p, rcond=None)
+        return self.aggregation(np.abs(w))

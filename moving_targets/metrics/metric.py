@@ -1,4 +1,6 @@
 """Basic Metric Interface."""
+from typing import Dict, Union
+
 from moving_targets.util.errors import not_implemented_message
 
 
@@ -15,7 +17,7 @@ class Metric:
         self.__name__: str = name
         """The name of the metric."""
 
-    def __call__(self, x, y, p) -> float:
+    def __call__(self, x, y, p) -> Union[float, Dict[str, float]]:
         """Core method used to compute the metric value.
 
         :param x:
@@ -28,6 +30,6 @@ class Metric:
             The vector of predictions.
 
         :return:
-            The metric value.
+            Either a single value representing the metric, or a dictionary of multiple values for multi-metrics.
         """
         raise NotImplementedError(not_implemented_message(name='__call__'))

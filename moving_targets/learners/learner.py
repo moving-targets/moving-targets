@@ -22,7 +22,7 @@ class Learner(StatsLogger):
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
             statistics must be logged.
         """
-        super(Learner, self).__init__(stats=stats, logger='Learner')
+        super(Learner, self).__init__(stats=stats, name='Learner')
 
         self._macs: Optional = None
         """Reference to the MACS object encapsulating the `Learner`."""

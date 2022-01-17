@@ -32,13 +32,13 @@ class StatsLogger(Logger):
         """The set of all the possible parameters whose statistics may be logged."""
         raise NotImplementedError(not_implemented_message('_parameters', static=True))
 
-    def __init__(self, stats: Union[bool, List[str]], logger: Optional[str]):
+    def __init__(self, stats: Union[bool, List[str]], name: Optional[str]):
         """
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
             statistics must be logged.
 
-        :param logger:
+        :param name:
             Either a custom logger name or None (in that case, the root logger is used and no prefix is added).
         """
         super(StatsLogger, self).__init__()
@@ -54,8 +54,11 @@ class StatsLogger(Logger):
         self.parameters: Set[str] = set(stats)
         """The set of parameters whose statistics must be logged."""
 
-        self.logger: Optional[str] = logger
-        """Either a custom logger name or None (in that case, the root logger is used and no prefix is added)."""
+        self.prefix: str = '' if name is None else f'{name.lower()}/'
+        """The prefix to prepend when logging a stat."""
+
+        self.logger: Optional[logging.Logger] = logging.root if name is None else logging.getLogger(name)
+        """A logger instance."""
 
     def _log_stats(self, **params: Any):
         """Logs the statistics about the parameters if they are included in the inner 'parameters' field.
@@ -64,20 +67,13 @@ class StatsLogger(Logger):
             A dictionary which associates to each parameter name its respective value.
         """
         to_cache = {}
-        # handle logger and prefix
-        if self.logger is None:
-            prefix = ''
-            logger = logging.root
-        else:
-            prefix = self.logger.lower() + '/'
-            logger = logging.getLogger(self.logger)
         # log data:
         #   > if the parameter is in the stats set, we cache it and log it at info level
         #   > otherwise we don't cache it and log it at debug level
         for name, value in params.items():
             if name in self.parameters:
-                to_cache[f'{prefix}{name}'] = value
-                logger.info(f'{name} = {value}')
+                to_cache[f'{self.prefix}{name}'] = value
+                self.logger.info(f'{name} = {value}')
             else:
-                logger.debug(f'{name} = {value}')
+                self.logger.debug(f'{name} = {value}')
         self.log(**to_cache)
