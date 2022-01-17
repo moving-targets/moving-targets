@@ -1,4 +1,5 @@
 """Basic Learner Interface."""
+import time
 from typing import Any, Optional, Set, Union, List
 
 import numpy as np
@@ -13,9 +14,9 @@ class Learner(StatsLogger):
 
     @staticmethod
     def _parameters() -> Set[str]:
-        return set()
+        return {'elapsed_time'}
 
-    def __init__(self, stats: Union[bool, List[str]] = False):
+    def __init__(self, stats: Union[bool, List[str]]):
         """
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -26,13 +27,19 @@ class Learner(StatsLogger):
         self._macs: Optional = None
         """Reference to the MACS object encapsulating the `Learner`."""
 
+        self._time: Optional[float] = None
+        """An auxiliary variable to keep track of the elapsed time between iterations."""
+
     def log(self, **cache):
         self._macs.log(**cache)
 
-    def on_process_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
+    def on_training_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._macs = macs
+        self._time = time.time()
 
-    def on_process_end(self, macs, val_data: Optional[Dataset]):
+    def on_training_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
+        self._log_stats(elapsed_time=time.time() - self._time)
+        self._time = None
         self._macs = None
 
     def fit(self, x, y, **additional_kwargs):

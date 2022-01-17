@@ -9,15 +9,19 @@ from moving_targets.util.errors import MissingDependencyError
 class TensorflowLearner(Learner):
     """Wrapper for a custom Tensorflow/Keras model."""
 
-    def __init__(self, model, **fit_kwargs):
+    def __init__(self, model, stats: Union[bool, List[str]] = False, **fit_kwargs):
         """
         :param model:
             The Tensorflow/Keras model which should have been already compiled.
 
+        :param stats:
+            Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
+            statistics must be logged.
+
         :param fit_kwargs:
             Custom arguments to be passed to the fit function (they may be overwritten when calling `self.fit()`).
         """
-        super(TensorflowLearner, self).__init__()
+        super(TensorflowLearner, self).__init__(stats=stats)
 
         self.model = model
         """The Tensorflow/Keras model."""
@@ -54,7 +58,8 @@ class MultiLayerPerceptron(TensorflowLearner):
                  class_weight: Optional[Dict] = None,
                  sample_weight: Optional[np.ndarray] = None,
                  callbacks: Optional[List] = None,
-                 verbose: Union[bool, str] = 'auto'):
+                 verbose: Union[bool, str] = 'auto',
+                 stats: Union[bool, List[str]] = False):
         """
         :param loss:
             The neural network loss function.
@@ -106,6 +111,10 @@ class MultiLayerPerceptron(TensorflowLearner):
 
         :param verbose:
             Whether or not to print information during the neural network training.
+
+        :param stats:
+            Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
+            statistics must be logged.
         """
         try:
             from tensorflow.keras.layers import Dense
@@ -131,4 +140,5 @@ class MultiLayerPerceptron(TensorflowLearner):
                                                    callbacks=callbacks,
                                                    class_weight=class_weight,
                                                    sample_weight=sample_weight,
-                                                   verbose=verbose)
+                                                   verbose=verbose,
+                                                   stats=stats)

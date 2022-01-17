@@ -1,4 +1,5 @@
 """Basic Master Interface."""
+import time
 import warnings
 from typing import Any, Optional, List, Union, Set
 
@@ -16,7 +17,7 @@ class Master(StatsLogger):
 
     @staticmethod
     def _parameters() -> Set[str]:
-        return {'alpha', 'beta', 'use_beta', 'y_loss', 'p_loss', 'objective'}
+        return {'alpha', 'beta', 'use_beta', 'y_loss', 'p_loss', 'objective', 'elapsed_time'}
 
     def __init__(self,
                  backend: Backend,
@@ -52,13 +53,19 @@ class Master(StatsLogger):
         self._macs: Optional = None
         """Reference to the MACS object encapsulating the `Master`."""
 
+        self._time: Optional[float] = None
+        """An auxiliary variable to keep track of the elapsed time between iterations."""
+
     def log(self, **cache):
         self._macs.log(**cache)
 
-    def on_process_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
+    def on_adjustment_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._macs = macs
+        self._time = time.time()
 
-    def on_process_end(self, macs, val_data: Optional[Dataset]):
+    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y, val_data: Optional[Dataset]):
+        self._log_stats(elapsed_time=time.time() - self._time)
+        self._time = None
         self._macs = None
 
     def build(self, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
@@ -195,13 +202,13 @@ class Master(StatsLogger):
         # solve the problem and get the adjusted labels
         if self.backend.solve().solution is None:
             warnings.warn(f'Model is infeasible at iteration {self._macs.iteration}, stop training.')
-            self.backend.clear()
-            return None
-        self._log_stats(
-            y_loss=self.backend.get_value(y_loss),
-            p_loss=None if p_loss is None else self.backend.get_value(p_loss),
-            objective=self.backend.get_objective()
-        )
-        solution = self.solution(x=x, y=y, p=pred, v=var)
+            solution = None
+        else:
+            self._log_stats(
+                y_loss=self.backend.get_value(y_loss),
+                p_loss=None if p_loss is None else self.backend.get_value(p_loss),
+                objective=self.backend.get_objective()
+            )
+            solution = self.solution(x=x, y=y, p=pred, v=var)
         self.backend.clear()
         return solution
