@@ -195,6 +195,7 @@ class Master(StatsLogger):
         # solve the problem and get the adjusted labels
         if self.backend.solve().solution is None:
             warnings.warn(f'Model is infeasible at iteration {self._macs.iteration}, stop training.')
+            self.backend.clear()
             return None
         self._log_stats(
             y_loss=self.backend.get_value(y_loss),
