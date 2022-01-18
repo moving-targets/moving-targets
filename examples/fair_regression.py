@@ -7,12 +7,12 @@ from sklearn.model_selection import train_test_split
 
 from moving_targets import MACS
 from moving_targets.learners import LinearRegression
-from moving_targets.masters import SingleTargetRegression
+from moving_targets.masters import RegressionMaster
 from moving_targets.metrics import DIDI, R2, MSE
 
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF FAIR CLASSIFICATION
-class FairRegression(SingleTargetRegression):
+class FairRegression(RegressionMaster):
     def __init__(self, protected, backend='gurobi', loss='mse', violation=0.2, lb=0, ub=float('inf'), alpha=1, beta=1):
         # protected  : the name of the protected feature
         # backend    : the backend instance or backend alias
@@ -21,22 +21,17 @@ class FairRegression(SingleTargetRegression):
         # lb         : the model variables lower bounds.
         # ub         : the model variables upper bounds.
         # alpha      : the non-negative real number which is used to calibrate the two losses in the alpha step
-        # time_limit : the maximal time for which the master can run during each iteration.
         # ------------------------------------------------------------------------------------------------------
         # didi       : a DIDI metric instance used to compute both the indicator matrices and the satisfiability
 
         self.violation = violation
         self.didi = DIDI(protected=protected, classification=False, percentage=True)
-        # the constraint is satisfied if the percentage DIDI is lower or equal to the expected violation; moreover,
-        # since we know that the predictions must be positive, so we clip them to 0.0 in order to avoid (wrong)
-        # negative predictions to influence the satisfiability computation
-        super().__init__(satisfied=lambda x, y, p: self.didi(x=x, y=y, p=p.clip(0.0)) <= self.violation,
-                         backend=backend, lb=lb, ub=ub, alpha=alpha, beta=beta, y_loss=loss, p_loss=loss)
+        super().__init__(backend=backend, lb=lb, ub=ub, alpha=alpha, beta=beta, y_loss=loss, p_loss=loss)
 
     # here we define the problem formulation, i.e., variables and constraints
-    def build(self, x, y, p):
+    def build(self, x, y):
         # retrieve model variables from the super method
-        variables = super(FairRegression, self).build(x, y, p)
+        variables = super(FairRegression, self).build(x, y)
 
         # as a first step, we need to compute the deviations between the average output for the total dataset and the
         # average output respectively to each protected class
@@ -62,6 +57,13 @@ class FairRegression(SingleTargetRegression):
         train_didi = DIDI.regression_didi(indicator_matrix=indicator_matrix, targets=y)
         self.backend.add_constraint(didi <= self.violation * train_didi)
         return variables
+
+    # here we define whether to use the alpha or beta strategy, and beta is used if the constraint is already satisfied
+    def use_beta(self, x, y, p):
+        # the constraint is satisfied if the percentage DIDI is lower or equal to the expected violation; moreover,
+        # since we know that the predictions must be positive, so we clip them to 0.0 in order to avoid (wrong)
+        # negative predictions to influence the satisfiability computation
+        return self.didi(x=x, y=y, p=p.clip(0.0)) <= self.violation
 
 
 if __name__ == '__main__':

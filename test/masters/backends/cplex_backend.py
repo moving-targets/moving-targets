@@ -1,7 +1,7 @@
 from typing import List
 
 from moving_targets.masters.backends import CplexBackend, Backend
-from test.masters.abstract import TestBackend
+from test.masters.backends.abstract_backend import TestBackend
 
 
 class TestCplexBackend(TestBackend):

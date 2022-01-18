@@ -7,13 +7,13 @@ from sklearn.model_selection import train_test_split
 
 from moving_targets import MACS
 from moving_targets.learners import LogisticRegression
-from moving_targets.masters import SingleTargetClassification
+from moving_targets.masters import ClassificationMaster
 from moving_targets.masters.backends import GurobiBackend
 from moving_targets.metrics import DIDI, CrossEntropy, Accuracy
 
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF FAIR CLASSIFICATION
-class FairClassification(SingleTargetClassification):
+class FairClassification(ClassificationMaster):
     def __init__(self, protected, backend='gurobi', loss='mse', violation=0.2, alpha=1, beta=1):
         # protected  : the name of the protected feature
         # backend    : the backend instance or backend alias
@@ -21,21 +21,18 @@ class FairClassification(SingleTargetClassification):
         # violation  : the maximal accepted level of violation of the constraint.
         # alpha      : the non-negative real number which is used to calibrate the two losses in the alpha step
         # beta       : the non-negative real number which is used to constraint the p_loss in the beta step
-        # time_limit : the maximal time for which the master can run during each iteration.
         # ------------------------------------------------------------------------------------------------------
         # didi       : a DIDI metric instance used to compute both the indicator matrices and the satisfiability
 
         self.violation = violation
         self.didi = DIDI(protected=protected, classification=True, percentage=True)
-        # the constraint is satisfied if the percentage DIDI is lower or equal to the expected violation
-        super().__init__(satisfied=lambda x, y, p: self.didi(x=x, y=y, p=p) <= self.violation,
-                         backend=backend, alpha=alpha, beta=beta, y_loss='hd', p_loss=loss)
+        super().__init__(backend=backend, alpha=alpha, beta=beta, y_loss='hd', p_loss=loss)
 
     # here we define the problem formulation, i.e., variables and constraints
-    def build(self, x, y, p):
+    def build(self, x, y):
         # retrieve model variables from the super method and, for compatibility between the binary/multiclass scenarios,
         # optionally transform 1d variables (representing a binary classification task) into a 2d matrix
-        super_vars = super(FairClassification, self).build(x, y, p)
+        super_vars = super(FairClassification, self).build(x, y)
         variables = np.transpose([1 - super_vars, super_vars]) if super_vars.ndim == 1 else super_vars
 
         # as a first step, we need to compute the deviations between the average output for the total dataset and the
@@ -62,6 +59,11 @@ class FairClassification(SingleTargetClassification):
         train_didi = DIDI.classification_didi(indicator_matrix=indicator_matrix, targets=y)
         self.backend.add_constraint(didi <= self.violation * train_didi)
         return super_vars
+
+    # here we define whether to use the alpha or beta strategy, and beta is used if the constraint is already satisfied
+    def use_beta(self, x, y, p):
+        # the constraint is satisfied if the percentage DIDI is lower or equal to the expected violation
+        return self.didi(x=x, y=y, p=p) <= self.violation
 
 
 if __name__ == '__main__':

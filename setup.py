@@ -21,7 +21,7 @@ os.system('sphinx-build .\\docs .\\docs\\html')
 with open('README.md', 'r') as readme:
     setup(
         name='moving-targets',
-        version='0.1.3',
+        version='0.1.4',
         maintainer='Luca Giuliani',
         maintainer_email='luca.giuliani13@unibo.it',
         author='University of Bologna - DISI',

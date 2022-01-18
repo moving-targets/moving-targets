@@ -42,7 +42,7 @@ class Learner(StatsLogger):
         self._time = None
         self._macs = None
 
-    def fit(self, x, y, **additional_kwargs):
+    def fit(self, x, y):
         """Fits the `Learner` according to the implemented procedure using (x, y) as training data.
 
         :param x:
@@ -50,9 +50,6 @@ class Learner(StatsLogger):
 
         :param y:
             The vector of training labels.
-
-        :param additional_kwargs:
-            Any other useful parameter.
         """
         raise NotImplementedError(not_implemented_message(name='fit'))
 

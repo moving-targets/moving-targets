@@ -89,7 +89,7 @@ class FileLogger(Logger):
     def on_adjustment_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'ADJUSTMENT START', 'on_adjustment_start')
 
-    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y, val_data: Optional[Dataset]):
+    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'ADJUSTMENT END', 'on_adjustment_end')
 
     def _write_on_file(self, macs, message: str, routine_name: str):

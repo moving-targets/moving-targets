@@ -5,17 +5,20 @@ from typing import Union
 import numpy as np
 
 
-def get_classes(prob: np.ndarray) -> np.ndarray:
+def get_classes(prob: np.ndarray, multi_label: bool) -> np.ndarray:
     """Gets the output classes given the output probabilities per class.
 
     :param prob:
         A vector/matrix of output probabilities.
 
+    :param multi_label:
+        Whether the classification task must handle multiple labels or not.
+
     :return:
         The respective output classes.
     """
-    # strategy varies depending on binary vs. multiclass classification
-    if prob.ndim == 1 or prob.shape[1] == 1:
+    # strategy varies depending on binary/multilabel vs. multiclass classification
+    if multi_label or prob.squeeze().ndim == 1:
         return prob.round().astype(int)
     else:
         return prob.argmax(axis=1)

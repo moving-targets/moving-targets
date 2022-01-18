@@ -9,35 +9,27 @@ from sklearn.model_selection import train_test_split
 from moving_targets import MACS
 from moving_targets.callbacks import Callback
 from moving_targets.learners import LogisticRegression
-from moving_targets.masters import SingleTargetClassification
+from moving_targets.masters import ClassificationMaster
 from moving_targets.metrics import Accuracy, ClassFrequenciesStd, CrossEntropy
 from moving_targets.util import probabilities
 
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF BALANCED COUNTS
-class BalancedCounts(SingleTargetClassification):
+class BalancedCounts(ClassificationMaster):
     def __init__(self, backend='gurobi', loss='mse', alpha=1, beta=1):
         # backend : the backend instance or backend alias
         # loss    : the loss function computed between the model variables and the learner predictions
         # alpha   : the non-negative real number which is used to calibrate the two losses in the alpha step
         # beta    : the non-negative real number which is used to constraint the p_loss in the beta step
 
-        # noinspection PyUnusedLocal
-        def satisfied(x, y, p):
-            # constraint is satisfied if all the classes counts are lower than then average number of counts per class
-            pred = probabilities.get_classes(p)
-            classes, counts = np.unique(pred, return_counts=True)
-            max_count = np.ceil(len(y) / len(classes))
-            return np.all(counts <= max_count)
-
-        super().__init__(backend=backend, satisfied=satisfied, alpha=alpha, beta=beta, y_loss='hd', p_loss=loss)
+        super().__init__(backend=backend, alpha=alpha, beta=beta, y_loss='hd', p_loss=loss)
 
     # here we define the problem formulation, i.e., variables and constraints
-    def build(self, x, y, p):
+    def build(self, x, y):
         # retrieve model variables from the super method, which can be either:
         #   - a 1d vector of binary variables in case of binary classification (i.e., num classes = 2)
         #   - a 2d vector of binary variables in case of multiclass classification (i.e., num classes > 2)
-        variables = super(BalancedCounts, self).build(x, y, p)
+        variables = super(BalancedCounts, self).build(x, y)
 
         # compute the upper bound for number of counts of a class, which will be used to constraint the model variables
         classes = np.unique(y)
@@ -53,6 +45,14 @@ class BalancedCounts(SingleTargetClassification):
 
         # return the variables at the end
         return variables
+
+    # here we define whether to use the alpha or beta strategy, and beta is used if the constraint is already satisfied
+    def use_beta(self, x, y, p):
+        # the constraint is satisfied if all the classes counts are lower than then average number of counts per class
+        pred = probabilities.get_classes(p, multi_label=False)
+        classes, counts = np.unique(pred, return_counts=True)
+        max_count = np.ceil(len(y) / len(classes))
+        return np.all(counts <= max_count)
 
 
 # THEN, WE MAY ADD A CUSTOM CALLBACK TO SEE HOW OUR TRAINING
@@ -76,10 +76,10 @@ class ClassesHistogram(Callback):
 
     def on_training_end(self, macs, x, y, val_data):
         # when the training ends, we use the macs instance to store both the predicted classes and the iterations
-        self.data[f'pred_{macs.iteration}'] = probabilities.get_classes(macs.predict(x))
+        self.data[f'pred_{macs.iteration}'] = probabilities.get_classes(macs.predict(x), multi_label=False)
         self.iterations.append(macs.iteration)
 
-    def on_adjustment_end(self, macs, x, y, adjusted_y, val_data):
+    def on_adjustment_end(self, macs, x, y, adjusted_y: np.ndarray, val_data):
         # we store the adjusted targets as well, but there is no need to store the iteration since it was already done
         self.data[f'adj_{macs.iteration}'] = adjusted_y
 

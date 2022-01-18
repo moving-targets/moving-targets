@@ -3,7 +3,6 @@ from typing import Union
 import numpy as np
 
 from moving_targets.masters.backends import NumpyBackend
-from moving_targets.masters.losses import Loss
 from moving_targets.masters.optimizers.optimizer import Optimizer
 from moving_targets.util import probabilities
 from moving_targets.util.errors import not_implemented_message
@@ -29,19 +28,14 @@ class BetaSatisfiability(Optimizer):
     variables in order to let the master compute this error relying on its inner loss.
     """
 
-    def __init__(self, base: Union[float, Optimizer], loss: Loss):
+    def __init__(self, base: Union[float, Optimizer]):
         """
         :param base:
             Either a fixed floating point value representing the initial value for the hyper-parameter to optimize, or
             a wrapped custom optimizer which returns a dynamic value to reduce by the given factor after each iteration.
 
-        :param loss:
-            The master 'p_loss' instance.
         """
         super(BetaSatisfiability, self).__init__(base=base)
-
-        self.loss = loss
-        """The master 'p_loss' instance."""
 
     def _expected_variables(self, macs, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         """Computes the expected "model" representation of the predictions.
@@ -70,7 +64,7 @@ class BetaSatisfiability(Optimizer):
             # we rely on the NumpyBackend instance which can compute the value of the given loss between two numpy
             # arrays; this value will be our minimal error to be added to beta
             v = self._expected_variables(macs, x, y, p)
-            value += self.loss(backend=NumpyBackend(), numeric_variables=p, model_variables=v)
+            value += macs.master.p_loss(backend=NumpyBackend(), numeric_variables=p, model_variables=v)
         return value
 
 
@@ -83,10 +77,25 @@ class BetaClassSatisfiability(BetaSatisfiability):
     that is not dependent from the constraint satisfaction.
     """
 
+    def __init__(self, base: Union[float, Optimizer], multi_label: bool):
+        """
+        :param base:
+            Either a fixed floating point value representing the initial value for the hyper-parameter to optimize, or
+            a wrapped custom optimizer which returns a dynamic value to reduce by the given factor after each iteration.
+
+        :param multi_label:
+            Whether the classification task must handle multiple labels or not.
+        """
+        super(BetaClassSatisfiability, self).__init__(base=base)
+
+        self.multi_label: bool = multi_label
+        """Whether the classification task must handle multiple labels or not."""
+
     def _expected_variables(self, macs, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
-        # the classes are obtained using the 'get_classes' method and then onehot encoded for compatibility
-        classes = probabilities.get_classes(prob=p)
-        return probabilities.get_onehot(vector=classes, classes=len(np.unique(y)), onehot_binary=False)
+        # the classes are obtained using the 'get_classes' method
+        c = probabilities.get_classes(prob=p, multi_label=self.multi_label)
+        # if the task is not multi-label, the classes will be one-dimensional, thus we onehot encode for compatibility
+        return c if self.multi_label else probabilities.get_onehot(c, classes=len(np.unique(y)), onehot_binary=False)
 
 
 class BetaBoundedSatisfiability(BetaSatisfiability):
@@ -98,14 +107,11 @@ class BetaBoundedSatisfiability(BetaSatisfiability):
     of error in the p_loss that is not dependent from the constraint satisfaction.
     """
 
-    def __init__(self, base: Union[float, Optimizer], loss: Loss, lb: float = -float('inf'), ub: float = float('inf')):
+    def __init__(self, base: Union[float, Optimizer], lb: float, ub: float):
         """
         :param base:
             Either a fixed floating point value representing the initial value for the hyper-parameter to optimize, or
             a wrapped custom optimizer which returns a dynamic value to reduce by the given factor after each iteration.
-
-        :param loss:
-            The master 'p_loss' instance.
 
         :param lb:
             The model variables lower bounds.
@@ -113,7 +119,7 @@ class BetaBoundedSatisfiability(BetaSatisfiability):
         :param ub:
             The model variables upper bounds.
         """
-        super(BetaBoundedSatisfiability, self).__init__(base=base, loss=loss)
+        super(BetaBoundedSatisfiability, self).__init__(base=base)
 
         self.lb: float = lb
         """The model variables lower bounds."""

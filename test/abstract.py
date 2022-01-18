@@ -7,10 +7,10 @@ class AbstractTest(unittest.TestCase):
     SEED: int = 0
     """The chosen random seed."""
 
-    NUM_TESTS: int = 5
-    """The number of tests carried out for the same loss."""
+    NUM_TESTS: int = 10
+    """The number of tests carried out."""
 
-    NUM_SAMPLES: int = 20
+    NUM_SAMPLES: int = 10
     """The number of data points."""
 
     NUM_FEATURES: int = 5

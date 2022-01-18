@@ -1,4 +1,5 @@
 """Basic Optimizer Interface."""
+from typing import Callable
 
 import numpy as np
 
@@ -13,7 +14,7 @@ class Optimizer:
             a wrapped custom optimizer which returns a dynamic value to reduce by the given factor after each iteration.
         """
 
-        self.base = lambda macs, x, y, p: base if isinstance(base, float) or isinstance(base, int) else base
+        self.base: Callable = (lambda macs, x, y, p: base) if isinstance(base, float) or isinstance(base, int) else base
         """The base value of the hyper-parameter to optimize or a base optimizer wrapper."""
 
     def __call__(self, macs, x, y: np.ndarray, p: np.ndarray) -> float:

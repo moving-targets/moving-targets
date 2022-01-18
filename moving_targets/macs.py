@@ -1,5 +1,6 @@
 """Core of the Moving Targets algorithm."""
 import time
+import warnings
 from typing import List, Dict, Callable, Union, Optional, Any, Set
 
 import numpy as np
@@ -77,8 +78,13 @@ class MACS(StatsLogger):
         self._time: Optional[float] = None
         """An auxiliary variable to keep track of the elapsed time between iterations."""
 
-    def fit(self, x, y, iterations: int = 1, val_data: Optional[Dataset] = None,
-            callbacks: Optional[List[Callback]] = None, verbose: Union[int, bool] = 2) -> History:
+    def fit(self,
+            x,
+            y: np.ndarray,
+            iterations: int = 1,
+            val_data: Optional[Dataset] = None,
+            callbacks: Optional[List[Callback]] = None,
+            verbose: Union[int, bool] = 2) -> History:
         """Fits the `Learner` based on the Moving Targets iterative procedure.
 
         :param x:
@@ -128,36 +134,35 @@ class MACS(StatsLogger):
         self._update_callbacks(callbacks, lambda c: c.on_process_start(macs=self, x=x, y=y, val_data=val_data))
 
         # handle pretraining
-        data_args: Dict = dict(x=x, y=y, val_data=val_data)
         if self.init_step == 'pretraining':
             self.iteration = 0
-            self._update_callbacks(callbacks, lambda c: c.on_pretraining_start(macs=self, **data_args))
+            self._update_callbacks(callbacks, lambda c: c.on_pretraining_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
             self.learner.fit(x=x, y=y)
             self.fitted = True
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
-            self._update_callbacks(callbacks, lambda c: c.on_pretraining_end(macs=self, **data_args))
+            self._update_callbacks(callbacks, lambda c: c.on_pretraining_end(macs=self, x=x, y=y, val_data=val_data))
 
         # algorithm core
         for self.iteration in range(1, iterations + 1):
-            self._update_callbacks(callbacks, lambda c: c.on_iteration_start(macs=self, **data_args))
-            self._update_callbacks(callbacks, lambda c: c.on_adjustment_start(macs=self, **data_args))
+            self._update_callbacks(callbacks, lambda c: c.on_iteration_start(macs=self, x=x, y=y, val_data=val_data))
+            self._update_callbacks(callbacks, lambda c: c.on_adjustment_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- MASTER  STEP ----------------------------------------------
-            yj, kw = self.master.adjust_targets(x=data_args['x'], y=data_args['y']), {}
-            if yj is None:
-                break  # in case of infeasible model, the training loop is stopped
-            elif isinstance(yj, tuple):
-                yj, kw = yj
-                data_args.update(kw)
+            adjusted_y = self.master.adjust_targets(x=x, y=y)
+            if adjusted_y is None:
+                # in case of infeasible model, raise a warning and stop the training loop
+                warnings.warn(f'Model is infeasible at iteration {self.iteration}, stop training.')
+                break
             # ---------------------------------------------- MASTER  STEP ----------------------------------------------
-            self._update_callbacks(callbacks, lambda c: c.on_adjustment_end(macs=self, adjusted_y=yj, **data_args))
-            self._update_callbacks(callbacks, lambda c: c.on_training_start(macs=self, **data_args))
+            self._update_callbacks(callbacks, lambda c: c.on_adjustment_end(macs=self, x=x, y=y, val_data=val_data,
+                                                                            adjusted_y=adjusted_y))
+            self._update_callbacks(callbacks, lambda c: c.on_training_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
-            self.learner.fit(y=yj, **{k: v for k, v in data_args.items() if k not in ['val_data', 'y']})
+            self.learner.fit(x=x, y=adjusted_y)
             self.fitted = True
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
-            self._update_callbacks(callbacks, lambda c: c.on_training_end(macs=self, **data_args))
-            self._update_callbacks(callbacks, lambda c: c.on_iteration_end(macs=self, **data_args))
+            self._update_callbacks(callbacks, lambda c: c.on_training_end(macs=self, x=x, y=y, val_data=val_data))
+            self._update_callbacks(callbacks, lambda c: c.on_iteration_end(macs=self, x=x, y=y, val_data=val_data))
         self._update_callbacks(callbacks, lambda c: c.on_process_end(macs=self, val_data=val_data))
         return self._history
 
@@ -197,7 +202,7 @@ class MACS(StatsLogger):
         self._log_stats(iteration=self.iteration)
         self._time = time.time()
 
-    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y, val_data: Optional[Dataset]):
+    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y: np.ndarray, val_data: Optional[Dataset]):
         # log metrics on adjusted data
         self.log(**self._compute_metrics(x=x, y=y, p=adjusted_y, prefix='adjusted'))
 

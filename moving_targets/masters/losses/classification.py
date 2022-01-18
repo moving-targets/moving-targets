@@ -156,8 +156,11 @@ class BinaryMSE(BinaryRegressionLoss):
 class HammingDistance(ClassificationLoss):
     """Hamming Distance."""
 
-    def __init__(self, name: str = 'hamming_distance'):
+    def __init__(self, multi_label: bool = False, name: str = 'hamming_distance'):
         """
+        :param multi_label:
+            Whether the classification task must handle multiple labels or not.
+
         :param name:
             The name of the metric.
         """
@@ -175,9 +178,12 @@ class HammingDistance(ClassificationLoss):
                                               use_prob=False,
                                               name=name)
 
+        self.multi_label: bool = multi_label
+        """Whether the classification task must handle multiple labels or not."""
+
     def _losses(self, backend: Backend, numeric_variables: np.ndarray, model_variables: np.ndarray) -> np.ndarray:
         # the hamming distance is computed on class values, not on probabilities
-        numeric_variables = probabilities.get_classes(numeric_variables)
+        numeric_variables = probabilities.get_classes(numeric_variables, multi_label=self.multi_label)
         losses = super(HammingDistance, self)._losses(backend, numeric_variables, model_variables)
         # as said before, the "1 - ..." part is moved here due to computational problems, in particular, for binary
         # tasks we just need to do (1 - losses) while for multiclass tasks it must be (1 - sum(losses, axis=1))

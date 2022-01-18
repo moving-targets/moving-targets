@@ -48,11 +48,13 @@ class ClassificationMetric(Metric):
         """Custom arguments to be passed to the metric function."""
 
     def __call__(self, x, y, p) -> float:
-        # if the metric does not use probabilities, convert the probabilities into class targets, otherwise, since we
-        # want a 2d vector of probabilities, if p is a 1d vector of class targets (integer) we onehot encode them
         if not self.use_prob:
-            p = probabilities.get_classes(prob=p)
+            # if the metric does not use probabilities, convert the probabilities into class targets
+            p = probabilities.get_classes(prob=p, multi_label=False)
         elif p.ndim == 1 and np.issubdtype(p.dtype, np.integer):
+            # otherwise, if we use class probabilities we expect a bi-dimensional array for predictions, thus if a
+            # one-dimensional array is passed instead because the master directly returns adjusted class targets,
+            # we onehot encode them for compatibility
             p = probabilities.get_onehot(vector=p, classes=self.classes)
         return self.metric_function(y, p, **self.metric_kwargs)
 

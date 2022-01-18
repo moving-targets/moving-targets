@@ -19,7 +19,7 @@ class TensorflowLearner(Learner):
             statistics must be logged.
 
         :param fit_kwargs:
-            Custom arguments to be passed to the fit function (they may be overwritten when calling `self.fit()`).
+            Custom arguments to be passed to the model '.fit()' method.
         """
         super(TensorflowLearner, self).__init__(stats=stats)
 
@@ -27,12 +27,10 @@ class TensorflowLearner(Learner):
         """The Tensorflow/Keras model."""
 
         self.fit_kwargs = fit_kwargs
-        """Custom arguments to be passed to the fit function."""
+        """Custom arguments to be passed to the model '.fit()' method."""
 
-    def fit(self, x, y, **additional_kwargs):
-        fit_args = self.fit_kwargs.copy()
-        fit_args.update(additional_kwargs)
-        self.model.fit(x, y, **fit_args)
+    def fit(self, x, y):
+        self.model.fit(x, y, **self.fit_kwargs)
 
     def predict(self, x) -> Any:
         return self.model.predict(x)

@@ -7,7 +7,7 @@ from test.abstract import AbstractTest
 
 
 # Numpy Backend is used to test the correctness of the operations
-class TestNumpyBackend(AbstractTest):
+class TestLosses(AbstractTest):
 
     def _test(self, name: str, sizes: List[Tuple]):
         np.random.seed(self.SEED)

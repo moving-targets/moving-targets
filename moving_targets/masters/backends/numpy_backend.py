@@ -15,6 +15,16 @@ class NumpyBackend(Backend):
     _ERROR_MESSAGE: str = 'Numpy is not a solver, thus '
     """Error message for unsupported operations."""
 
+    def __init__(self, clip: Optional[float] = 1e-15):
+        """
+        :param clip:
+            The clipping value to use when calling the 'log()' function to avoid numeric errors. If None, does not clip.
+        """
+        super(NumpyBackend, self).__init__()
+
+        self.clip: float = clip
+        """The clipping value to use when calling the 'log()' function to avoid numeric errors."""
+
     def _build_model(self) -> Any:
         raise AssertionError(self._ERROR_MESSAGE + 'no model can be built')
 
@@ -47,4 +57,11 @@ class NumpyBackend(Backend):
         return np.abs(a)
 
     def log(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+        if self.clip is not None:
+            a_min = np.min(a)
+            if a_min < 0:
+                self._LOGGER.warning(f'Trying to compute logarithm of negative number, clipping to {self.clip}')
+            elif a_min < self.clip:
+                self._LOGGER.info(f'Values in the interval [0, {self.clip}] will be clipped to {self.clip}')
+            a = a.clip(min=self.clip)
         return np.log(a)

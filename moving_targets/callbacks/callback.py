@@ -172,7 +172,7 @@ class Callback:
         """
         pass
 
-    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y, val_data: Optional[Dataset]):
+    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y: np.ndarray, val_data: Optional[Dataset]):
         """Routine called at the end of a `MACS` adjustment phase.
 
         :param macs:
