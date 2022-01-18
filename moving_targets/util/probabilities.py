@@ -5,7 +5,7 @@ from typing import Union
 import numpy as np
 
 
-def get_classes(prob: np.ndarray, multi_label: bool) -> np.ndarray:
+def get_classes(prob: np.ndarray, multi_label: bool = False) -> np.ndarray:
     """Gets the output classes given the output probabilities per class.
 
     :param prob:

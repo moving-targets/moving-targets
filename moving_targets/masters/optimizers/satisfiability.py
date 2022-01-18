@@ -77,7 +77,7 @@ class BetaClassSatisfiability(BetaSatisfiability):
     that is not dependent from the constraint satisfaction.
     """
 
-    def __init__(self, base: Union[float, Optimizer], multi_label: bool):
+    def __init__(self, base: Union[float, Optimizer], multi_label: bool = False):
         """
         :param base:
             Either a fixed floating point value representing the initial value for the hyper-parameter to optimize, or

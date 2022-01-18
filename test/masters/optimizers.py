@@ -51,7 +51,7 @@ class TestOptimizers(AbstractTest):
 
         p = 0.1 * np.arange(11)
         y = p.round().astype('int')
-        self._test_satisfiability(optimizer=BetaClassSatisfiability(base=1), y=y, p=p, expected={
+        self._test_satisfiability(optimizer=BetaClassSatisfiability(base=1, multi_label=False), y=y, p=p, expected={
             HammingDistance(): 1,
             CrossEntropy(): 1 - ce(y, p),
             ReversedCrossEntropy(): 1 - ce(p, y),

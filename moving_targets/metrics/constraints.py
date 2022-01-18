@@ -246,11 +246,9 @@ class CausalIndependence(Metric):
     Let A be the (N, K) matrix of inputs related to the given features, where <N> is the number of data samples and <K>
     is the number of given features, then A[i, j] represents the i-th value of the j-th given feature in the dataset.
     We measure the casual relationship between each given feature and the output by training a linear regressor on the
-    pair (A, y), thus solving the linear system:
-        A.T @ w = (A.T @ A) @ y,
-    with w being the learned weights respective to each one of the given features. The level of independence between
-    A[i] and y is thus measured as abs(w[i]), since lower w[i] means that the i-th feature is not informative enough to
-    let the regressor capture a trend to predict y.
+    pair (A, y), thus solving the linear system: "A.T @ w = (A.T @ A) @ y", with w being the learned weights respective
+    to each one of the given features. The level of independence between A[i] and y is thus measured as abs(w[i]), as
+    lower w[i] means that the i-th feature is not informative enough to let the regressor capture a trend to predict y.
     """
 
     def __init__(self, features: List, aggregation: Union[None, str, Callable] = 'sum', name: str = 'independence'):
