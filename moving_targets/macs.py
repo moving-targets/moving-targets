@@ -196,7 +196,7 @@ class MACS(StatsLogger):
         :raise `AssertionError`:
             If the `Learner` has not been fitted yet.
         """
-        return self._compute_metrics(x=x, y=y, p=self.predict(x), prefix=None)
+        return self._compute_metrics(x=x, y=y, p=self.predict(x), metrics=self.metrics, prefix=None)
 
     def on_iteration_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._log_stats(iteration=self.iteration)
@@ -204,36 +204,61 @@ class MACS(StatsLogger):
 
     def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y: np.ndarray, val_data: Optional[Dataset]):
         # log metrics on adjusted data
-        self.log(**self._compute_metrics(x=x, y=y, p=adjusted_y, prefix='adjusted'))
+        self.log(**self._compute_metrics(x=x, y=y, p=adjusted_y, metrics=self.metrics, prefix='adjusted'))
 
     def on_training_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         # log metrics on training data
-        self.log(**self._compute_metrics(x=x, y=y, p=self.predict(x), prefix='predictions'))
+        self.log(**self._compute_metrics(x=x, y=y, p=self.predict(x), metrics=self.metrics, prefix='predictions'))
         # log metrics on validation data
         for name, (xv, yv) in val_data.items():
-            self.log(**self._compute_metrics(x=xv, y=yv, p=self.predict(xv), prefix=name))
+            self.log(**self._compute_metrics(x=xv, y=yv, p=self.predict(xv), metrics=self.metrics, prefix=name))
 
     def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._log_stats(elapsed_time=time.time() - self._time)
 
-    def _compute_metrics(self, x, y, p, prefix: Optional[str] = None) -> Dict[str, float]:
+    def _compute_metrics(self,
+                         x,
+                         y: np.ndarray,
+                         p: np.ndarray,
+                         metrics: List[Metric],
+                         prefix: Optional[str] = None) -> Dict[str, float]:
+        """Compute the metrics results on the given data.
+
+        :param x:
+            The input data.
+
+        :param y:
+            The output targets.
+
+        :param p:
+            The predicted targets.
+
+        :param metrics:
+            The list of `Metric` instances for the evaluation.
+
+        :param prefix:
+            A prefix to be prepended to the metric name in the results dictionary.
+
+        :return:
+            A dictionary of metric results indexed by metric name (optionally with a prefix).
+        """
         prefix = "" if prefix is None else f'{prefix}/'
-        metrics = {}
-        for metric in self.metrics:
+        results = {}
+        for metric in metrics:
             value = metric(x, y, p)
             if isinstance(value, float):
                 # if the metric is a single metric, directly assign the value
-                metrics[f'{prefix}{metric.__name__}'] = value
+                results[f'{prefix}{metric.__name__}'] = value
             elif isinstance(value, dict):
                 # if the metric is a multi metric, assign each value per feature by using an underscore as a separator
                 for k, v in value.items():
-                    metrics[f'{prefix}{metric.__name__}_{k}'] = v
+                    results[f'{prefix}{metric.__name__}_{k}'] = v
             else:
                 # handle array-like return type by giving a warning
                 self.logger.warning(f"Metric '{metric.__name__}' should return either a float or a dictionary.")
                 for i, v in enumerate(value):
-                    metrics[f'{prefix}{metric.__name__}_{i}'] = v
-        return metrics
+                    results[f'{prefix}{metric.__name__}_{i}'] = v
+        return results
 
     def _update_callbacks(self, callbacks: List[Callback], routine: Callable):
         """Runs the given routine for each one of the given callbacks, plus the routine for the `MACS` object itself

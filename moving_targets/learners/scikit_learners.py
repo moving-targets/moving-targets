@@ -1,6 +1,8 @@
 """Sklearn-based Learners."""
 from typing import Any, Optional, Union, List
 
+import numpy as np
+
 from moving_targets.learners.learner import Learner
 
 
@@ -27,17 +29,18 @@ class ScikitLearner(Learner):
         self.fit_kwargs = fit_kwargs
         """Custom arguments to be passed to the model '.fit()' method."""
 
-    def fit(self, x, y):
+    def fit(self, x, y: np.ndarray) -> Any:
         self.model.fit(x, y, **self.fit_kwargs)
+        return self
 
-    def predict(self, x) -> Any:
+    def predict(self, x) -> np.ndarray:
         return self.model.predict(x)
 
 
 class ScikitClassifier(ScikitLearner):
     """Wrapper for a custom Scikit-Learn classification model."""
 
-    def predict(self, x) -> Any:
+    def predict(self, x) -> np.ndarray:
         probabilities = self.model.predict_proba(x)
         return probabilities[:, 1].squeeze() if probabilities.shape[1] == 2 else probabilities
 

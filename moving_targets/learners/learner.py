@@ -42,7 +42,7 @@ class Learner(StatsLogger):
         self._time = None
         self._macs = None
 
-    def fit(self, x, y):
+    def fit(self, x, y: np.ndarray) -> Any:
         """Fits the `Learner` according to the implemented procedure using (x, y) as training data.
 
         :param x:
@@ -50,10 +50,13 @@ class Learner(StatsLogger):
 
         :param y:
             The vector of training labels.
+
+        :return:
+            The `Learner` itself.
         """
         raise NotImplementedError(not_implemented_message(name='fit'))
 
-    def predict(self, x) -> Any:
+    def predict(self, x) -> np.ndarray:
         """Uses the fitted `Learner` configuration to predict labels from input samples.
 
         :param x:

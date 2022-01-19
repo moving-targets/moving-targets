@@ -29,10 +29,11 @@ class TensorflowLearner(Learner):
         self.fit_kwargs = fit_kwargs
         """Custom arguments to be passed to the model '.fit()' method."""
 
-    def fit(self, x, y):
+    def fit(self, x, y: np.ndarray) -> Any:
         self.model.fit(x, y, **self.fit_kwargs)
+        return self
 
-    def predict(self, x) -> Any:
+    def predict(self, x) -> np.ndarray:
         return self.model.predict(x)
 
 
