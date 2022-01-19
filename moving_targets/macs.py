@@ -13,7 +13,7 @@ from moving_targets.callbacks.logger import Logger, StatsLogger
 from moving_targets.learners.learner import Learner
 from moving_targets.masters.master import Master
 from moving_targets.metrics.metric import Metric
-from moving_targets.util.typing import Dataset
+from moving_targets.util.typing import Dataset, is_numeric
 
 
 class MACS(StatsLogger):
@@ -122,7 +122,7 @@ class MACS(StatsLogger):
         # check user input
         assert iterations >= 0, f'the number of iterations should be non-negative, but it is {iterations}'
         assert self.init_step == 'pretraining' or iterations > 0, 'if projection, iterations cannot be zero'
-        assert isinstance(verbose, bool) or (isinstance(verbose, int) and verbose in [0, 1, 2]), 'unknown verbosity'
+        assert verbose in [True, False, 0, 1, 2], 'unknown verbosity'
         val_data = {} if val_data is None else (val_data if isinstance(val_data, dict) else {'val': val_data})
 
         # handle callbacks and verbosity (check for type instance since 1 == True and vice versa)
@@ -247,7 +247,7 @@ class MACS(StatsLogger):
         results = {}
         for metric in metrics:
             value = metric(x, y, p)
-            if isinstance(value, float):
+            if is_numeric(value):
                 # if the metric is a single metric, directly assign the value
                 results[f'{prefix}{metric.__name__}'] = value
             elif isinstance(value, dict):

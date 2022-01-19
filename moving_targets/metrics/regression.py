@@ -2,6 +2,8 @@
 
 from typing import Callable, Dict, Any
 
+import numpy as np
+
 from moving_targets.metrics.metric import Metric
 
 
@@ -27,7 +29,7 @@ class RegressionMetric(Metric):
         self.metric_kwargs: Dict[str, Any] = metric_kwargs
         """Custom arguments to be passed to the metric function."""
 
-    def __call__(self, x, y, p) -> float:
+    def __call__(self, x, y: np.ndarray, p: np.ndarray) -> float:
         return self.metric_function(y, p, **self.metric_kwargs)
 
 

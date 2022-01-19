@@ -47,7 +47,7 @@ class ClassificationMetric(Metric):
         self.metric_kwargs: Dict[str, Any] = metric_kwargs
         """Custom arguments to be passed to the metric function."""
 
-    def __call__(self, x, y, p) -> float:
+    def __call__(self, x, y: np.ndarray, p: np.ndarray) -> float:
         if not self.use_prob:
             # if the metric does not use probabilities, convert the probabilities into class targets
             p = probabilities.get_classes(prob=p, multi_label=False)

@@ -25,7 +25,7 @@ class ClassFrequenciesStd(Metric):
         self.classes: Optional[int] = classes
         """The number of classes or None for automatic class inference."""
 
-    def __call__(self, x, y, p) -> float:
+    def __call__(self, x, y: np.ndarray, p: np.ndarray) -> float:
         # bincount is similar to np.unique(..., return_counts=True) but allows to fix a minimum number of classes
         # in this way, if the predictions are all the same, the counts will be [n, 0, ..., 0] instead of [n]
         num_classes = (1 + y.astype(int).max()) if self.classes is None else self.classes
@@ -174,31 +174,31 @@ class MonotonicViolation(Metric):
                  name: str = 'monotonicity'):
         """
         :param monotonicities_fn:
-            Function having signature f(x) -> M where x is the input data and M is the monotonicities matrix, i.e., a
-            NxN matrix (where |x| = N) which associates to each entry (i, j) a value of -1, 0, o 1 depending on the
-            expected monotonicity between x[i] and x[j].
-
-            E.g., if x = [0, 1, 2, 3], with 0 < 1 < 2 < 3, then M =
-                |  0, -1, -1, -1 |
-                |  1,  0, -1, -1 |
-                |  1,  1,  0, -1 |
-                |  1,  1,  1,  0 |
-
-            If the computation of the monotonicities is heavy and you call the metric multiple times with the same
-            input, it would be better to precompute the matrix on the input x and pass a fake function that ignores
-            the x parameter and just returns the precomputed matrix, e.g:
+            Function having signature f(x) -> M where x is the input data and M is a data structure representing the
+            expected monotonicities. If the computation of the monotonicities is heavy and you call the metric multiple
+            times with the same input, it would be better to precompute the matrix on the input x and pass a dummy
+            function that ignores the x parameter and just returns the precomputed matrix, e.g:
 
             .. code-block:: python
 
                 M = monotonicities_fn(x)
                 metric = MonotonicViolation(monotonicities_fn=lambda x: M)
 
-        :param aggregation:
-            The aggregation type:
+            The data structure M can be either a NxN numpy matrix (where |x| = N) which associates to each entry (i, j)
+            a value of -1, 0,  or 1 depending on the expected monotonicity between x[i] and x[j], or directly a list of
+            tuples (i, j) meaning that x[i] is expected to be greater than x[j].
 
-            - 'average', which computes the average constraint violation in terms of pure output.
-            - 'percentage', which computes the constraint violation in terms of average number of violations.
-            - 'feasible', which returns a binary value depending on whether there is at least on violation.
+            E.g., if x = [0, 1, 2, 3], with 0 < 1 < 2 < 3, then either M =
+                |  0, -1, -1, -1 |
+                |  1,  0, -1, -1 |
+                |  1,  1,  0, -1 |
+                |  1,  1,  1,  0 |
+            or M = [(1, 0), (2, 0), (2, 1), (3, 0), (3, 1), (3, 2)].
+
+        :param aggregation:
+            The aggregation type, which can be 'average' (i.e., it returns the average constraint violation in terms of
+            output difference), 'percentage' (i.e., it returns the violation in terms of average number of violations),
+            or 'feasible' (i.e., it returns a binary value depending on whether there is at least on violation).
 
         :param eps:
             The slack value under which a violation is considered to be acceptable.
@@ -226,15 +226,14 @@ class MonotonicViolation(Metric):
         else:
             raise AssertionError(f"'{aggregation}' is not a valid aggregation kind")
 
-    def __call__(self, x, y, p) -> float:
-        monotonicities = self.monotonicities_fn(x)
-        if np.all(monotonicities == 0):
-            return 0.0
-        # get pair of higher indices and lower indices by filtering pairs with increasing monotonicities
-        monotonicities = [(hi, li) for hi, row in enumerate(monotonicities) for li, m in enumerate(row) if m == 1]
+    def __call__(self, x, y: np.ndarray, p: np.ndarray) -> float:
+        mono = self.monotonicities_fn(x)
+        # handle the case in which a monotonicity matrix is passed instead of a list of monotonicities
+        if isinstance(mono, np.ndarray) and mono.ndim == 2:
+            mono = [(hi, li) for hi, row in enumerate(mono) for li, m in enumerate(row) if m == 1]
         # compute violations as the difference between p[lower_indices] and p[higher_indices]
-        violations = p[[li for _, li in monotonicities]] - p[[hi for hi, _ in monotonicities]]
-        # then filter out values under the threshold
+        violations = p[[li for _, li in mono]] - p[[hi for hi, _ in mono]] if len(mono) > 0 else np.array([0.0])
+        # filter out values under the threshold
         violations[violations < self.eps] = 0.0
         return self.aggregate(violations)
 
@@ -257,9 +256,9 @@ class CausalIndependence(Metric):
             The list of features to inspect.
 
         :param aggregation:
-            The aggregation policy in case of multiple features. It can be either a string in ['sum', 'mean', 'max'], a
-            custom callable function taking the vector 'w' as parameter, or None to get in output the weight for each
-            feature without any aggregation.
+            The aggregation policy in case of multiple features. It can be either a string representing a numpy method
+            for aggregation (e.g., 'sum', 'mean', 'max', 'min', 'std'), a custom callable function taking the vector
+            'w' as parameter, or None to get in output the weight for each feature without any aggregation.
 
         :param name:
             The name of the metric.
@@ -276,12 +275,12 @@ class CausalIndependence(Metric):
             # if the given aggregation is None, return the weights as a dictionary indexed by feature
             self.aggregation = lambda w: {f: v for f, v in zip(self.features, w)}
         elif isinstance(aggregation, str):
-            # if the given aggregation is a string, use np.sum(), np.mean(), or np.max(), respectively
-            assert aggregation in ['sum', 'mean', 'max'], f"'{aggregation}' is not a supported aggregation policy"
+            # if the given aggregation is a string representing a numpy method, use np.<method_name>()
+            assert hasattr(np, aggregation), f"'{aggregation}' is not a supported aggregation policy"
             self.aggregation = getattr(np, aggregation)
         else:
             self.aggregation = aggregation
 
-    def __call__(self, x, y, p) -> Union[float, Dict[str, float]]:
+    def __call__(self, x, y: np.ndarray, p: np.ndarray) -> Union[float, Dict[str, float]]:
         w, _, _, _ = np.linalg.lstsq(x[self.features], p, rcond=None)
         return self.aggregation(np.abs(w))

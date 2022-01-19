@@ -1,6 +1,8 @@
 """Basic Metric Interface."""
 from typing import Dict, Union
 
+import numpy as np
+
 from moving_targets.util.errors import not_implemented_message
 
 
@@ -17,7 +19,7 @@ class Metric:
         self.__name__: str = name
         """The name of the metric."""
 
-    def __call__(self, x, y, p) -> Union[float, Dict[str, float]]:
+    def __call__(self, x, y: np.ndarray, p: np.ndarray) -> Union[float, Dict[str, float]]:
         """Core method used to compute the metric value.
 
         :param x:

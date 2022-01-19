@@ -1,5 +1,5 @@
 """Basic Loss Interface."""
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Union
 
 import numpy as np
 
@@ -10,10 +10,10 @@ from moving_targets.util.errors import not_implemented_message
 class Loss:
     """Basic interface for a Moving Targets Master Loss."""
 
-    def __init__(self, aggregation: str, name: str):
+    def __init__(self, aggregation: Union[str, Callable], name: str):
         """
         :param aggregation:
-            The kind of aggregation needed, either 'sum' or 'mean'.
+            The kind of aggregation needed, either 'sum', 'mean', or a `Callable` function of type f(agg, num) -> res.
 
         :param name:
             The name of the loss.

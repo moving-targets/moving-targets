@@ -325,19 +325,19 @@ class Backend:
         return self.get_values(np.array([expression]))[0]
 
     def aux(self,
-            expressions: Union[Any, np.ndarray],
+            expressions: Any,
             aux_vtype: Optional[str] = 'continuous',
             aux_lb: float = -float('inf'),
             aux_ub: float = float('inf'),
-            aux_name: Optional[str] = None) -> np.ndarray:
-        """If the 'aux_vtype' parameter is none, it simply return the input expressions, otherwise it builds and return
+            aux_name: Optional[str] = None) -> Any:
+        """If the 'aux_vtype' parameter is None, it simply return the input expressions, otherwise it builds and return
         an auxiliary variable (or a vector of variables) having the given vtype and the respective other properties,
         which is equal to the given expression (or vector of expressions). Using auxiliary variables may come in handy
         when dealing with huge datasets since they can considerably speedup the model formulation; still, imposing
         equality constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :param expressions:
-            The vector of expressions.
+            Either a single expression or a vector of expressions.
 
         :param aux_vtype:
             Either None or the auxiliary variables type, usually 'binary', 'integer', or 'continuous'.
@@ -352,12 +352,12 @@ class Backend:
             The auxiliary variables name.
 
         :return:
-            The array of auxiliary variables.
+            Either a single auxiliary variable or the array of auxiliary variables.
         """
         if aux_vtype is None:
             return expressions
         else:
-            expressions = expressions if isinstance(expressions, np.ndarray) else np.array([expressions])
+            expressions = np.atleast_1d(expressions)
             variables = self.add_variables(*expressions.shape, vtype=aux_vtype, lb=aux_lb, ub=aux_ub, name=aux_name)
             self.add_constraints([v == e for v, e in zip(variables.flatten(), expressions.flatten())])
             return variables[0] if variables.size == 1 else variables
