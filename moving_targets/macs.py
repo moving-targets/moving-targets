@@ -209,11 +209,12 @@ class MACS(StatsLogger):
     def on_training_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         # log metrics on training data
         self.log(**self._compute_metrics(x=x, y=y, p=self.predict(x), metrics=self.metrics, prefix='predictions'))
+
+    def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         # log metrics on validation data
         for name, (xv, yv) in val_data.items():
             self.log(**self._compute_metrics(x=xv, y=yv, p=self.predict(xv), metrics=self.metrics, prefix=name))
-
-    def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
+        # log stats
         self._log_stats(elapsed_time=time.time() - self._time)
 
     def _compute_metrics(self,
