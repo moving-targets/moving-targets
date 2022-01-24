@@ -3,7 +3,7 @@ from typing import Any, Union, List, Optional, Dict
 import numpy as np
 
 from moving_targets.masters.backends import Backend
-from moving_targets.util.errors import MissingDependencyError
+from moving_targets.util.errors import MissingDependencyError, BackendError
 
 
 class GurobiBackend(Backend):
@@ -78,9 +78,10 @@ class GurobiBackend(Backend):
         return self
 
     def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
-        assert hasattr(self._gp.GRB, vtype.upper()), self._ERROR_MESSAGE + f"vtype '{vtype}'"
+        if not hasattr(self._gp.GRB, vtype.upper()):
+            raise BackendError(unsupported=f"vtype '{vtype}'")
         vtype = getattr(self._gp.GRB, vtype.upper())
-        var = self.model.addVars(*keys, vtype=vtype, name=name, lb=lb, ub=ub).values()
+        var = self.model.addVars(*keys, vtype=vtype, lb=lb, ub=ub, name=name).values()
         self.model.update()
         return np.array(var).reshape(keys)
 

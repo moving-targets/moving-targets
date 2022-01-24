@@ -28,8 +28,8 @@ class ClassFrequenciesStd(Metric):
     def __call__(self, x, y: np.ndarray, p: np.ndarray) -> float:
         # bincount is similar to np.unique(..., return_counts=True) but allows to fix a minimum number of classes
         # in this way, if the predictions are all the same, the counts will be [n, 0, ..., 0] instead of [n]
-        num_classes = (1 + y.astype(int).max()) if self.classes is None else self.classes
-        classes_counts = np.bincount(probabilities.get_classes(p, multi_label=False), minlength=num_classes) / len(p)
+        n_classes = self.classes or probabilities.count_classes(vector=y)
+        classes_counts = np.bincount(probabilities.get_discrete(p, task='classification'), minlength=n_classes) / len(p)
         return classes_counts.std()
 
 
@@ -80,15 +80,17 @@ class DIDI(Metric):
         :return:
             The (absolute) value of the DIDI.
         """
-        didi, classes = 0.0, len(np.unique(targets))
-        # compute averages per class by onehot encoding the class targets then aggregating by column (i.e., class)
-        total_averages_per_class = probabilities.get_onehot(targets, classes, True).mean(axis=0)
+        # onehot encode targets if this has not been done yet
+        targets = probabilities.get_onehot(vector=targets, onehot_binary=True) if targets.ndim == 1 else targets
+        didi, classes = 0.0, targets.shape[1]
+        # compute averages per class by aggregating the (onehot encoded) targets via column, i.e., each class
+        total_averages_per_class = targets.mean(axis=0)
         for protected_group in indicator_matrix:
             # subset of the targets having <label> as protected feature (i.e., the current protected group)
             protected_targets = targets[protected_group]
             if len(protected_targets) > 0:
                 # list of deviations from the total percentage of samples respectively to each target class
-                protected_averages_per_class = probabilities.get_onehot(protected_targets, classes, True).mean(axis=0)
+                protected_averages_per_class = protected_targets.mean(axis=0)
                 # total deviation (partial didi) respectively to each protected group
                 didi += np.abs(total_averages_per_class - protected_averages_per_class).sum()
         return didi
@@ -151,7 +153,7 @@ class DIDI(Metric):
     def __call__(self, x: pd.DataFrame, y, p) -> float:
         m = self.get_indicator_matrix(x=x, protected=self.protected)
         if self.classification:
-            p = probabilities.get_classes(p, multi_label=False)
+            p = probabilities.get_discrete(p, task='classification')
             didi_p = DIDI.classification_didi(indicator_matrix=m, targets=p)
             didi_y = DIDI.classification_didi(indicator_matrix=m, targets=y) if self.percentage else 1.0
         else:

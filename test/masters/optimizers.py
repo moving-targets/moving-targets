@@ -2,8 +2,8 @@ from typing import Callable, Dict
 
 import numpy as np
 
-from moving_targets.masters.losses import Loss, SAE, SSE, MAE, MSE, BinarySAE, BinarySSE, BinaryMAE, BinaryMSE, \
-    HammingDistance, CrossEntropy, ReversedCrossEntropy, SymmetricCrossEntropy
+from moving_targets.masters.losses import Loss, SAE, SSE, MAE, MSE, HammingDistance, CrossEntropy, \
+    ReversedCrossEntropy, SymmetricCrossEntropy
 from moving_targets.masters.optimizers import Optimizer, ConstantSlope, ExponentialSlope, BetaBoundedSatisfiability, \
     BetaClassSatisfiability
 from test.abstract import AbstractTest
@@ -51,15 +51,15 @@ class TestOptimizers(AbstractTest):
 
         p = 0.1 * np.arange(11)
         y = p.round().astype('int')
-        self._test_satisfiability(optimizer=BetaClassSatisfiability(base=1, multi_label=False), y=y, p=p, expected={
+        self._test_satisfiability(optimizer=BetaClassSatisfiability(base=1), y=y, p=p, expected={
             HammingDistance(): 1,
             CrossEntropy(): 1 - ce(y, p),
             ReversedCrossEntropy(): 1 - ce(p, y),
             SymmetricCrossEntropy(): 1 - ce(y, p) - ce(p, y),
-            BinarySAE(): 1 + 2 * np.abs(y - p).sum(),
-            BinarySSE(): 1 + 2 * np.square(y - p).sum(),
-            BinaryMAE(): 1 + 2 * np.abs(y - p).mean(),
-            BinaryMSE(): 1 + 2 * np.square(y - p).mean()
+            SAE(binary=True): 1 + np.abs(y - p).sum(),
+            SSE(binary=True): 1 + np.square(y - p).sum(),
+            MAE(binary=True): 1 + np.abs(y - p).mean(),
+            MSE(binary=True): 1 + np.square(y - p).mean()
         })
 
     def test_beta_bounded_satisfiability(self):

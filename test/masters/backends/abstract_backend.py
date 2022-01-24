@@ -6,16 +6,15 @@ from sklearn.metrics import mean_squared_error as mse, mean_absolute_error as ma
 
 from moving_targets.masters.backends import Backend
 from moving_targets.masters.losses import Loss, SAE, SSE, MAE, MSE, HammingDistance, CrossEntropy, \
-    ReversedCrossEntropy, SymmetricCrossEntropy, BinarySAE, BinarySSE, BinaryMSE, BinaryMAE
+    ReversedCrossEntropy, SymmetricCrossEntropy
 from moving_targets.util import probabilities
-from moving_targets.util.errors import not_implemented_message
+from moving_targets.util.errors import not_implemented_message, BackendError
 from test.abstract import AbstractTest
 
 
 # TENSORFLOW IS IMPORTED LAZILY TO AVOID CONFLICTS WITH DEPENDENCIES TESTS
 
 class TestBackend(AbstractTest):
-    NUM_MULTI = AbstractTest.NUM_CLASSES * AbstractTest.NUM_SAMPLES
 
     @staticmethod
     def _ce_handler(y: np.ndarray, p: np.ndarray, sw: Optional[np.ndarray], bnr: bool, sym: bool) -> np.ndarray:
@@ -114,26 +113,27 @@ class TestBackend(AbstractTest):
                             # search the col_idx position after the row_idx
                             col_idx_position = var_name.find(str(col_idx), row_idx_position, len(var_name))
                             self.assertTrue((np.array([name_position, row_idx_position, col_idx_position]) != -1).all())
-                try:
-                    # compute backend objective
+                # check whether the tested loss is supported or not
+                tested_loss = inspect.stack()[1][3].replace('test_', '').replace('_weights', '')
+                if tested_loss in self._unsupported():
+                    # if unsupported, check that an UnsupportedOperationError is thrown
+                    with self.assertRaises(BackendError):
+                        mt_loss(backend, numeric_values, model_variables, sample_weight)
+                    backend.clear()
+                else:
+                    # otherwise, compute backend objective
                     mt_value = mt_loss(backend, numeric_values, model_variables, sample_weight)
                     mt_value_as_objective = backend.minimize(mt_value).solve().get_objective()
                     mt_value_as_expression = backend.get_value(mt_value)
                     backend.clear()
                     # compute reference objective
                     if task == 'indicator':
-                        model_values = probabilities.get_classes(model_values, multi_label=False)
-                        numeric_values = probabilities.get_classes(numeric_values, multi_label=False)
+                        model_values = probabilities.get_discrete(model_values, task='classification')
+                        numeric_values = probabilities.get_discrete(numeric_values, task='classification')
                     ref_value = ref_loss(model_values, numeric_values, sample_weight=sample_weight)
                     # compare objectives obtained both as final cost and by expression evaluation with the reference one
                     self.assertAlmostEqual(mt_value_as_objective, ref_value, places=self.PLACES)
                     self.assertAlmostEqual(mt_value_as_expression, ref_value, places=self.PLACES)
-                except AssertionError as exception:
-                    # check that the exception was thrown by an unsupported loss
-                    backend.model = None
-                    tested_loss = inspect.stack()[1][3].replace('test_', '').replace('_weights', '')
-                    self.assertIn(tested_loss, self._unsupported())
-                    self.assertTrue(str(exception).startswith(Backend._ERROR_MESSAGE))
         except NotImplementedError:
             # the abstract testcase will be executed as well, thus if we check whether we are running one of its tests
             self.assertTrue(self.__class__.__name__ == 'TestBackend')
@@ -195,57 +195,57 @@ class TestBackend(AbstractTest):
                    weights=True)
 
     def test_binary_sae(self):
-        self._test(mt_loss=BinarySAE(),
-                   ref_loss=lambda y, p, sample_weight: self.NUM_MULTI * mae(y, p, sample_weight=sample_weight),
+        self._test(mt_loss=SAE(binary=True, sum_features=False),
+                   ref_loss=lambda y, p, sample_weight: self.NUM_SAMPLES * mae(y, p, sample_weight=sample_weight),
                    task='probability',
                    classes=self.NUM_CLASSES,
                    weights=False)
 
     def test_binary_sae_weights(self):
-        self._test(mt_loss=BinarySAE(),
-                   ref_loss=lambda y, p, sample_weight: self.NUM_MULTI * mae(y, p, sample_weight=sample_weight),
+        self._test(mt_loss=SAE(binary=True, sum_features=False),
+                   ref_loss=lambda y, p, sample_weight: self.NUM_SAMPLES * mae(y, p, sample_weight=sample_weight),
                    task='probability',
                    classes=self.NUM_CLASSES,
                    weights=True)
 
     def test_binary_sse(self):
-        self._test(mt_loss=BinarySSE(),
-                   ref_loss=lambda y, p, sample_weight: self.NUM_MULTI * mse(y, p, sample_weight=sample_weight),
+        self._test(mt_loss=SSE(binary=True, sum_features=False),
+                   ref_loss=lambda y, p, sample_weight: self.NUM_SAMPLES * mse(y, p, sample_weight=sample_weight),
                    task='probability',
                    classes=self.NUM_CLASSES,
                    weights=False)
 
     def test_binary_sse_weights(self):
-        self._test(mt_loss=BinarySSE(),
-                   ref_loss=lambda y, p, sample_weight: self.NUM_MULTI * mse(y, p, sample_weight=sample_weight),
+        self._test(mt_loss=SSE(binary=True, sum_features=False),
+                   ref_loss=lambda y, p, sample_weight: self.NUM_SAMPLES * mse(y, p, sample_weight=sample_weight),
                    task='probability',
                    classes=self.NUM_CLASSES,
                    weights=True)
 
     def test_binary_mae(self):
-        self._test(mt_loss=BinaryMAE(),
-                   ref_loss=lambda y, p, sample_weight: self.NUM_CLASSES * mae(y, p, sample_weight=sample_weight),
+        self._test(mt_loss=MAE(binary=True, sum_features=False),
+                   ref_loss=lambda y, p, sample_weight: mae(y, p, sample_weight=sample_weight),
                    task='probability',
                    classes=self.NUM_CLASSES,
                    weights=False)
 
     def test_binary_mae_weights(self):
-        self._test(mt_loss=BinaryMAE(),
-                   ref_loss=lambda y, p, sample_weight: self.NUM_CLASSES * mae(y, p, sample_weight=sample_weight),
+        self._test(mt_loss=MAE(binary=True, sum_features=False),
+                   ref_loss=lambda y, p, sample_weight: mae(y, p, sample_weight=sample_weight),
                    task='probability',
                    classes=self.NUM_CLASSES,
                    weights=True)
 
     def test_binary_mse(self):
-        self._test(mt_loss=BinaryMSE(),
-                   ref_loss=lambda y, p, sample_weight: self.NUM_CLASSES * mse(y, p, sample_weight=sample_weight),
+        self._test(mt_loss=MSE(binary=True, sum_features=False),
+                   ref_loss=lambda y, p, sample_weight: mse(y, p, sample_weight=sample_weight),
                    task='probability',
                    classes=self.NUM_CLASSES,
                    weights=False)
 
     def test_binary_mse_weights(self):
-        self._test(mt_loss=BinaryMSE(),
-                   ref_loss=lambda y, p, sample_weight: self.NUM_CLASSES * mse(y, p, sample_weight=sample_weight),
+        self._test(mt_loss=MSE(binary=True, sum_features=False),
+                   ref_loss=lambda y, p, sample_weight: mse(y, p, sample_weight=sample_weight),
                    task='probability',
                    classes=self.NUM_CLASSES,
                    weights=True)

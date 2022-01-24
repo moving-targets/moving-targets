@@ -77,25 +77,35 @@ class BetaClassSatisfiability(BetaSatisfiability):
     that is not dependent from the constraint satisfaction.
     """
 
-    def __init__(self, base: Union[float, Optimizer], multi_label: bool = False):
+    def __init__(self, base: Union[float, Optimizer], task: str = 'auto'):
         """
         :param base:
             Either a fixed floating point value representing the initial value for the hyper-parameter to optimize, or
             a wrapped custom optimizer which returns a dynamic value to reduce by the given factor after each iteration.
 
-        :param multi_label:
-            Whether the classification task must handle multiple labels or not.
+        :param task:
+            The kind of master task, either 'classification' or 'labelling'.
+
+            For 'classification' tasks, output probabilities are considered to be exclusive since there must be only
+            one class target, while for 'labelling', output probabilities are rounded to get (multi) labels. If 'auto'
+            is passed, it tries to automatically infer the kind of task depending on whether the probabilities over
+            each row sum up to one or not (notice that, if the given vector of probabilities is one-dimensional, this
+            parameter is ignored since the two tasks will be the same).
         """
         super(BetaClassSatisfiability, self).__init__(base=base)
 
-        self.multi_label: bool = multi_label
-        """Whether the classification task must handle multiple labels or not."""
+        self.task: str = task
+        """The kind of master task."""
 
     def _expected_variables(self, macs, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         # the classes are obtained using the 'get_classes' method
-        c = probabilities.get_classes(prob=p, multi_label=self.multi_label)
-        # if the task is not multi-label, the classes will be one-dimensional, thus we onehot encode for compatibility
-        return c if self.multi_label else probabilities.get_onehot(c, classes=len(np.unique(y)), onehot_binary=False)
+        c = probabilities.get_discrete(prob=p, task=self.task)
+        # if we are dealing with a classification task, the classes will be one-dimensional, thus we onehot encode them
+        if c.ndim == 1:
+            onehot_binary = p.ndim == 2
+            return probabilities.get_onehot(c, classes=p.shape[1] if onehot_binary else 2, onehot_binary=onehot_binary)
+        else:
+            return c
 
 
 class BetaBoundedSatisfiability(BetaSatisfiability):

@@ -3,7 +3,7 @@ from typing import Any, Union, List, Optional
 import numpy as np
 
 from moving_targets.masters.backends import Backend
-from moving_targets.util.errors import MissingDependencyError
+from moving_targets.util.errors import MissingDependencyError, BackendError
 
 
 class CplexBackend(Backend):
@@ -49,7 +49,9 @@ class CplexBackend(Backend):
         return self
 
     def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
-        assert vtype in ['binary', 'integer', 'continuous'], self._ERROR_MESSAGE + f"vtype '{vtype}'"
+        # handle variable types
+        if vtype not in ['binary', 'integer', 'continuous']:
+            raise BackendError(unsupported=f"vtype '{vtype}'")
         # handle dimensionality
         if len(keys) == 1:
             fn = getattr(self.model, f'{vtype}_var_dict')
@@ -61,7 +63,7 @@ class CplexBackend(Backend):
             fn = getattr(self.model, f'{vtype}_var_cube')
             kw = dict(keys1=keys[0], keys2=keys[1], keys3=keys[2])
         else:
-            raise AssertionError(self._ERROR_MESSAGE + 'variables having more than three dimensions')
+            raise BackendError(unsupported='variables having more than three dimensions')
         # handle bounds wrt variable type
         if vtype == 'binary':
             assert lb == 0 and ub == 1, f"Binary variable type accepts [0, 1] bounds only, but [{lb}, {ub}] was passed."

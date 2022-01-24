@@ -3,6 +3,7 @@ from typing import Any, Union, List, Optional
 import numpy as np
 
 from moving_targets.masters.backends import Backend
+from moving_targets.util.errors import BackendError
 
 
 class NumpyBackend(Backend):
@@ -26,22 +27,22 @@ class NumpyBackend(Backend):
         """The clipping value to use when calling the 'log()' function to avoid numeric errors."""
 
     def _build_model(self) -> Any:
-        raise AssertionError(self._ERROR_MESSAGE + 'no model can be built')
+        raise BackendError(unsupported='no model can be built', message=self._ERROR_MESSAGE)
 
     def _solve_model(self) -> Optional:
-        raise AssertionError(self._ERROR_MESSAGE + 'no solution can be retrieved')
+        raise BackendError(unsupported='no solution can be retrieved', message=self._ERROR_MESSAGE)
 
     def minimize(self, cost) -> Any:
-        raise AssertionError(self._ERROR_MESSAGE + 'no solution can be minimized')
+        raise BackendError(unsupported='no solution can be minimized', message=self._ERROR_MESSAGE)
 
     def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
-        raise AssertionError(self._ERROR_MESSAGE + 'no constraint can be added')
+        raise BackendError(unsupported='no constraint can be added')
 
     def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
-        raise AssertionError(self._ERROR_MESSAGE + 'no variable can be added')
+        raise BackendError(unsupported='no variable can be added', message=self._ERROR_MESSAGE)
 
     def get_objective(self) -> float:
-        raise AssertionError(self._ERROR_MESSAGE + 'no objective can be retrieved')
+        raise BackendError(unsupported='no objective can be retrieved', message=self._ERROR_MESSAGE)
 
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return expressions

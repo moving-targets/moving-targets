@@ -1,6 +1,5 @@
 import random
 
-import numpy as np
 import sklearn.ensemble as ens
 import sklearn.linear_model as lm
 

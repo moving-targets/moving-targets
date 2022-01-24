@@ -27,20 +27,20 @@ class TestFairClassification(TestExamples):
             'test_didi': 0.25406196759119154
         },
         'pretraining-mae': {
-            'train_acc': 0.7895318509349719,
-            'train_ce': 0.5201796683134032,
-            'train_didi': 0.23614024254872445,
-            'test_acc': 0.7896830659063785,
-            'test_ce': 0.5267724445479272,
-            'test_didi': 0.25531116634220874
+            'train_acc': 0.7878077892224039,
+            'train_ce': 0.5316269022622616,
+            'train_didi': 0.25175214769436016,
+            'test_acc': 0.7874287229810369,
+            'test_ce': 0.5387236112691037,
+            'test_didi': 0.2623203655312463
         },
         'pretraining-mse': {
-            'train_acc': 0.7895318509349719,
-            'train_ce': 0.5201796683134032,
-            'train_didi': 0.23614024254872445,
-            'test_acc': 0.7896830659063785,
-            'test_ce': 0.5267724445479272,
-            'test_didi': 0.25531116634220874
+            'train_acc': 0.7878077892224039,
+            'train_ce': 0.5316269022622616,
+            'train_didi': 0.25175214769436016,
+            'test_acc': 0.7874287229810369,
+            'test_ce': 0.5387236112691037,
+            'test_didi': 0.2623203655312463
         },
         'projection-hd': {
             'train_acc': 0.7510720127315327,
@@ -60,18 +60,18 @@ class TestFairClassification(TestExamples):
         },
         'projection-mae': {
             'train_acc': 0.7510720127315327,
-            'train_ce': 1.4307889947446413,
+            'train_ce': 2.908681588239539,
             'train_didi': 0.0,
             'test_acc': 0.7510940193608274,
-            'test_ce': 1.4351622822879013,
+            'test_ce': 2.934056866668003,
             'test_didi': 0.0
         },
         'projection-mse': {
             'train_acc': 0.7510720127315327,
-            'train_ce': 1.4307889947446413,
+            'train_ce': 2.908681588239539,
             'train_didi': 0.0,
             'test_acc': 0.7510940193608274,
-            'test_ce': 1.4351622822879013,
+            'test_ce': 2.934056866668003,
             'test_didi': 0.0
         }
     }
@@ -88,9 +88,7 @@ class TestFairClassification(TestExamples):
         return FairClassification(backend=GurobiBackend(solution_limit=2), protected='race', loss=loss)
 
     def _metrics(self) -> List[Metric]:
-        return [Accuracy(name='acc'),
-                CrossEntropy(name='ce'),
-                DIDI(protected='race', classification=True, percentage=True, name='didi')]
+        return [Accuracy(name='acc'), CrossEntropy(name='ce'), DIDI(protected='race', classification=True, name='didi')]
 
     def _results(self, dataset: str, class_column: str, init_step: str, loss: str) -> Dict[str, float]:
         return self.RESULTS[f'{init_step}-{loss}']

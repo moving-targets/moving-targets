@@ -26,7 +26,7 @@ class FairRegression(RegressionMaster):
 
         self.violation = violation
         self.didi = DIDI(protected=protected, classification=False, percentage=True)
-        super().__init__(backend=backend, lb=lb, ub=ub, alpha=alpha, beta=beta, y_loss=loss, p_loss=loss)
+        super().__init__(backend=backend, lb=lb, ub=ub, alpha=alpha, beta=beta, y_loss=loss, p_loss=loss, stats=False)
 
     # here we define the problem formulation, i.e., variables and constraints
     def build(self, x, y):
@@ -45,7 +45,7 @@ class FairRegression(RegressionMaster):
             if len(protected_vars) == 0:
                 continue
             # this is the average output target for the protected group
-            protected_avg = self.backend.sum(protected_vars) / len(protected_vars)
+            protected_avg = self.backend.mean(protected_vars)
             # eventually, the partial deviation is computed as the absolute value (which is linearized) of the
             # difference between the total average samples and the average samples within the protected group
             self.backend.add_constraint(deviations[g] >= total_avg - protected_avg)
@@ -56,6 +56,8 @@ class FairRegression(RegressionMaster):
         didi = self.backend.sum(deviations)
         train_didi = DIDI.regression_didi(indicator_matrix=indicator_matrix, targets=y)
         self.backend.add_constraint(didi <= self.violation * train_didi)
+
+        # return the variables at the end
         return variables
 
     # here we define whether to use the alpha or beta strategy, and beta is used if the constraint is already satisfied

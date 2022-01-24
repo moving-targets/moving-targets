@@ -1,56 +1,37 @@
 """Moving Targets Losses for Masters."""
-from moving_targets.masters.losses.classification import ClassificationLoss, BinaryRegressionLoss, BinarySAE, \
-    BinarySSE, BinaryMAE, BinaryMSE, HammingDistance, CrossEntropy, ReversedCrossEntropy, SymmetricCrossEntropy
-from moving_targets.masters.losses.loss import Loss
+from moving_targets.masters.losses.classification import ClassificationLoss, HammingDistance, CrossEntropy, \
+    ReversedCrossEntropy, SymmetricCrossEntropy
+from moving_targets.masters.losses.loss import Loss, WeightedLoss
 from moving_targets.masters.losses.regression import RegressionLoss, SAE, SSE, MAE, MSE
 
-_REGRESSION_ALIASES: dict = {
-    # SAE
+aliases: dict = {
+    # Sum of Absolute Errors
     'sae': SAE,
     'sum_of_absolute_errors': SAE,
     'sum of absolute errors': SAE,
-    # SSE
+    # Sum of Squared Errors
     'sse': SSE,
     'sum_of_squared_errors': SSE,
     'sum of squared errors': SSE,
-    # MAE
+    # Mean Absolute Error
     'mae': MAE,
     'mean_absolute_error': MAE,
     'mean absolute error': MAE,
-    # MSE
+    # Mean Squared Error
     'mse': MSE,
     'mean_squared_error': MSE,
-    'mean squared error': MSE
-}
-
-_CLASSIFICATION_LOSSES: dict = {
-    # SAE
-    'sae': BinarySAE,
-    'sum_of_absolute_errors': BinarySAE,
-    'sum of absolute errors': BinarySAE,
-    # SSE
-    'sse': BinarySSE,
-    'sum_of_squared_errors': BinarySSE,
-    'sum of squared errors': BinarySSE,
-    # MAE
-    'mae': BinaryMAE,
-    'mean_absolute_error': BinaryMAE,
-    'mean absolute error': BinaryMAE,
-    # MSE
-    'mse': BinaryMSE,
-    'mean_squared_error': BinaryMSE,
-    'mean squared error': BinaryMSE,
-    # HD
+    'mean squared error': MSE,
+    # Hamming Distance
     'hd': HammingDistance,
     'hamming_distance': HammingDistance,
     'hamming distance': HammingDistance,
     'bh': HammingDistance,
-    'binary_hamming': HammingDistance,
-    'binary hamming': HammingDistance,
+    '_hamming': HammingDistance,
+    ' hamming': HammingDistance,
     'ch': HammingDistance,
     'categorical_hamming': HammingDistance,
     'categorical hamming': HammingDistance,
-    # CE
+    # CrossEntropy
     'ce': CrossEntropy,
     'crossentropy': CrossEntropy,
     'bce': CrossEntropy,
@@ -65,7 +46,7 @@ _CLASSIFICATION_LOSSES: dict = {
     'nll': CrossEntropy,
     'negative_log_likelihood': CrossEntropy,
     'negative log likelihood': CrossEntropy,
-    # RCE
+    # Reversed CrossEntropy
     'rce': ReversedCrossEntropy,
     'reversed_crossentropy': ReversedCrossEntropy,
     'reversed crossentropy': ReversedCrossEntropy,
@@ -81,7 +62,7 @@ _CLASSIFICATION_LOSSES: dict = {
     'rnll': ReversedCrossEntropy,
     'reversed_negative_log_likelihood': ReversedCrossEntropy,
     'reversed negative log likelihood': ReversedCrossEntropy,
-    # SCE
+    # Symmetric CrossEntropy
     'sce': SymmetricCrossEntropy,
     'symmetric_crossentropy': SymmetricCrossEntropy,
     'symmetric crossentropy': SymmetricCrossEntropy,
@@ -98,15 +79,4 @@ _CLASSIFICATION_LOSSES: dict = {
     'symmetric_negative_log_likelihood': SymmetricCrossEntropy,
     'symmetric negative log likelihood': SymmetricCrossEntropy
 }
-
-
-def regression_loss(alias: str, **loss_kwargs) -> RegressionLoss:
-    class_type = _REGRESSION_ALIASES.get(alias)
-    assert class_type is not None, f"{alias} is not a valid alias for a regression loss"
-    return class_type(**loss_kwargs)
-
-
-def classification_loss(alias: str, **loss_kwargs) -> ClassificationLoss:
-    class_type = _CLASSIFICATION_LOSSES.get(alias)
-    assert class_type is not None, f"{alias} is not a valid alias for a classification loss"
-    return class_type(**loss_kwargs)
+"""Dictionary which associates to each loss alias the respective class type."""

@@ -41,14 +41,14 @@ class FairClassification(ClassificationMaster):
         groups, classes = len(indicator_matrix), len(np.unique(y))
         deviations = self.backend.add_continuous_variables(groups, classes, lb=0.0, name='deviations')
         # this is the average number of samples from the whole dataset <class[c]> as target class
-        total_avg = [self.backend.sum(variables[:, c]) / len(variables) for c in range(classes)]
+        total_avg = [self.backend.mean(variables[:, c]) for c in range(classes)]
         for g, protected_group in enumerate(indicator_matrix):
             # this is the subset of the variables having <label> as protected feature (i.e., the protected group)
             protected_vars = variables[protected_group]
             if len(protected_vars) == 0:
                 continue
             # this is the average number of samples within the protected group having <class[c]> as target
-            protected_avg = [self.backend.sum(protected_vars[:, c]) / len(protected_vars) for c in range(classes)]
+            protected_avg = [self.backend.mean(protected_vars[:, c]) for c in range(classes)]
             # eventually, the partial deviation is computed as the absolute value (which is linearized) of the
             # difference between the total average samples and the average samples within the protected group
             self.backend.add_constraints([deviations[g, c] >= total_avg[c] - protected_avg[c] for c in range(classes)])
@@ -58,6 +58,8 @@ class FairClassification(ClassificationMaster):
         didi = self.backend.sum(deviations)
         train_didi = DIDI.classification_didi(indicator_matrix=indicator_matrix, targets=y)
         self.backend.add_constraint(didi <= self.violation * train_didi)
+
+        # return the original model variables at the end
         return super_vars
 
     # here we define whether to use the alpha or beta strategy, and beta is used if the constraint is already satisfied

@@ -31,17 +31,11 @@ class BalancedCounts(ClassificationMaster):
         #   - a 2d vector of binary variables in case of multiclass classification (i.e., num classes > 2)
         variables = super(BalancedCounts, self).build(x, y)
 
-        # compute the upper bound for number of counts of a class, which will be used to constraint the model variables
-        classes = np.unique(y)
-        max_count = np.ceil(len(y) / len(classes))
-
-        # constraint the model variables by computing the sum of each column
-        # (the np.atleast_2d() call is used to handle binary classification tasks, where variables is a 1d vector)
-        constraints = []
-        for column in np.atleast_2d(variables).transpose():
-            class_count = self.backend.sum(column)
-            constraints.append(class_count <= max_count)
-        self.backend.add_constraints(constraints=constraints)
+        # compute the upper bound for number of counts of a class then constraint the sum of the model variables on
+        # each column to be lower than that value (the np.atleast_2d() call is used to handle binary tasks)
+        num_samples, num_classes = y.shape
+        max_count = np.ceil(num_samples / num_classes)
+        self.backend.add_constraints([self.backend.sum(column) <= max_count for column in np.atleast_2d(variables).T])
 
         # return the variables at the end
         return variables
@@ -49,7 +43,7 @@ class BalancedCounts(ClassificationMaster):
     # here we define whether to use the alpha or beta strategy, and beta is used if the constraint is already satisfied
     def use_beta(self, x, y, p):
         # the constraint is satisfied if all the classes counts are lower than then average number of counts per class
-        pred = probabilities.get_classes(p, multi_label=False)
+        pred = probabilities.get_discrete(p, task='classification')
         classes, counts = np.unique(pred, return_counts=True)
         max_count = np.ceil(len(y) / len(classes))
         return np.all(counts <= max_count)
@@ -76,7 +70,7 @@ class ClassesHistogram(Callback):
 
     def on_training_end(self, macs, x, y, val_data):
         # when the training ends, we use the macs instance to store both the predicted classes and the iterations
-        self.data[f'pred_{macs.iteration}'] = probabilities.get_classes(macs.predict(x), multi_label=False)
+        self.data[f'pred_{macs.iteration}'] = probabilities.get_discrete(macs.predict(x), task='classification')
         self.iterations.append(macs.iteration)
 
     def on_adjustment_end(self, macs, x, y, adjusted_y: np.ndarray, val_data):

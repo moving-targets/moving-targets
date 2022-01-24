@@ -4,14 +4,11 @@ from typing import Any, Union, List, Optional
 
 import numpy as np
 
-from moving_targets.util.errors import not_implemented_message
+from moving_targets.util.errors import not_implemented_message, BackendError
 
 
 class Backend:
     """Basic Interface for a Moving Targets Master Backend."""
-
-    _ERROR_MESSAGE: str = 'This backend cannot deal with '
-    """Error message for unsupported operations."""
 
     _LOGGER: logging.Logger = logging.getLogger('Backend')
 
@@ -397,6 +394,24 @@ class Backend:
         sum_expression = self.sum(a, aux=aux)
         return self.aux(sum_expression / a.size, aux_vtype=aux)
 
+    def std(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
+        """Computes the standard deviation of an array of variables.
+
+        :param a:
+            An array of model variables.
+
+        :param aux:
+            If None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
+            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
+            huge datasets since they can considerably speedup the model formulation; still, imposing equality
+            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+
+        :return:
+            The variables standard deviation.
+        """
+        mean_expression = self.mean(a, aux=aux)
+        return self.sum(a - mean_expression, aux=aux)
+
     def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         """Computes the squared values over an array of variables.
 
@@ -411,8 +426,11 @@ class Backend:
 
         :return:
             The vector of squared values.
+
+        :raise `UnsupportedOperationError`:
+            If the backend cannot handle squared values.
         """
-        raise AssertionError(self._ERROR_MESSAGE + 'squared values')
+        raise BackendError(unsupported='squared values')
 
     def abs(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         """Computes the absolute values over a vector of variables.
@@ -428,8 +446,11 @@ class Backend:
 
         :return:
             The vector of absolute values.
+
+        :raise `UnsupportedOperationError`:
+            If the backend cannot handle absolute values.
         """
-        raise AssertionError(self._ERROR_MESSAGE + 'absolute values')
+        raise BackendError(unsupported='absolute values')
 
     def log(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         """Computes the logarithms over an array of variables.
@@ -445,8 +466,11 @@ class Backend:
 
         :return:
             The vector of logarithms.
+
+        :raise `UnsupportedOperationError`:
+            If the backend cannot handle logarithms.
         """
-        raise AssertionError(self._ERROR_MESSAGE + 'logarithms')
+        raise BackendError(unsupported='logarithms')
 
     def add(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
         """Performs the pairwise sum between two arrays.

@@ -7,7 +7,7 @@ from test.abstract import AbstractTest
 
 
 # Numpy Backend is used to test the correctness of the operations
-class TestLosses(AbstractTest):
+class TestOperations(AbstractTest):
 
     def _test(self, name: str, sizes: List[Tuple]):
         np.random.seed(self.SEED)
@@ -31,6 +31,11 @@ class TestLosses(AbstractTest):
         self._test(name='mean_1d', sizes=[(self.NUM_SAMPLES,)])
         self._test(name='mean_2d', sizes=[(self.NUM_SAMPLES, self.NUM_FEATURES)])
         self._test(name='mean_3d', sizes=[(self.NUM_SAMPLES, self.NUM_FEATURES, self.NUM_CLASSES)])
+
+    def test_std(self):
+        self._test(name='std_1d', sizes=[(self.NUM_SAMPLES,)])
+        self._test(name='std_2d', sizes=[(self.NUM_SAMPLES, self.NUM_FEATURES)])
+        self._test(name='std_3d', sizes=[(self.NUM_SAMPLES, self.NUM_FEATURES, self.NUM_CLASSES)])
 
     def test_square(self):
         self._test(name='square_1d', sizes=[(self.NUM_SAMPLES,)])

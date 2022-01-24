@@ -49,3 +49,17 @@ class MissingDependencyError(ModuleNotFoundError):
             command = f'{package}~={version}'
         message = f"This class requires '{package}' in order to be used, please install it via 'pip install {command}'"
         super(MissingDependencyError, self).__init__(message)
+
+
+class BackendError(Exception):
+    """Custom exception for unsupported `Backend` operations."""
+
+    def __init__(self, unsupported: str, message: str = 'This backend cannot deal with'):
+        """
+        :param unsupported:
+            The unsupported operation description.
+
+        :param message:
+            The prepended message.
+        """
+        super(BackendError, self).__init__(f'{message} {unsupported}')

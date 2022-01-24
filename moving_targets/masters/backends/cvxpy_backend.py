@@ -3,7 +3,7 @@ from typing import Any, Union, List, Optional, Dict
 import numpy as np
 
 from moving_targets.masters.backends import Backend
-from moving_targets.util.errors import MissingDependencyError
+from moving_targets.util.errors import MissingDependencyError, BackendError
 
 
 class CvxpyBackend(Backend):
@@ -52,7 +52,7 @@ class CvxpyBackend(Backend):
             model.solve(solver=self.solver, **self.solver_args)
             return None if model.status in ['infeasible', 'unbounded'] else model
         except self._cp.error.SolverError:
-            raise AssertionError(self._ERROR_MESSAGE + 'the given operation')
+            raise BackendError(unsupported='the given operation')
 
     def minimize(self, cost) -> Any:
         self._objective = self._cp.Minimize(cost)
@@ -73,7 +73,8 @@ class CvxpyBackend(Backend):
             else:
                 return [_recursive_addition(_keys=_keys.copy(), _name=_get_name(_name, i)) for i in range(_key)]
 
-        assert vtype in self._VTYPES.keys(), self._ERROR_MESSAGE + f"vtype '{vtype}'"
+        if vtype not in self._VTYPES.keys():
+            raise BackendError(unsupported=f"vtype '{vtype}'")
         kw = self._VTYPES[vtype]
         var = np.array(_recursive_addition(_keys=list(keys), _name=name))
         self.add_constraints([v >= lb for v in var.flatten()])

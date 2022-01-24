@@ -53,9 +53,7 @@ class TestFairRegression(TestExamples):
         return FairRegression(backend='gurobi', protected='race', loss=loss)
 
     def _metrics(self) -> List[Metric]:
-        return [R2(name='r2'),
-                MSE(name='mse'),
-                DIDI(protected='race', classification=False, percentage=True, name='didi')]
+        return [R2(name='r2'), MSE(name='mse'), DIDI(protected='race', classification=False, name='didi')]
 
     def _results(self, dataset: str, class_column: str, init_step: str, loss: str) -> Dict[str, float]:
         return self.RESULTS[f'{init_step}-{loss}']
