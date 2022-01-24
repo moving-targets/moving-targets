@@ -16,7 +16,7 @@ class TestMasters(AbstractTest):
             self.regression: bool = regression
             self.p: Optional[np.ndarray] = None
 
-        def fit(self, x, y):
+        def fit(self, x, y, sample_weight=None):
             self.p = y
 
         def predict(self, x):

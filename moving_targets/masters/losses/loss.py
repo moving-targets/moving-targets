@@ -23,7 +23,24 @@ class Loss:
                  backend: Backend,
                  numeric_variables: np.ndarray,
                  model_variables: np.ndarray,
-                 sample_weights: Optional[np.ndarray] = None) -> Any:
+                 sample_weight: Optional[np.ndarray] = None) -> Any:
+        """Computes the loss value.
+
+        :param backend:
+            The `Backend` instance used to compute the loss.
+
+        :param numeric_variables:
+            The array of numeric ground truths.
+
+        :param model_variables:
+            The array of backend variables.
+
+        :param sample_weight:
+            The (optional) array of sample weights.
+
+        :return:
+            Either a single value/expression or an array of values/expressions.
+        """
         raise NotImplementedError(not_implemented_message(name='__call__'))
 
 
@@ -69,7 +86,7 @@ class WeightedLoss(Loss):
                  backend: Backend,
                  numeric_variables: np.ndarray,
                  model_variables: np.ndarray,
-                 sample_weights: Optional[np.ndarray] = None) -> Any:
+                 sample_weight: Optional[np.ndarray] = None) -> Any:
         """Core method used to compute the master loss.
 
         :param backend:
@@ -81,21 +98,21 @@ class WeightedLoss(Loss):
         :param model_variables:
             The model variables (i.e., the predictions).
 
-        :param sample_weights:
+        :param sample_weight:
             The sample weights associated to each sample.
 
         :return:
             The loss expression.
         """
         losses = self._losses(backend=backend, numeric_variables=numeric_variables, model_variables=model_variables)
-        if sample_weights is not None:
+        if sample_weight is not None:
             # normalize weights
-            sample_weights = len(sample_weights) * np.array(sample_weights) / np.sum(sample_weights)
+            sample_weight = len(sample_weight) * np.array(sample_weight) / np.sum(sample_weight)
             # handle bi-dimensional outputs
             if losses.ndim == 2:
-                sample_weights = np.repeat(sample_weights.reshape((-1, 1)), repeats=losses.shape[1], axis=1)
+                sample_weight = np.repeat(sample_weight.reshape((-1, 1)), repeats=losses.shape[1], axis=1)
             # multiply partial loss per respective weight
-            losses = sample_weights * losses
+            losses = sample_weight * losses
         return self.aggregation(backend, losses)
 
     def _losses(self, backend: Backend, numeric_variables: np.ndarray, model_variables: np.ndarray) -> np.ndarray:

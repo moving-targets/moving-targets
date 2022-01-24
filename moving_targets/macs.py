@@ -82,6 +82,7 @@ class MACS(StatsLogger):
             x,
             y: np.ndarray,
             iterations: int = 1,
+            sample_weight: Optional[np.ndarray] = None,
             val_data: Optional[Dataset] = None,
             callbacks: Optional[List[Callback]] = None,
             verbose: Union[int, bool] = 2) -> History:
@@ -95,6 +96,9 @@ class MACS(StatsLogger):
 
         :param iterations:
             The number of algorithm iterations.
+
+        :param sample_weight:
+            The (optional) array of sample weights.
 
         :param val_data:
             A dictionary containing the validation data, indicated as a tuple (xv, yv).
@@ -138,7 +142,7 @@ class MACS(StatsLogger):
             self.iteration = 0
             self._update_callbacks(callbacks, lambda c: c.on_pretraining_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
-            self.learner.fit(x=x, y=y)
+            self.learner.fit(x=x, y=y, sample_weight=sample_weight)
             self.fitted = True
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
             self._update_callbacks(callbacks, lambda c: c.on_pretraining_end(macs=self, x=x, y=y, val_data=val_data))
@@ -158,7 +162,7 @@ class MACS(StatsLogger):
                                                                             adjusted_y=adjusted_y))
             self._update_callbacks(callbacks, lambda c: c.on_training_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
-            self.learner.fit(x=x, y=adjusted_y)
+            self.learner.fit(x=x, y=adjusted_y, sample_weight=sample_weight)
             self.fitted = True
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
             self._update_callbacks(callbacks, lambda c: c.on_training_end(macs=self, x=x, y=y, val_data=val_data))

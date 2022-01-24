@@ -42,7 +42,7 @@ class Learner(StatsLogger):
         self._time = None
         self._macs = None
 
-    def fit(self, x, y: np.ndarray) -> Any:
+    def fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> Any:
         """Fits the `Learner` according to the implemented procedure using (x, y) as training data.
 
         :param x:
@@ -50,6 +50,9 @@ class Learner(StatsLogger):
 
         :param y:
             The vector of training labels.
+
+        :param sample_weight:
+            The (optional) array of sample weights.
 
         :return:
             The `Learner` itself.

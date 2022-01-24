@@ -143,7 +143,7 @@ class ClassificationMaster(Master, ABC):
             self.backend.add_constraints([self.backend.sum(row) == 1 for row in variables])
         return variables
 
-    def adjust_targets(self, x, y: np.ndarray) -> np.ndarray:
+    def adjust_targets(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> np.ndarray:
         if self.task == 'multiclass':
             # for multiclass classification tasks, we need to acknowledge that MT losses must work with both original
             # targets and predictions thus, since predictions usually come as 2d floating point array of probabilities
@@ -154,7 +154,7 @@ class ClassificationMaster(Master, ABC):
         else:
             # for binary tasks, the parameter 'task' of get_discrete() is ignored, thus we can simply pass 'labelling'
             task = 'labelling'
-        adjusted = super(ClassificationMaster, self).adjust_targets(x, y)
+        adjusted = super(ClassificationMaster, self).adjust_targets(x, y, sample_weight)
         return probabilities.get_discrete(adjusted, task=task) if self.rtype == 'class' else adjusted
 
     class _LossInfo:

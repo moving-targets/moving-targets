@@ -29,8 +29,8 @@ class ScikitLearner(Learner):
         self.fit_kwargs = fit_kwargs
         """Custom arguments to be passed to the model '.fit()' method."""
 
-    def fit(self, x, y: np.ndarray) -> Any:
-        self.model.fit(x, y, **self.fit_kwargs)
+    def fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> Any:
+        self.model.fit(x, y, sample_weight=sample_weight)
         return self
 
     def predict(self, x) -> np.ndarray:
@@ -74,11 +74,8 @@ class ScikitClassifier(ScikitLearner):
 class LinearRegression(ScikitLearner):
     """Scikit-Learn Linear Regression wrapper."""
 
-    def __init__(self, sample_weight: Optional = None, stats: Union[bool, List[str]] = False, **model_kwargs):
+    def __init__(self, stats: Union[bool, List[str]] = False, **model_kwargs):
         """
-        :param sample_weight:
-            Array-like of shape (n_samples,) containing individual weights for each sample during the training.
-
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
             statistics must be logged.
@@ -88,21 +85,14 @@ class LinearRegression(ScikitLearner):
         """
         import sklearn.linear_model as lm
         m = lm.LinearRegression(**model_kwargs)
-        super(LinearRegression, self).__init__(model=m, stats=stats, sample_weight=sample_weight)
+        super(LinearRegression, self).__init__(model=m, stats=stats)
 
 
 class LogisticRegression(ScikitClassifier):
     """Scikit-Learn Logistic Regression wrapper."""
 
-    def __init__(self,
-                 sample_weight: Optional = None,
-                 task: str = 'auto',
-                 stats: Union[bool, List[str]] = False,
-                 **model_kwargs):
+    def __init__(self, task: str = 'auto', stats: Union[bool, List[str]] = False, **model_kwargs):
         """
-        :param sample_weight:
-            Array-like of shape (n_samples,) containing individual weights for each sample during the training.
-
         :param task:
             The kind of classification task, which can be either 'binary' (i.e., probabilities will be returned as a
             one-dimensional array), 'multiclass' (i.e., probabilities will be returned in a bi-dimensional array), or
@@ -117,7 +107,7 @@ class LogisticRegression(ScikitClassifier):
         """
         import sklearn.linear_model as lm
         m = lm.LogisticRegression(**model_kwargs)
-        super(LogisticRegression, self).__init__(model=m, task=task, stats=stats, sample_weight=sample_weight)
+        super(LogisticRegression, self).__init__(model=m, task=task, stats=stats)
 
 
 class RandomForestRegressor(ScikitLearner):
@@ -126,7 +116,6 @@ class RandomForestRegressor(ScikitLearner):
     def __init__(self,
                  n_estimators: int = 100,
                  max_depth: Optional[int] = None,
-                 sample_weight: Optional = None,
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
@@ -136,9 +125,6 @@ class RandomForestRegressor(ScikitLearner):
         :param max_depth:
             The maximum depth of the tree. If None, then nodes are expanded until all leaves are pure or until all
             leaves contain less than min_samples_split samples.
-
-        :param sample_weight:
-            Array-like of shape (n_samples,) containing individual weights for each sample during the training.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -149,34 +135,30 @@ class RandomForestRegressor(ScikitLearner):
         """
         import sklearn.ensemble as ens
         m = ens.RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, **model_kwargs)
-        super(RandomForestRegressor, self).__init__(model=m, stats=stats, sample_weight=sample_weight)
+        super(RandomForestRegressor, self).__init__(model=m, stats=stats)
 
 
 class RandomForestClassifier(ScikitClassifier):
     """Scikit-Learn Random Forest Classifier wrapper."""
 
     def __init__(self,
+                 task: str = 'auto',
                  n_estimators: int = 100,
                  max_depth: Optional[int] = None,
-                 sample_weight: Optional = None,
-                 task: str = 'auto',
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
+        :param task:
+            The kind of classification task, which can be either 'binary' (i.e., probabilities will be returned as a
+            one-dimensional array), 'multiclass' (i.e., probabilities will be returned in a bi-dimensional array), or
+            'auto' for automatic task detection.
+
         :param n_estimators:
             The number of trees in the forest.
 
         :param max_depth:
             The maximum depth of the tree. If None, then nodes are expanded until all leaves are pure or until all
             leaves contain less than min_samples_split samples.
-
-        :param sample_weight:
-            Array-like of shape (n_samples,) containing individual weights for each sample during the training.
-
-        :param task:
-            The kind of classification task, which can be either 'binary' (i.e., probabilities will be returned as a
-            one-dimensional array), 'multiclass' (i.e., probabilities will be returned in a bi-dimensional array), or
-            'auto' for automatic task detection.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -187,7 +169,7 @@ class RandomForestClassifier(ScikitClassifier):
         """
         import sklearn.ensemble as ens
         m = ens.RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, **model_kwargs)
-        super(RandomForestClassifier, self).__init__(model=m, task=task, stats=stats, sample_weight=sample_weight)
+        super(RandomForestClassifier, self).__init__(model=m, task=task, stats=stats)
 
 
 class GradientBoostingRegressor(ScikitLearner):
@@ -196,7 +178,6 @@ class GradientBoostingRegressor(ScikitLearner):
     def __init__(self,
                  n_estimators: int = 100,
                  min_samples_leaf: Union[int, float] = 1,
-                 sample_weight: Optional = None,
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
@@ -207,9 +188,6 @@ class GradientBoostingRegressor(ScikitLearner):
             The minimum number of samples required to be at a leaf node. If int, then consider `min_samples_leaf` as
             the minimum number, otherwise `min_samples_leaf` is a fraction and `ceil(min_samples_leaf * n_samples)` are
             the minimum number of samples for each node.
-
-        :param sample_weight:
-            Array-like of shape (n_samples,) containing individual weights for each sample during the training.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -220,20 +198,24 @@ class GradientBoostingRegressor(ScikitLearner):
         """
         import sklearn.ensemble as ens
         m = ens.GradientBoostingRegressor(n_estimators=n_estimators, min_samples_leaf=min_samples_leaf, **model_kwargs)
-        super(GradientBoostingRegressor, self).__init__(model=m, stats=stats, sample_weight=sample_weight)
+        super(GradientBoostingRegressor, self).__init__(model=m, stats=stats)
 
 
 class GradientBoostingClassifier(ScikitClassifier):
     """Scikit-Learn Gradient Boosting Classifier wrapper."""
 
     def __init__(self,
+                 task: str = 'auto',
                  n_estimators: int = 100,
                  min_samples_leaf: Union[int, float] = 1,
-                 sample_weight: Optional = None,
-                 task: str = 'auto',
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
+        :param task:
+            The kind of classification task, which can be either 'binary' (i.e., probabilities will be returned as a
+            one-dimensional array), 'multiclass' (i.e., probabilities will be returned in a bi-dimensional array), or
+            'auto' for automatic task detection.
+
         :param n_estimators:
             The number of boosting stages to perform.
 
@@ -241,14 +223,6 @@ class GradientBoostingClassifier(ScikitClassifier):
             The minimum number of samples required to be at a leaf node. If int, then consider `min_samples_leaf` as
             the minimum number, otherwise `min_samples_leaf` is a fraction and `ceil(min_samples_leaf * n_samples)` are
             the minimum number of samples for each node.
-
-        :param sample_weight:
-            Array-like of shape (n_samples,) containing individual weights for each sample during the training.
-
-        :param task:
-            The kind of classification task, which can be either 'binary' (i.e., probabilities will be returned as a
-            one-dimensional array), 'multiclass' (i.e., probabilities will be returned in a bi-dimensional array), or
-            'auto' for automatic task detection.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -259,4 +233,4 @@ class GradientBoostingClassifier(ScikitClassifier):
         """
         import sklearn.ensemble as ens
         m = ens.GradientBoostingClassifier(n_estimators=n_estimators, min_samples_leaf=min_samples_leaf, **model_kwargs)
-        super(GradientBoostingClassifier, self).__init__(model=m, task=task, stats=stats, sample_weight=sample_weight)
+        super(GradientBoostingClassifier, self).__init__(model=m, task=task, stats=stats)

@@ -29,8 +29,8 @@ class TensorflowLearner(Learner):
         self.fit_kwargs = fit_kwargs
         """Custom arguments to be passed to the model '.fit()' method."""
 
-    def fit(self, x, y: np.ndarray) -> Any:
-        self.model.fit(x, y, **self.fit_kwargs)
+    def fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> Any:
+        self.model.fit(x, y, sample_weight=sample_weight)
         return self
 
     def predict(self, x) -> np.ndarray:
@@ -55,7 +55,6 @@ class MultiLayerPerceptron(TensorflowLearner):
                  validation_split: float = 0.,
                  batch_size: Optional[int] = None,
                  class_weight: Optional[Dict] = None,
-                 sample_weight: Optional[np.ndarray] = None,
                  callbacks: Optional[List] = None,
                  verbose: Union[bool, str] = 'auto',
                  stats: Union[bool, List[str]] = False):
@@ -102,9 +101,6 @@ class MultiLayerPerceptron(TensorflowLearner):
         :param class_weight:
             Optional dictionary mapping class indices to a weight, used for weighting the loss function during training.
 
-        :param sample_weight:
-            Optional array of weights for the training samples, used for weighting the loss function during training.
-
         :param callbacks:
             The list of keras callbacks for the training phase.
 
@@ -138,6 +134,5 @@ class MultiLayerPerceptron(TensorflowLearner):
                                                    validation_split=validation_split,
                                                    callbacks=callbacks,
                                                    class_weight=class_weight,
-                                                   sample_weight=sample_weight,
                                                    verbose=verbose,
                                                    stats=stats)

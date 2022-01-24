@@ -115,7 +115,7 @@ class Master(StatsLogger):
         raise ValueError("This master has not implemented any strategy to choose between the alpha and beta steps. " +
                          "Please override a custom 'use_beta' method or set either alpha or beta to None.")
 
-    def adjust_targets(self, x, y: np.ndarray) -> np.ndarray:
+    def adjust_targets(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> np.ndarray:
         """Core function of the `Master` object which builds the model and returns the adjusted targets.
 
         :param x:
@@ -124,19 +124,22 @@ class Master(StatsLogger):
         :param y:
             The vector of training labels.
 
+        :param sample_weight:
+            The (optional) array of sample weights.
+
         :return:
             The vector of adjusted targets, potentially with a dictionary of additional information.
         """
         assert self._macs is not None, "No reference to the MACS object encapsulating the Master"
         self.backend.build()
         v = self.build(x=x, y=y)
-        y_loss = self.y_loss(backend=self.backend, numeric_variables=y, model_variables=v)
+        y_loss = self.y_loss(self.backend, numeric_variables=y, model_variables=v, sample_weight=sample_weight)
         # if macs is not fitted (i.e., we are in the first 'projection' iteration), there is no need to choose a
         # strategy since both of them will collapse to the same formulation, namely minimizing the y_loss only,
         # otherwise we use the beta step if either alpha is None, or beta is not None and use_beta() returns true
         if self._macs.fitted:
             p = self._macs.predict(x)
-            p_loss = self.p_loss(backend=self.backend, numeric_variables=p, model_variables=v)
+            p_loss = self.p_loss(self.backend, numeric_variables=p, model_variables=v, sample_weight=sample_weight)
             # leave use_beta at the end to avoid function evaluation if one of the two conditions hold before
             if self.alpha is None or (self.beta is not None and self.use_beta(x=x, y=y, p=p)):
                 beta = self.beta(macs=self._macs, x=x, y=y, p=p)
