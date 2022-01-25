@@ -77,29 +77,23 @@ class BetaClassSatisfiability(BetaSatisfiability):
     that is not dependent from the constraint satisfaction.
     """
 
-    def __init__(self, base: Union[float, Optimizer], task: str = 'auto'):
+    def __init__(self, base: Union[float, Optimizer], labelling: bool = False):
         """
         :param base:
             Either a fixed floating point value representing the initial value for the hyper-parameter to optimize, or
             a wrapped custom optimizer which returns a dynamic value to reduce by the given factor after each iteration.
 
-        :param task:
-            The kind of master task, either 'classification' or 'labelling'.
-
-            For 'classification' tasks, output probabilities are considered to be exclusive since there must be only
-            one class target, while for 'labelling', output probabilities are rounded to get (multi) labels. If 'auto'
-            is passed, it tries to automatically infer the kind of task depending on whether the probabilities over
-            each row sum up to one or not (notice that, if the given vector of probabilities is one-dimensional, this
-            parameter is ignored since the two tasks will be the same).
+        :param labelling:
+            Whether the master represents a labelling or a classification task.
         """
         super(BetaClassSatisfiability, self).__init__(base=base)
 
-        self.task: str = task
-        """The kind of master task."""
+        self.labelling: bool = labelling
+        """Whether the master represents a labelling or a classification task."""
 
     def _expected_variables(self, macs, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         # the classes are obtained using the 'get_classes' method
-        c = probabilities.get_discrete(prob=p, task=self.task)
+        c = probabilities.get_classes(prob=p, labelling=self.labelling)
         # if we are dealing with a classification task, the classes will be one-dimensional, thus we onehot encode them
         if c.ndim == 1:
             onehot_binary = p.ndim == 2

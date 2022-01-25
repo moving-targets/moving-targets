@@ -124,7 +124,7 @@ class ClassificationMaster(Master, ABC):
             y_loss=y_loss,
             p_loss=p_loss,
             alpha=None if alpha is None else Optimizer(base=alpha),
-            beta=None if beta is None else BetaClassSatisfiability(base=beta, task='classification'),
+            beta=None if beta is None else BetaClassSatisfiability(base=beta, labelling=task == 'labelling'),
             stats=stats
         )
 
@@ -150,12 +150,12 @@ class ClassificationMaster(Master, ABC):
             # while class targets usually come as an integer vector, we must onehot encode the latter for compatibility
             # (this will not be necessary for multilabel classification since the original targets will be already 2d)
             y = probabilities.get_onehot(y, onehot_binary=True)
-            task = 'classification'
+            labelling = False
         else:
             # for binary tasks, the parameter 'task' of get_discrete() is ignored, thus we can simply pass 'labelling'
-            task = 'labelling'
+            labelling = True
         adjusted = super(ClassificationMaster, self).adjust_targets(x, y, sample_weight)
-        return probabilities.get_discrete(adjusted, task=task) if self.rtype == 'class' else adjusted
+        return probabilities.get_classes(adjusted, labelling=labelling) if self.rtype == 'class' else adjusted
 
     class _LossInfo:
         """Data class containing information about a loss."""
@@ -211,8 +211,8 @@ class ClassificationMaster(Master, ABC):
             class_type = aliases.get(loss)
             if class_type == HammingDistance:
                 # hamming distance can handle only binary targets, also, for this loss we need to specify the task
-                hamming_task = 'labelling' if task == 'multilabel' else 'classification'
-                return cls._LossInfo(loss_fn=lambda b: HammingDistance(task=hamming_task, name=loss), force_binary=True)
+                return cls._LossInfo(loss_fn=lambda b: HammingDistance(labelling=task == 'multilabel', name=loss),
+                                     force_binary=True)
             elif class_type == CrossEntropy:
                 # crossentropy can handle only binary targets
                 return cls._LossInfo(loss_fn=lambda b: CrossEntropy(name=loss), force_binary=True)

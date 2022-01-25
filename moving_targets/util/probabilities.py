@@ -17,36 +17,22 @@ def count_classes(vector: np.ndarray) -> int:
     return int(np.max(vector)) + 1
 
 
-def get_discrete(prob: np.ndarray, task: str = 'auto') -> np.ndarray:
+def get_classes(prob: np.ndarray, labelling: bool = False) -> np.ndarray:
     """Gets the output classes given the output probabilities per class.
 
     :param prob:
-        A vector/matrix of output probabilities.
+        An array of probabilities.
 
-    :param task:
-        The kind of task that generated these probabilities, either 'classification' or 'labelling'.
-
-        For 'classification' tasks, returns classes as the argmax over each row, while for 'labelling' tasks returns
-        labels via rounding. If 'auto' is passed, it tries to automatically infer the kind of task depending on whether
-        the probabilities over each row sum up to one or not (notice that, if the given vector of probabilities is
-        one-dimensional, this parameter is ignored since the two tasks will be the same).
+    :param labelling:
+        Whether the task that generated these probabilities is a labelling or a classification task. This defines the
+        strategy to get the discrete values from probabilities in case the given array is bi-dimensional (indeed, for
+        one-dimensional vectors this parameter is ignored since the two tasks will be the same), which consists in
+        rounding or taking the the argmax over each row, respectively.
 
     :return:
         The respective output classes/labels.
     """
-    # handle task depending on input dimension and given parameter
-    if prob.squeeze().ndim == 1:
-        rounding = True
-    elif task == 'auto':
-        rounding = not np.allclose(prob.sum(axis=1), 1.0)
-    elif task == 'classification':
-        rounding = False
-    elif task == 'labelling':
-        rounding = True
-    else:
-        raise AssertionError(f"'task' should be either 'classification', 'labelling', or 'auto', but is {task}")
-    # return classes/labels
-    return prob.round().astype(int) if rounding else prob.argmax(axis=1)
+    return prob.round().astype(int) if prob.squeeze().ndim == 1 or labelling else prob.argmax(axis=1)
 
 
 def get_onehot(vector: np.ndarray, classes: Optional[int] = None, onehot_binary: bool = False) -> np.ndarray:

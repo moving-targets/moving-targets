@@ -46,19 +46,19 @@ class ClassificationLoss(WeightedLoss, ABC):
 class HammingDistance(ClassificationLoss):
     """Hamming Distance."""
 
-    def __init__(self, task: str = 'auto', name: str = 'hamming_distance'):
+    def __init__(self, labelling: bool = False, name: str = 'hamming_distance'):
         """
-        :param task:
+        :param labelling:
             The kind of classification task, either 'classification', 'labelling' or 'auto' for automatic task
             inference depending on the given numeric variables.
 
         :param name:
-            The name of the metric.
+            Whether the master represents a labelling or a classification task.
         """
         super(HammingDistance, self).__init__(name=name)
 
-        self.task: str = task
-        """The kind of classification task."""
+        self.labelling: bool = labelling
+        """Whether the master represents a labelling or a classification task."""
 
     def _strategy(self, backend: Backend, numeric_variables: np.ndarray, model_variables: np.ndarray) -> np.ndarray:
         # it should be 1 - sum([mv[i] * nv[i] for i in range(num_classes)]), but this creates problems due to the
@@ -71,7 +71,7 @@ class HammingDistance(ClassificationLoss):
         # we first obtain classes/labels then we bring them back to a onehot encoded version for compatibility (this is
         # necessary only for the multiclass task, since classes are given in a 1d vector but model variables are 2d)
         if not np.issubdtype(numeric_variables.dtype, np.integer):
-            numeric_variables = probabilities.get_discrete(numeric_variables, task=self.task)
+            numeric_variables = probabilities.get_classes(numeric_variables, labelling=self.labelling)
             if numeric_variables.ndim == 1 and model_variables.ndim == 2:
                 numeric_variables = probabilities.get_onehot(vector=numeric_variables,
                                                              classes=model_variables.shape[1],

@@ -3,7 +3,7 @@ from collections import Callable
 import numpy as np
 from sklearn.preprocessing import LabelBinarizer
 
-from moving_targets.util.probabilities import get_discrete, get_onehot
+from moving_targets.util.probabilities import get_classes, get_onehot
 from test.abstract import AbstractTest
 
 
@@ -67,17 +67,19 @@ class TestProbabilities(AbstractTest):
         self.assertTrue(np.all(inp == ref), msg=f'Input:\n{inp}\nReference:\n{ref}')
 
     def test_classes_binary_1d(self):
-        self._test(inp=self.BINARY_PROBABILITIES, ref=self.BINARY_CLASSES, fn=get_discrete)
+        self._test(inp=self.BINARY_PROBABILITIES, ref=self.BINARY_CLASSES, fn=get_classes)
 
     def test_classes_binary_2d(self):
         inp = np.transpose([1 - self.BINARY_PROBABILITIES, self.BINARY_PROBABILITIES])
-        self._test(inp=inp, ref=self.BINARY_CLASSES, fn=get_discrete)
+        self._test(inp=inp, ref=self.BINARY_CLASSES, fn=get_classes)
 
     def test_classes_multiclass(self):
-        self._test(inp=self.MULTICLASS_PROBABILITIES, ref=self.MULTICLASS_CLASSES, fn=get_discrete)
+        self._test(inp=self.MULTICLASS_PROBABILITIES, ref=self.MULTICLASS_CLASSES, fn=get_classes)
 
     def test_classes_multilabel(self):
-        self._test(inp=self.MULTILABEL_PROBABILITIES, ref=self.MULTILABEL_ONEHOT, fn=get_discrete)
+        self._test(inp=self.MULTILABEL_PROBABILITIES,
+                   ref=self.MULTILABEL_ONEHOT,
+                   fn=lambda prob: get_classes(prob=prob, labelling=True))
 
     def test_onehot_binary_1d(self):
         self._test(inp=self.BINARY_CLASSES, ref=self.BINARY_CLASSES, fn=get_onehot)

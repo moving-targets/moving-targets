@@ -43,7 +43,7 @@ class BalancedCounts(ClassificationMaster):
     # here we define whether to use the alpha or beta strategy, and beta is used if the constraint is already satisfied
     def use_beta(self, x, y, p):
         # the constraint is satisfied if all the classes counts are lower than then average number of counts per class
-        pred = probabilities.get_discrete(p, task='classification')
+        pred = probabilities.get_classes(p)
         classes, counts = np.unique(pred, return_counts=True)
         max_count = np.ceil(len(y) / len(classes))
         return np.all(counts <= max_count)
@@ -70,7 +70,7 @@ class ClassesHistogram(Callback):
 
     def on_training_end(self, macs, x, y, val_data):
         # when the training ends, we use the macs instance to store both the predicted classes and the iterations
-        self.data[f'pred_{macs.iteration}'] = probabilities.get_discrete(macs.predict(x), task='classification')
+        self.data[f'pred_{macs.iteration}'] = probabilities.get_classes(macs.predict(x))
         self.iterations.append(macs.iteration)
 
     def on_adjustment_end(self, macs, x, y, adjusted_y: np.ndarray, val_data):

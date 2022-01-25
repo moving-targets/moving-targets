@@ -1,4 +1,4 @@
-from typing import Optional, Any, Tuple, List, Union, Dict
+from typing import Optional, Any, List, Union, Dict
 
 import numpy as np
 
@@ -42,9 +42,9 @@ class MultiLayerPerceptron(TensorflowLearner):
 
     def __init__(self,
                  loss: str,
-                 output_units: int,
-                 output_activation: Optional[str],
-                 hidden_units: Tuple[int] = (128,),
+                 output_units: int = 1,
+                 output_activation: Optional[str] = None,
+                 hidden_units: List[int] = (128,),
                  hidden_activation: Optional[str] = 'relu',
                  optimizer: str = 'adam',
                  metrics: Optional[List] = None,

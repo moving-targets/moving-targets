@@ -29,7 +29,7 @@ class ClassFrequenciesStd(Metric):
         # bincount is similar to np.unique(..., return_counts=True) but allows to fix a minimum number of classes
         # in this way, if the predictions are all the same, the counts will be [n, 0, ..., 0] instead of [n]
         n_classes = self.classes or probabilities.count_classes(vector=y)
-        classes_counts = np.bincount(probabilities.get_discrete(p, task='classification'), minlength=n_classes) / len(p)
+        classes_counts = np.bincount(probabilities.get_classes(p), minlength=n_classes) / len(p)
         return classes_counts.std()
 
 
@@ -153,7 +153,7 @@ class DIDI(Metric):
     def __call__(self, x: pd.DataFrame, y, p) -> float:
         m = self.get_indicator_matrix(x=x, protected=self.protected)
         if self.classification:
-            p = probabilities.get_discrete(p, task='classification')
+            p = probabilities.get_classes(p)
             didi_p = DIDI.classification_didi(indicator_matrix=m, targets=p)
             didi_y = DIDI.classification_didi(indicator_matrix=m, targets=y) if self.percentage else 1.0
         else:

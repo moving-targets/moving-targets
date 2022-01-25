@@ -50,7 +50,7 @@ class ClassificationMetric(Metric):
     def __call__(self, x, y: np.ndarray, p: np.ndarray) -> float:
         if not self.use_prob:
             # if the metric does not use probabilities, convert the probabilities into class targets
-            p = probabilities.get_discrete(prob=p, task='classification')
+            p = probabilities.get_classes(prob=p)
         elif p.ndim == 1 and np.issubdtype(p.dtype, np.integer):
             # otherwise, if we use class probabilities we expect a bi-dimensional array for predictions, thus if a
             # one-dimensional array is passed instead because the master directly returns adjusted class targets,

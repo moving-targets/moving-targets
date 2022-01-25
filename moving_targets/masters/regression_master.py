@@ -91,5 +91,5 @@ class RegressionMaster(Master, ABC):
             # otherwise we retrieve the class from the alias then check if it is both known and supported
             class_type = aliases.get(loss)
             assert class_type is not None, f"Unknown loss alias '{loss}'"
-            assert class_type in {SAE, SSE, MAE, MSE}, f"Loss type {class_type.__name__} is not a regression loss."
+            assert class_type in [SAE, SSE, MAE, MSE], f"Loss type {class_type.__name__} is not a regression loss."
             return class_type(name=loss)

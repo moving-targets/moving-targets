@@ -128,8 +128,8 @@ class TestBackend(AbstractTest):
                     backend.clear()
                     # compute reference objective
                     if task == 'indicator':
-                        model_values = probabilities.get_discrete(model_values, task='classification')
-                        numeric_values = probabilities.get_discrete(numeric_values, task='classification')
+                        model_values = probabilities.get_classes(model_values)
+                        numeric_values = probabilities.get_classes(numeric_values)
                     ref_value = ref_loss(model_values, numeric_values, sample_weight=sample_weight)
                     # compare objectives obtained both as final cost and by expression evaluation with the reference one
                     self.assertAlmostEqual(mt_value_as_objective, ref_value, places=self.PLACES)
