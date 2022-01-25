@@ -30,7 +30,7 @@ class TensorflowLearner(Learner):
         """Custom arguments to be passed to the model '.fit()' method."""
 
     def fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> Any:
-        self.model.fit(x, y, sample_weight=sample_weight)
+        self.model.fit(x, y, sample_weight=sample_weight, **self.fit_kwargs)
         return self
 
     def predict(self, x) -> np.ndarray:

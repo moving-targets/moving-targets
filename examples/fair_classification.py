@@ -88,4 +88,4 @@ if __name__ == '__main__':
         metrics=[Accuracy(), CrossEntropy(), DIDI(protected='race', classification=True, percentage=True)]
     )
     history = model.fit(x=x_tr, y=y_tr, iterations=10, val_data={'test': (x_ts, y_ts)}, verbose=True)
-    history.plot(figsize=(16, 9))
+    history.plot()

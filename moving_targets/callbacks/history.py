@@ -34,6 +34,8 @@ class History(Logger):
              features: Optional[List[str]] = None,
              num_subplots: Union[str, int] = '/',
              orient_rows: bool = False,
+             tight_layout=True,
+             figsize=(16, 9),
              **plt_kwargs):
         """Plots the training information which were previously collected in a dataframe.
 
@@ -50,6 +52,12 @@ class History(Logger):
             Whether to orient the plots by column or by row. This influences also the 'num_subplots' parameter since
             when 'orient_rows' is set to True the 'num_subplots' indicates the number of rows while when 'orient_rows'
             is set to False the 'num_subplots' indicates the number of columns.
+
+        :param tight_layout:
+            Matplotlib `figure()` argument.
+
+        :param figsize:
+            Matplotlib `figure()` argument.
 
         :param plt_kwargs:
             Additional plot arguments to be passed to `figure()`.
@@ -89,17 +97,12 @@ class History(Logger):
             # filling up to len(row) is necessary since some rows may have less features than the maximum one
             positions[i, :len(row)] = row
         positions = positions if orient_rows else positions.transpose()
-        # HANDLE MATPLOTLIB ARGUMENTS
-        #   1. the 'tight_layout' argument is set toTrue by default
-        #   2. then, the custom arguments are added
-        plt_args = dict(tight_layout=True)
-        plt_args.update(plt_kwargs)
-        plt.figure(**plt_args)
         # PLOT EACH FEATURE IN A SUBPLOT
         #   1. iterates by rows and columns
         #   2. if the feature name is not None, it plots the data
         ax = None
         num_rows, num_cols = positions.shape
+        plt.figure(figsize=figsize, tight_layout=tight_layout, **plt_kwargs)
         for idx, feature in enumerate(positions.flatten()):
             if feature is not None:
                 ax = plt.subplot(num_rows, num_cols, idx + 1, sharex=ax)
