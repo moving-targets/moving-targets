@@ -1,18 +1,30 @@
-from typing import Optional, Any, List, Union, Dict
+from typing import Optional, List, Union, Dict
 
 import numpy as np
 
 from moving_targets.learners import Learner
 from moving_targets.util.errors import MissingDependencyError
+from moving_targets.util.scalers import Scaler
 
 
 class TensorflowLearner(Learner):
     """Wrapper for a custom Tensorflow/Keras model."""
 
-    def __init__(self, model, stats: Union[bool, List[str]] = False, **fit_kwargs):
+    def __init__(self,
+                 model,
+                 x_scaler: Optional[Scaler] = None,
+                 y_scaler: Optional[Scaler] = None,
+                 stats: Union[bool, List[str]] = False,
+                 **fit_kwargs):
         """
         :param model:
             The Tensorflow/Keras model which should have been already compiled.
+
+        :param x_scaler:
+            The (optional) scaler for the input data.
+
+        :param y_scaler:
+            The (optional) scaler for the output data.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -21,7 +33,7 @@ class TensorflowLearner(Learner):
         :param fit_kwargs:
             Custom arguments to be passed to the model '.fit()' method.
         """
-        super(TensorflowLearner, self).__init__(stats=stats)
+        super(TensorflowLearner, self).__init__(x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
 
         self.model = model
         """The Tensorflow/Keras model."""
@@ -29,11 +41,10 @@ class TensorflowLearner(Learner):
         self.fit_kwargs = fit_kwargs
         """Custom arguments to be passed to the model '.fit()' method."""
 
-    def fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> Any:
+    def _fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None):
         self.model.fit(x, y, sample_weight=sample_weight, **self.fit_kwargs)
-        return self
 
-    def predict(self, x) -> np.ndarray:
+    def _predict(self, x) -> np.ndarray:
         return self.model.predict(x)
 
 
@@ -48,7 +59,7 @@ class MultiLayerPerceptron(TensorflowLearner):
                  hidden_activation: Optional[str] = 'relu',
                  optimizer: str = 'adam',
                  metrics: Optional[List] = None,
-                 loss_weights: Optional[Union[List, Dict]] = None,
+                 loss_weights: Union[None, List, Dict] = None,
                  weighted_metrics: Optional[List] = None,
                  run_eagerly: bool = False,
                  epochs: int = 1,
@@ -57,6 +68,8 @@ class MultiLayerPerceptron(TensorflowLearner):
                  class_weight: Optional[Dict] = None,
                  callbacks: Optional[List] = None,
                  verbose: Union[bool, str] = 'auto',
+                 x_scaler: Optional[Scaler] = None,
+                 y_scaler: Optional[Scaler] = None,
                  stats: Union[bool, List[str]] = False):
         """
         :param loss:
@@ -107,6 +120,12 @@ class MultiLayerPerceptron(TensorflowLearner):
         :param verbose:
             Whether or not to print information during the neural network training.
 
+        :param x_scaler:
+            The (optional) scaler for the input data.
+
+        :param y_scaler:
+            The (optional) scaler for the output data.
+
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
             statistics must be logged.
@@ -135,4 +154,6 @@ class MultiLayerPerceptron(TensorflowLearner):
                                                    callbacks=callbacks,
                                                    class_weight=class_weight,
                                                    verbose=verbose,
+                                                   x_scaler=x_scaler,
+                                                   y_scaler=y_scaler,
                                                    stats=stats)

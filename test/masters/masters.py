@@ -12,14 +12,14 @@ from test.abstract import AbstractTest
 class TestMasters(AbstractTest):
     class DummyLearner(Learner):
         def __init__(self, regression: bool):
-            super(TestMasters.DummyLearner, self).__init__(stats=False)
+            super(TestMasters.DummyLearner, self).__init__(x_scaler=None, y_scaler=None, stats=False)
             self.regression: bool = regression
             self.p: Optional[np.ndarray] = None
 
-        def fit(self, x, y, sample_weight=None):
+        def _fit(self, x, y, sample_weight=None):
             self.p = y
 
-        def predict(self, x):
+        def _predict(self, x):
             return self.p if self.regression or self.p.ndim == 2 else probabilities.get_onehot(self.p.astype(int))
 
     def _test(self, task: Union[int, str], y_loss: str, p_loss: str, vtype: Optional[str], rtype: Optional[str]):

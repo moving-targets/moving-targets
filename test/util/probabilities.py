@@ -93,9 +93,9 @@ class TestProbabilities(AbstractTest):
         self._test(inp=self.MULTICLASS_CLASSES, ref=self.MULTICLASS_ONEHOT, fn=get_onehot)
 
     def test_categories_auto(self):
-        with self.assertRaises(AssertionError) as check:
+        with self.assertRaises(AssertionError) as context:
             self._test(inp=self.CATEGORIES_CLASSES, ref=self.CATEGORIES_ONEHOT, fn=get_onehot)
-        self.assertTrue(str(check.exception).startswith('Tuples differ: (10, 4) != (10, 5)'))
+        self.assertTrue(str(context.exception).startswith('Tuples differ: (10, 4) != (10, 5)'))
 
     def test_categories_integer(self):
         self._test(inp=self.CATEGORIES_CLASSES,

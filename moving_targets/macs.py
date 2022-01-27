@@ -32,7 +32,7 @@ class MACS(StatsLogger):
                  master: Master,
                  learner: Learner,
                  init_step: str = 'pretraining',
-                 metrics: Optional[List[Metric]] = None,
+                 metrics: List[Metric] = (),
                  stats: Union[bool, List[str]] = False):
         """
         :param master:
@@ -69,7 +69,7 @@ class MACS(StatsLogger):
         self.fitted: bool = False
         """Whether or not the `Learner` has been fitted at least once."""
 
-        self.metrics: List[Metric] = metrics or []
+        self.metrics: List[Metric] = list(metrics)
         """A list of `Metric` instances to evaluate the final solution."""
 
         self._history: History = History()
@@ -84,7 +84,7 @@ class MACS(StatsLogger):
             iterations: int = 1,
             sample_weight: Optional[np.ndarray] = None,
             val_data: Optional[Dataset] = None,
-            callbacks: Optional[List[Callback]] = None,
+            callbacks: List[Callback] = (),
             verbose: Union[int, bool] = 2) -> History:
         """Fits the `Learner` based on the Moving Targets iterative procedure.
 
@@ -130,7 +130,7 @@ class MACS(StatsLogger):
         val_data = {} if val_data is None else (val_data if isinstance(val_data, dict) else {'val': val_data})
 
         # handle callbacks and verbosity (check for type instance since 1 == True and vice versa)
-        callbacks = [] if callbacks is None else callbacks
+        callbacks = list(callbacks)
         if verbose == 1 and not isinstance(verbose, bool):
             callbacks += [ConsoleLogger()]
         elif verbose == 2 or verbose is True:
