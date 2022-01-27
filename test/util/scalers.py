@@ -51,7 +51,8 @@ class TestScalers(AbstractTest):
             Whether to test for numpy or pandas.
         """
         # handle input and reference
-        input_data = self.DATA[[k for k in columns.keys()]]
+        one_dimensional = len(columns) == 1 and 'onehot' not in columns.values()
+        input_data = self.DATA[[k for k in columns.keys()]].squeeze()
         reference_data = pd.DataFrame()
         for c, m in columns.items():
             if m == 'onehot':
@@ -78,10 +79,19 @@ class TestScalers(AbstractTest):
         else:
             scaled_data = scaler.fit_transform(input_data)
             inverted_data = scaler.inverse_transform(scaled_data)
-            self.assertIsInstance(scaled_data, pd.DataFrame)
-            self.assertIsInstance(inverted_data, pd.DataFrame)
-            self.assertDictEqual({c: self.FLOAT_DTYPE for c in scaled_data.columns}, scaled_data.dtypes.to_dict())
-            self.assertDictEqual(input_data.dtypes.to_dict(), inverted_data.dtypes.to_dict())
+            if one_dimensional:
+                self.assertIsInstance(scaled_data, pd.Series)
+                self.assertIsInstance(inverted_data, pd.Series)
+                self.assertEqual(input_data.dtypes, inverted_data.dtypes)
+                self.assertEqual(self.FLOAT_DTYPE, scaled_data.dtypes)
+            else:
+                self.assertIsInstance(scaled_data, pd.DataFrame)
+                self.assertIsInstance(inverted_data, pd.DataFrame)
+                self.assertDictEqual(input_data.dtypes.to_dict(), inverted_data.dtypes.to_dict())
+                self.assertDictEqual({c: self.FLOAT_DTYPE for c in scaled_data.columns}, scaled_data.dtypes.to_dict())
+        # check shapes
+        self.assertEqual(scaled_data.shape, input_data.shape if one_dimensional else reference_data.shape)
+        self.assertEqual(inverted_data.shape, input_data.shape)
         # build dataframes for compatibility
         input_data = pd.DataFrame(input_data, columns=scaler.input_columns)
         scaled_data = pd.DataFrame(scaled_data, columns=scaler.output_columns)
@@ -100,6 +110,12 @@ class TestScalers(AbstractTest):
             # here there is no need to deal with data types since data should always be float-like
             msg = str(pd.concat((scaled_data[c], reference_data[c]), axis=1))
             self.assertTrue(np.allclose(scaled_data[c], reference_data[c], atol=10 ** -self.PLACES), msg=msg)
+
+    def test_numpy_1d(self):
+        self._test(columns={'(0, 1)': 'none'}, scaler=Scaler('none'), numpy=True)
+
+    def test_pandas_1d(self):
+        self._test(columns={'(0, 1)': 'none'}, scaler=Scaler('none'), numpy=False)
 
     def test_numpy_none(self):
         self._test(columns={'(0, 1)': 'none', '(-1, 1)': 'none', '{0, 2}': 'none'}, scaler=Scaler('none'), numpy=True)

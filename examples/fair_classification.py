@@ -13,6 +13,8 @@ from moving_targets.metrics import DIDI, CrossEntropy, Accuracy
 
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF FAIR CLASSIFICATION
+
+
 class FairClassification(ClassificationMaster):
     def __init__(self, protected, backend='gurobi', loss='mse', violation=0.2, alpha=1, beta=1):
         # protected  : the name of the protected feature
@@ -83,7 +85,7 @@ if __name__ == '__main__':
     # moreover, we pass a custom alpha and a custom backend with a time limit
     model = MACS(
         init_step='pretraining',
-        learner=LogisticRegression(max_iter=10000),
+        learner=LogisticRegression(x_scaler='std', max_iter=10000),
         master=FairClassification(protected='race', backend=GurobiBackend(time_limit=10), alpha=0.1),
         metrics=[Accuracy(), CrossEntropy(), DIDI(protected='race', classification=True, percentage=True)]
     )

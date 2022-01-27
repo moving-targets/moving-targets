@@ -65,8 +65,10 @@ class Scaler:
         :return:
             The scaler itself.
         """
-        # handle input and metadata
-        assert data.ndim == 2, "Scalers can handle bi-dimensional data only"
+        # handle input, then clear and fit metadata
+        self.output_columns = []
+        self.input_columns = []
+        self._onehot = {}
         self._dtypes, data = (data.dtypes, data) if isinstance(data, pd.DataFrame) else (data.dtype, pd.DataFrame(data))
 
         # handle methods:
@@ -123,8 +125,7 @@ class Scaler:
         :return:
             The scaled data.
         """
-        assert data.ndim == 2, "Scalers can handle bi-dimensional data only"
-        is_pandas = True if isinstance(data, pd.DataFrame) else False
+        is_1d, is_numpy = data.ndim == 1, True if isinstance(data, np.ndarray) else False
         data = pd.DataFrame(data, columns=self.input_columns)
         # handle one hot encoding
         columns, dataframes = self.input_columns.copy(), [data]
@@ -144,7 +145,8 @@ class Scaler:
         # build the full dataframe by appending the classes at the end and reordering the columns, then scale it
         data = pd.concat(dataframes, axis=1)[columns]
         data = (data.astype(np.float64) - self._translation) / self._scaling
-        return data if is_pandas else data.values
+        data = data.squeeze() if is_1d else data
+        return data.values if is_numpy else data
 
     def fit_transform(self, data) -> Any:
         """Fits the scaler parameters.
@@ -166,8 +168,7 @@ class Scaler:
         :return:
             The original data.
         """
-        assert data.ndim == 2, "Scalers can handle bi-dimensional data only"
-        is_pandas = True if isinstance(data, pd.DataFrame) else False
+        is_1d, is_numpy = data.ndim == 1, True if isinstance(data, np.ndarray) else False
         data = pd.DataFrame(data, columns=self.output_columns)
         data = (data.astype(np.float64) * self._scaling) + self._translation
         # handle one hot encoding
@@ -186,4 +187,5 @@ class Scaler:
             data[column] = encoder.inverse_transform(data[class_names].values)
         # select only the correct columns and assign dtypes
         data = data[columns].astype(self._dtypes)
-        return data if is_pandas else data.values
+        data = data.squeeze() if is_1d else data
+        return data.values if is_numpy else data

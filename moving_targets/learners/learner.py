@@ -17,13 +17,16 @@ class Learner(StatsLogger):
     def _parameters() -> Set[str]:
         return {'elapsed_time'}
 
-    def __init__(self, x_scaler: Optional[Scaler], y_scaler: Optional[Scaler], stats: Union[bool, List[str]]):
+    def __init__(self,
+                 x_scaler: Union[None, Scaler, str],
+                 y_scaler: Union[None, Scaler, str],
+                 stats: Union[bool, List[str]]):
         """
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -31,10 +34,10 @@ class Learner(StatsLogger):
         """
         super(Learner, self).__init__(stats=stats, name='Learner')
 
-        self.x_scaler: Optional[Scaler] = x_scaler
+        self.x_scaler: Optional[Scaler] = Scaler(default_method=x_scaler) if isinstance(x_scaler, str) else x_scaler
         """The (optional) scaler for the input data."""
 
-        self.y_scaler: Optional[Scaler] = y_scaler
+        self.y_scaler: Optional[Scaler] = Scaler(default_method=y_scaler) if isinstance(y_scaler, str) else y_scaler
         """The (optional) scaler for the output data."""
 
         self._macs: Optional = None
@@ -84,7 +87,7 @@ class Learner(StatsLogger):
         :return:
             The vector of predicted labels.
         """
-        x if self.x_scaler is None else self.x_scaler.transform(data=x)
+        x = x if self.x_scaler is None else self.x_scaler.transform(data=x)
         p = self._predict(x)
         return p if self.y_scaler is None else self.y_scaler.inverse_transform(data=p)
 

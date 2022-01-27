@@ -12,8 +12,8 @@ class TensorflowLearner(Learner):
 
     def __init__(self,
                  model,
-                 x_scaler: Optional[Scaler] = None,
-                 y_scaler: Optional[Scaler] = None,
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
                  **fit_kwargs):
         """
@@ -21,10 +21,10 @@ class TensorflowLearner(Learner):
             The Tensorflow/Keras model which should have been already compiled.
 
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -68,8 +68,8 @@ class MultiLayerPerceptron(TensorflowLearner):
                  class_weight: Optional[Dict] = None,
                  callbacks: Optional[List] = None,
                  verbose: Union[bool, str] = 'auto',
-                 x_scaler: Optional[Scaler] = None,
-                 y_scaler: Optional[Scaler] = None,
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False):
         """
         :param loss:
@@ -121,10 +121,10 @@ class MultiLayerPerceptron(TensorflowLearner):
             Whether or not to print information during the neural network training.
 
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose

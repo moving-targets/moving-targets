@@ -15,6 +15,8 @@ from moving_targets.util import probabilities
 
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF BALANCED COUNTS
+
+
 class BalancedCounts(ClassificationMaster):
     def __init__(self, backend='gurobi', loss='mse', alpha=1, beta=1):
         # backend : the backend instance or backend alias
@@ -113,7 +115,7 @@ if __name__ == '__main__':
     cbs = [ClassesHistogram(figsize=(16, 9), tight_layout=True)]
     model = MACS(
         init_step='pretraining',
-        learner=LogisticRegression(max_iter=10000),
+        learner=LogisticRegression(x_scaler='std', max_iter=10000),
         master=BalancedCounts(),
         metrics=[Accuracy(), CrossEntropy(), ClassFrequenciesStd()]
     )

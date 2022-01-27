@@ -12,6 +12,8 @@ from moving_targets.metrics import DIDI, R2, MSE
 
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF FAIR CLASSIFICATION
+
+
 class FairRegression(RegressionMaster):
     def __init__(self, protected, backend='gurobi', loss='mse', violation=0.2, lb=0, ub=float('inf'), alpha=1, beta=1):
         # protected  : the name of the protected feature
@@ -83,7 +85,7 @@ if __name__ == '__main__':
     # create a moving targets instance and fit it, then plot the training history
     model = MACS(
         init_step='pretraining',
-        learner=LinearRegression(),
+        learner=LinearRegression(x_scaler='std', y_scaler='norm'),
         master=FairRegression(protected='race'),
         metrics=[R2(), MSE(), DIDI(protected='race', classification=False, percentage=True)]
     )

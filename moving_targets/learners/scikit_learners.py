@@ -12,8 +12,8 @@ class ScikitLearner(Learner):
 
     def __init__(self,
                  model,
-                 x_scaler: Optional[Scaler] = None,
-                 y_scaler: Optional[Scaler] = None,
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
                  **fit_kwargs):
         """
@@ -21,10 +21,10 @@ class ScikitLearner(Learner):
             The Scikit-Learn model.
 
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -54,8 +54,8 @@ class ScikitClassifier(ScikitLearner):
     def __init__(self,
                  model,
                  task: str = 'auto',
-                 x_scaler: Optional[Scaler] = None,
-                 y_scaler: Optional[Scaler] = None,
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
                  **fit_kwargs):
         """
@@ -68,10 +68,10 @@ class ScikitClassifier(ScikitLearner):
             'auto' for automatic task detection.
 
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -105,8 +105,8 @@ class LinearRegression(ScikitLearner):
     """Scikit-Learn Linear Regression wrapper."""
 
     def __init__(self,
-                 x_scaler: Optional[Scaler] = None,
-                 y_scaler: Optional[Scaler] = None,
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
@@ -115,10 +115,10 @@ class LinearRegression(ScikitLearner):
             statistics must be logged.
 
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param model_kwargs:
             Custom arguments to be passed to a sklearn.linear_model.LogisticRegression instance.
@@ -133,8 +133,8 @@ class LogisticRegression(ScikitClassifier):
 
     def __init__(self,
                  task: str = 'auto',
-                 x_scaler: Optional[Scaler] = None,
-                 y_scaler: Optional[Scaler] = None,
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
@@ -144,10 +144,10 @@ class LogisticRegression(ScikitClassifier):
             'auto' for automatic task detection.
 
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -167,8 +167,8 @@ class RandomForestRegressor(ScikitLearner):
     def __init__(self,
                  n_estimators: int = 100,
                  max_depth: Optional[int] = None,
-                 x_scaler: Optional[Scaler] = None,
-                 y_scaler: Optional[Scaler] = None,
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
@@ -180,10 +180,10 @@ class RandomForestRegressor(ScikitLearner):
             leaves contain less than min_samples_split samples.
 
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -204,8 +204,8 @@ class RandomForestClassifier(ScikitClassifier):
                  task: str = 'auto',
                  n_estimators: int = 100,
                  max_depth: Optional[int] = None,
-                 x_scaler: Optional[Scaler] = None,
-                 y_scaler: Optional[Scaler] = None,
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
@@ -222,10 +222,10 @@ class RandomForestClassifier(ScikitClassifier):
             leaves contain less than min_samples_split samples.
 
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -249,8 +249,8 @@ class GradientBoostingRegressor(ScikitLearner):
     def __init__(self,
                  n_estimators: int = 100,
                  min_samples_leaf: Union[int, float] = 1,
-                 x_scaler: Optional[Scaler] = None,
-                 y_scaler: Optional[Scaler] = None,
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
@@ -263,10 +263,10 @@ class GradientBoostingRegressor(ScikitLearner):
             the minimum number of samples for each node.
 
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
@@ -287,8 +287,8 @@ class GradientBoostingClassifier(ScikitClassifier):
                  task: str = 'auto',
                  n_estimators: int = 100,
                  min_samples_leaf: Union[int, float] = 1,
-                 x_scaler: Optional[Scaler] = None,
-                 y_scaler: Optional[Scaler] = None,
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
@@ -306,10 +306,10 @@ class GradientBoostingClassifier(ScikitClassifier):
             the minimum number of samples for each node.
 
         :param x_scaler:
-            The (optional) scaler for the input data.
+            The (optional) scaler for the input data, or a string representing the default scaling method.
 
         :param y_scaler:
-            The (optional) scaler for the output data.
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose

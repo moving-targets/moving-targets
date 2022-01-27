@@ -10,36 +10,36 @@ from test.examples.abstract import TestExamples
 class TestFairRegression(TestExamples):
     RESULTS: Dict[str, Dict[str, float]] = {
         'pretraining-mae': {
-            'train_r2': 0.6274578993449247,
-            'train_mse': 120455.33220289696,
-            'train_didi': 0.20000000001566742,
-            'test_r2': 0.6211597739109092,
-            'test_mse': 122160.08635677413,
-            'test_didi': 0.07344816029747665
+            'train_r2': 0.6274325395771669,
+            'train_mse': 120463.53186474589,
+            'train_didi': 0.2000082316422503,
+            'test_r2': 0.633682905697627,
+            'test_mse': 118121.90150952153,
+            'test_didi': 0.11487491288332247
         },
         'pretraining-mse': {
-            'train_r2': 0.6672933957651843,
-            'train_mse': 107575.18269407043,
-            'train_didi': 0.19998596826032417,
-            'test_r2': 0.6798037421355614,
-            'test_mse': 103249.86582242488,
-            'test_didi': 0.10502457781834651
+            'train_r2': 0.6673610779801694,
+            'train_mse': 107553.29876826465,
+            'train_didi': 0.20064353323988612,
+            'test_r2': 0.6789660497246872,
+            'test_mse': 103519.98649653922,
+            'test_didi': 0.10530482332299039
         },
         'projection-mae': {
-            'train_r2': 0.6506123172166276,
-            'train_mse': 112968.7337975184,
-            'train_didi': 0.20000000003458698,
-            'test_r2': 0.6420186625256126,
-            'test_mse': 115433.96949008411,
-            'test_didi': 0.1484669648551802
+            'train_r2': 0.6472605828867416,
+            'train_mse': 114052.46170760521,
+            'train_didi': 0.1972686651703124,
+            'test_r2': 0.6217917958567216,
+            'test_mse': 121956.28578290988,
+            'test_didi': 0.10045722754403157
         },
         'projection-mse': {
-            'train_r2': 0.667290703804177,
-            'train_mse': 107576.05309517903,
-            'train_didi': 0.19992813648324625,
-            'test_r2': 0.6797794266819954,
-            'test_mse': 103257.7065365383,
-            'test_didi': 0.10483991326455229
+            'train_r2': 0.6673626183288317,
+            'train_mse': 107552.80072197808,
+            'train_didi': 0.20064497977228993,
+            'test_r2': 0.6789609209850722,
+            'test_mse': 103521.64029999284,
+            'test_didi': 0.1053222474384824
         }
     }
 
@@ -47,7 +47,7 @@ class TestFairRegression(TestExamples):
         return False
 
     def _learner(self) -> Learner:
-        return LinearRegression()
+        return LinearRegression(x_scaler='std', y_scaler='norm')
 
     def _master(self, loss: str) -> Master:
         return FairRegression(backend='gurobi', protected='race', loss=loss)
