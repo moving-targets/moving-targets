@@ -138,7 +138,7 @@ class Master(StatsLogger):
         # strategy since both of them will collapse to the same formulation, namely minimizing the y_loss only,
         # otherwise we use the beta step if either alpha is None, or beta is not None and use_beta() returns true
         if self._macs.fitted:
-            p = self._macs.predict(x)
+            p = self._macs.predict(x).reshape(v.shape)
             p_loss = self.p_loss(self.backend, numeric_variables=p, model_variables=v, sample_weight=sample_weight)
             # leave use_beta at the end to avoid function evaluation if one of the two conditions hold before
             if self.alpha is None or (self.beta is not None and self.use_beta(x=x, y=y, p=p)):

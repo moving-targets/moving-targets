@@ -45,7 +45,7 @@ class TensorflowLearner(Learner):
         self.model.fit(x, y, sample_weight=sample_weight, **self.fit_kwargs)
 
     def _predict(self, x) -> np.ndarray:
-        return self.model.predict(x)
+        return self.model.predict(x).squeeze()
 
 
 class MultiLayerPerceptron(TensorflowLearner):

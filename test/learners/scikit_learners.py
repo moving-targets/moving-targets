@@ -13,6 +13,10 @@ class TestScikitLearners(TestLearners):
         random.seed(0)
         np.random.seed(0)
 
+    def _reference(self, learner, x, y, sample_weight: np.ndarray) -> np.ndarray:
+        learner.fit(x, y, sample_weight=sample_weight)
+        return learner.predict_proba(x)[:, 1].squeeze() if hasattr(learner, 'predict_proba') else learner.predict(x)
+
     def test_linear_regression(self):
         self._test(mt_learner=LinearRegression(),
                    ref_learner=lm.LinearRegression(),

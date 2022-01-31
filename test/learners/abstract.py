@@ -4,10 +4,36 @@ import numpy as np
 import pandas as pd
 
 from moving_targets.learners import Learner
+from moving_targets.util.errors import not_implemented_message
 from test.abstract import AbstractTest
 
 
 class TestLearners(AbstractTest):
+    @staticmethod
+    def _random_state():
+        """Defines the random seeds to be fixed before calling the moving targets learner and the reference learner."""
+        raise NotImplementedError(not_implemented_message(name='_random_state', static=True))
+
+    def _reference(self, learner, x, y, sample_weight: np.ndarray) -> np.ndarray:
+        """Implements the strategy to fit the reference learner and retrieve its predictions.
+
+        :param learner:
+            The reference learner.
+
+        :param x:
+            The input data.
+
+        :param y:
+            The output data.
+
+        :param sample_weight:
+            The (optional) sample weights.
+
+        :return:
+            The reference predictions.
+        """
+        raise NotImplementedError(not_implemented_message(name='_predict'))
+
     def _test(self, mt_learner: Learner, ref_learner: Any, classification: bool, random_state: Callable):
         """Performs the tests on the given data and checks the correctness of the learner wrt to a reference learner.
 
@@ -36,11 +62,7 @@ class TestLearners(AbstractTest):
                 mt_pred = mt_learner.predict(x)
                 # fit and predict using the reference learner
                 random_state()
-                ref_learner.fit(x, y, sample_weight=sample_weight)
-                if hasattr(ref_learner, 'predict_proba'):
-                    ref_pred = ref_learner.predict_proba(x)[:, 1].squeeze()
-                else:
-                    ref_pred = ref_learner.predict(x)
+                ref_pred = self._reference(ref_learner, x, y, sample_weight)
                 # check correctness
                 df = pd.DataFrame(mt_pred).join(pd.DataFrame(ref_pred), lsuffix='_mt', rsuffix='_ref')
                 self.assertTrue(np.all(mt_pred == ref_pred), msg=f'iteration: {i}, weights: {weights}\n\n\n{df}')
