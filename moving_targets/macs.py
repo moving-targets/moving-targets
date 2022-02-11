@@ -154,8 +154,9 @@ class MACS(StatsLogger):
             # ---------------------------------------------- MASTER  STEP ----------------------------------------------
             adjusted_y = self.master.adjust_targets(x=x, y=y)
             if adjusted_y is None:
-                # in case of infeasible model, raise a warning and stop the training loop
-                warnings.warn(f'Model is infeasible at iteration {self.iteration}, stop training.')
+                # in case of no valid solution, raise a warning and stop the training loop
+                warnings.warn(f'No solution found at iteration {self.iteration}, stop training. ' +
+                              f'This may have been cause either by time limit or by model infeasibility.')
                 break
             # ---------------------------------------------- MASTER  STEP ----------------------------------------------
             self._update_callbacks(callbacks, lambda c: c.on_adjustment_end(macs=self, x=x, y=y, val_data=val_data,

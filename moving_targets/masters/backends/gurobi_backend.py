@@ -77,6 +77,13 @@ class GurobiBackend(Backend):
         self.model.addConstrs((c for c in constraints), name=name)
         return self
 
+    def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
+        if not hasattr(self._gp.GRB, vtype.upper()):
+            raise BackendError(unsupported=f"vtype '{vtype}'")
+        var = self.model.addVar(vtype=getattr(self._gp.GRB, vtype.upper()), lb=lb, ub=ub, name=name, obj=0, column=None)
+        self.model.update()
+        return var
+
     def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
         if not hasattr(self._gp.GRB, vtype.upper()):
             raise BackendError(unsupported=f"vtype '{vtype}'")

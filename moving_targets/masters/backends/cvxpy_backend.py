@@ -62,23 +62,25 @@ class CvxpyBackend(Backend):
         self.model += constraints
         return self
 
-    def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
-        def _get_name(_name: Optional[str], _index: int) -> Optional[str]:
-            return None if _name is None else f'{_name}_{_index}'
+    def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
+        if vtype not in self._VTYPES.keys():
+            raise BackendError(unsupported=f"vtype '{vtype}'")
+        var = self._cp.Variable(1, name=name, **self._VTYPES[vtype])
+        self.add_constraints([var[0] >= lb, var[0] <= ub])
+        return var
 
+    def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
         def _recursive_addition(_keys: List[int], _name: Optional[str]):
-            _key = _keys.pop(0)
+            key, name_fn = _keys.pop(0), lambda i: None if _name is None else f'{_name}_{i}'
             if len(_keys) == 0:
-                return [self._cp.Variable((1,), name=_get_name(_name, i), **kw) for i in range(_key)]
-            else:
-                return [_recursive_addition(_keys=_keys.copy(), _name=_get_name(_name, i)) for i in range(_key)]
+                return [self._cp.Variable((1,), name=name_fn(i), **kw) for i in range(key)]
+            return [_recursive_addition(_keys=_keys.copy(), _name=name_fn(i)) for i in range(key)]
 
         if vtype not in self._VTYPES.keys():
             raise BackendError(unsupported=f"vtype '{vtype}'")
         kw = self._VTYPES[vtype]
         var = np.array(_recursive_addition(_keys=list(keys), _name=name))
-        self.add_constraints([v >= lb for v in var.flatten()])
-        self.add_constraints([v <= ub for v in var.flatten()])
+        self.add_constraints([v[0] >= lb for v in var.flatten()] + [v[0] <= ub for v in var.flatten()])
         return var
 
     def get_objective(self) -> float:

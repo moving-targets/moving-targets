@@ -38,7 +38,7 @@ class NumpyBackend(Backend):
     def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
         raise BackendError(unsupported='no constraint can be added')
 
-    def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
+    def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
         raise BackendError(unsupported='no variable can be added', message=self._ERROR_MESSAGE)
 
     def get_objective(self) -> float:

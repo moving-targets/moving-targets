@@ -48,6 +48,18 @@ class CplexBackend(Backend):
         self.model.add_constraints(constraints, names=name)
         return self
 
+    def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
+        # handle variable type and bounds
+        if vtype == 'binary':
+            assert lb == 0 and ub == 1, f"Binary variable type accepts [0, 1] bounds only, but [{lb}, {ub}] was passed."
+            return self.model.binary_var(name=name)
+        elif vtype == 'integer':
+            return self.model.integer_var(lb=lb, ub=ub, name=name)
+        elif vtype == 'continuous':
+            return self.model.continuous_var(lb=lb, ub=ub, name=name)
+        else:
+            raise BackendError(unsupported=f"vtype '{vtype}'")
+
     def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
         # handle variable types
         if vtype not in ['binary', 'integer', 'continuous']:

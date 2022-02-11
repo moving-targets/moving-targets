@@ -266,7 +266,7 @@ class Backend:
         :return:
             The model variable.
         """
-        return self.add_variables(1, vtype=vtype, name=name, lb=lb, ub=ub)[0]
+        raise NotImplementedError(not_implemented_message(name='add_variable'))
 
     def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
         """Creates an array of model variables.
@@ -289,7 +289,16 @@ class Backend:
         :return:
             The array of model variables.
         """
-        raise NotImplementedError(not_implemented_message(name='add_variables'))
+
+        # this is the general strategy to create arrays of variables, but usually it would be better to implement a
+        # solver-dependent strategy in order to speed up the building process
+        def _recursive_addition(_keys: List[int], _name: Optional[str]):
+            key, name_fn = _keys.pop(0), lambda i: None if _name is None else f'{_name}_{i}'
+            if len(_keys) == 0:
+                return [self.add_variable(vtype=vtype, lb=lb, ub=ub, name=name_fn(i)) for i in range(key)]
+            return [_recursive_addition(_keys=_keys.copy(), _name=name_fn(i)) for i in range(key)]
+
+        return np.array(_recursive_addition(_keys=list(keys), _name=name))
 
     def get_objective(self) -> float:
         """Gets the objective value of the solved model.

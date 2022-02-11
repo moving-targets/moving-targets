@@ -76,6 +76,16 @@ class TestBackend(AbstractTest):
             backend = self._backend()
             size = (self.NUM_SAMPLES,) if classes is None or classes == 2 else (self.NUM_SAMPLES, classes)
             kind = 'binary' if task in ['indicator', 'probability'] else 'continuous'
+            # build a single variable for the only purpose of checking its name, which should not contain any index
+            backend.build()
+            dummy_variable = backend.add_variable(vtype=kind, lb=0, ub=1, name='var')
+            dummy_name = str(dummy_variable)
+            name_position = dummy_name.find('var')
+            index_position = dummy_name.find('0', name_position, len(dummy_name))
+            self.assertNotEqual(name_position, -1)
+            self.assertEqual(index_position, -1)
+            backend.clear()
+            # proceed with the actual backend test
             for i in range(self.NUM_TESTS):
                 backend.build()
                 # assign sample weights, numeric variables (ground truths)
