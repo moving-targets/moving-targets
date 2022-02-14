@@ -40,6 +40,10 @@ class CplexBackend(Backend):
         self.model.end()
         super(CplexBackend, self).clear()
 
+    def maximize(self, cost) -> Any:
+        self.model.maximize(cost)
+        return self
+
     def minimize(self, cost) -> Any:
         self.model.minimize(cost)
         return self
@@ -93,13 +97,8 @@ class CplexBackend(Backend):
         return np.reshape([v.solution_value for v in expressions.flatten()], expressions.shape)
 
     def sum(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
-        from docplex.mp.quad import QuadExpr
         expression = self.model.sum(a)
-        if isinstance(expression, QuadExpr):
-            self._aux_warning(exp=None, aux=aux, msg='cannot impose equality constraints on quadratic expressions')
-            return expression
-        else:
-            return self.aux(expressions=expression, aux_vtype=aux)
+        return expression
 
     def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         self._aux_warning(exp=None, aux=aux, msg='cannot impose equality constraints on quadratic expressions')
@@ -108,3 +107,12 @@ class CplexBackend(Backend):
     def abs(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         expressions = np.reshape([self.model.abs(v) for v in a.flatten()], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)
+
+    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+        try:
+            return super(CplexBackend, self).divide(a, b, aux=aux)
+        except self._cp.DOcplexException:
+            # docplex.mp.utils.DOcplexException: x1 / x11 : operation not supported, only numbers can be denominators
+            # in case the divisor is not an array of constants, we cannot handle the case by adding the auxiliary
+            # variables as in the gurobi backend because cplex cannot handle quadratic constraints
+            raise BackendError(unsupported='divisions having variables in the denominator')

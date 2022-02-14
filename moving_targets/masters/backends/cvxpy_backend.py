@@ -39,15 +39,15 @@ class CvxpyBackend(Backend):
         self.solver_args: Dict[str, Any] = solver_args
         """Parameters of the solver to be passed to the `model.solve()` function."""
 
-        # noinspection PyTypeChecker
-        self._objective = self._cp.Minimize(0.0)
+        self._objective: Optional = None
         """The model objective (by default, this is set to no objective by passing None)."""
 
     def _build_model(self) -> Any:
         return []
 
     def _solve_model(self) -> Optional:
-        model = self._cp.Problem(self._objective, self.model)
+        # noinspection PyTypeChecker
+        model = self._cp.Problem(self._cp.Minimize(0.0) if self._objective is None else self._objective, self.model)
         try:
             model.solve(solver=self.solver, **self.solver_args)
             return None if model.status in ['infeasible', 'unbounded'] else model
@@ -56,6 +56,10 @@ class CvxpyBackend(Backend):
 
     def minimize(self, cost) -> Any:
         self._objective = self._cp.Minimize(cost)
+        return self
+
+    def maximize(self, cost) -> Any:
+        self._objective = self._cp.Maximize(cost)
         return self
 
     def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
@@ -101,4 +105,11 @@ class CvxpyBackend(Backend):
 
     def log(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         expressions = np.reshape([self._cp.log(v) for v in a.flatten()], a.shape)
+        return self.aux(expressions=expressions, aux_vtype=aux)
+
+    def var(self, a: np.ndarray, aux: Optional[str] = 'auto') -> Any:
+        raise BackendError(unsupported='variance due to numerical instability')
+
+    def multiply(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+        expressions = np.reshape([self._cp.multiply(ai, bi) for ai, bi in zip(a.flatten(), b.flatten())], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)

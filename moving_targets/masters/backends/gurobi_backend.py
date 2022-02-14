@@ -73,6 +73,10 @@ class GurobiBackend(Backend):
         self.model.setObjective(cost, self._gp.GRB.MINIMIZE)
         return self
 
+    def maximize(self, cost) -> Any:
+        self.model.setObjective(cost, self._gp.GRB.MAXIMIZE)
+        return self
+
     def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
         self.model.addConstrs((c for c in constraints), name=name)
         return self
@@ -80,8 +84,9 @@ class GurobiBackend(Backend):
     def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
         if not hasattr(self._gp.GRB, vtype.upper()):
             raise BackendError(unsupported=f"vtype '{vtype}'")
-        var = self.model.addVar(vtype=getattr(self._gp.GRB, vtype.upper()), lb=lb, ub=ub, name=name, obj=0, column=None)
-        self.model.update()
+        # addVar does not accept name=None as parameter
+        kwargs = dict() if name is None else dict(name=name)
+        var = self.model.addVar(vtype=getattr(self._gp.GRB, vtype.upper()), lb=lb, ub=ub, **kwargs)
         return var
 
     def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
@@ -89,7 +94,6 @@ class GurobiBackend(Backend):
             raise BackendError(unsupported=f"vtype '{vtype}'")
         vtype = getattr(self._gp.GRB, vtype.upper())
         var = self.model.addVars(*keys, vtype=vtype, lb=lb, ub=ub, name=name).values()
-        self.model.update()
         return np.array(var).reshape(keys)
 
     def get_objective(self) -> float:
@@ -105,20 +109,41 @@ class GurobiBackend(Backend):
     def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         return self.aux(expressions=a ** 2, aux_vtype=aux)
 
+    def sqrt(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
+        self._aux_warning(exp='continuous', aux=aux, msg='to compute square roots')
+        # creating auxiliary variables is necessary since 'addGenConstrPow' does not accept expressions
+        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
+        sqrt_vector = self.add_continuous_variables(*a.shape, lb=0.0, ub=float('inf'))
+        for aux_var, sqrt_var in zip(aux_vector.flatten(), sqrt_vector.flatten()):
+            self.model.addGenConstrPow(sqrt_var, aux_var, 2)
+        return sqrt_vector
+
     def abs(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
-        self._aux_warning(exp='continuous', aux=aux, msg='needs aux variables to compute absolute values')
+        self._aux_warning(exp='continuous', aux=aux, msg='to compute absolute values')
         # creating auxiliary variables is necessary since 'addGenConstrAbs' does not accept expressions
-        aux_vector = self.aux(expressions=a.flatten(), aux_vtype='continuous')
-        abs_vector = self.add_continuous_variables(len(aux_vector), lb=0.0, ub=float('inf'))
-        for aux_var, abs_var in zip(aux_vector, abs_vector):
+        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
+        abs_vector = self.add_continuous_variables(*a.shape, lb=0.0, ub=float('inf'))
+        for aux_var, abs_var in zip(aux_vector.flatten(), abs_vector.flatten()):
             self.model.addGenConstrAbs(abs_var, aux_var)
-        return np.reshape(abs_vector, a.shape)
+        return abs_vector
 
     def log(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
-        self._aux_warning(exp='continuous', aux=aux, msg='needs aux variables to compute logarithms')
+        self._aux_warning(exp='continuous', aux=aux, msg='to compute logarithms')
         # creating auxiliary variables is necessary since 'addGenConstrExp' does not accept expressions
-        aux_vector = self.aux(expressions=a.flatten(), aux_vtype='continuous')
-        log_vector = self.add_continuous_variables(len(aux_vector), lb=-float('inf'), ub=float('inf'))
-        for aux_var, log_var in zip(aux_vector, log_vector):
+        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
+        log_vector = self.add_continuous_variables(*a.shape, lb=-float('inf'), ub=float('inf'))
+        for aux_var, log_var in zip(aux_vector.flatten(), log_vector.flatten()):
             self.model.addGenConstrExp(log_var, aux_var)
-        return np.reshape(log_vector, a.shape)
+        return log_vector
+
+    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+        try:
+            return super(GurobiBackend, self).divide(a, b, aux=aux)
+        except self._gp.GurobiError:
+            # gurobipy.GurobiError: Divisor must be a constant
+            # in case the divisor is not an array of constants, we handle the case by adding N auxiliary variables z_i
+            # so that a_i / b_i = z_i --> a_i = z_i * b_i
+            self._aux_warning(exp='continuous', aux=aux, msg='to compute divisions with non-constant divisors')
+            z = self.add_continuous_variables(*a.shape)
+            self.add_constraints([ai == zi * bi for ai, bi, zi in zip(a.flatten(), b.flatten(), z.flatten())])
+            return z
