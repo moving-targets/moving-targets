@@ -2,6 +2,9 @@
 from typing import Optional, Union, List
 
 import numpy as np
+import sklearn.ensemble as ens
+import sklearn.linear_model as lm
+from sklearn.preprocessing import PolynomialFeatures
 
 from moving_targets.learners.learner import Learner
 from moving_targets.util.scalers import Scaler
@@ -12,6 +15,7 @@ class ScikitLearner(Learner):
 
     def __init__(self,
                  model,
+                 polynomial: Union[None, int, PolynomialFeatures] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -19,6 +23,11 @@ class ScikitLearner(Learner):
         """
         :param model:
             The Scikit-Learn model.
+
+        :param polynomial:
+            The polynomial feature preprocessor. It can be either None for no preprocessing, an actual scikit learn
+            `PolynomialFeatures` instance, or an integer representing the degree used to generate polynomial features
+             which will be used to create a `PolynomialFeatures` object with no bias and all interactions.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -35,16 +44,24 @@ class ScikitLearner(Learner):
         """
         super(ScikitLearner, self).__init__(x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
 
+        if isinstance(polynomial, int):
+            polynomial = PolynomialFeatures(degree=polynomial, interaction_only=False, include_bias=False)
+
         self.model = model
         """The Scikit-Learn model."""
+
+        self.polynomial: Optional[PolynomialFeatures] = polynomial
+        """The (optional) polynomial features preprocessor."""
 
         self.fit_kwargs = fit_kwargs
         """Custom arguments to be passed to the model '.fit()' method."""
 
     def _fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None):
+        x = x if self.polynomial is None else self.polynomial.fit_transform(x)
         self.model.fit(x, y, sample_weight=sample_weight)
 
     def _predict(self, x) -> np.ndarray:
+        x = x if self.polynomial is None else self.polynomial.transform(x)
         return self.model.predict(x)
 
 
@@ -54,6 +71,7 @@ class ScikitClassifier(ScikitLearner):
     def __init__(self,
                  model,
                  task: str = 'auto',
+                 polynomial: Optional[int] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -66,6 +84,11 @@ class ScikitClassifier(ScikitLearner):
             The kind of classification task, which can be either 'binary' (i.e., probabilities will be returned as a
             one-dimensional array), 'multiclass' (i.e., probabilities will be returned in a bi-dimensional array), or
             'auto' for automatic task detection.
+
+        :param polynomial:
+            The (optional) degree used to generate polynomial features. If not None, creates a scikit learn `Pipeline`
+            object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
+            followed by the given model.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -81,6 +104,7 @@ class ScikitClassifier(ScikitLearner):
             Custom arguments to be passed to the model '.fit()' method.
         """
         super(ScikitClassifier, self).__init__(model=model,
+                                               polynomial=polynomial,
                                                x_scaler=x_scaler,
                                                y_scaler=y_scaler,
                                                stats=stats,
@@ -92,6 +116,7 @@ class ScikitClassifier(ScikitLearner):
         """The kind of classification task."""
 
     def _predict(self, x) -> np.ndarray:
+        x = x if self.polynomial is None else self.polynomial.transform(x)
         probabilities = self.model.predict_proba(x)
         if self.task == 'multiclass' or probabilities.shape[1] > 2:
             # return probabilities matrix if the task is explicitly multiclass or if the number of classes is > 2
@@ -105,14 +130,16 @@ class LinearRegression(ScikitLearner):
     """Scikit-Learn Linear Regression wrapper."""
 
     def __init__(self,
+                 polynomial: Optional[int] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
                  **model_kwargs):
         """
-        :param stats:
-            Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
-            statistics must be logged.
+        :param polynomial:
+            The (optional) degree used to generate polynomial features. If not None, creates a scikit learn `Pipeline`
+            object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
+            followed by the given model.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -122,10 +149,17 @@ class LinearRegression(ScikitLearner):
 
         :param model_kwargs:
             Custom arguments to be passed to a sklearn.linear_model.LogisticRegression instance.
+
+        :param stats:
+            Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
+            statistics must be logged.
         """
-        import sklearn.linear_model as lm
         m = lm.LinearRegression(**model_kwargs)
-        super(LinearRegression, self).__init__(model=m, x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
+        super(LinearRegression, self).__init__(model=m,
+                                               polynomial=polynomial,
+                                               x_scaler=x_scaler,
+                                               y_scaler=y_scaler,
+                                               stats=stats)
 
 
 class LogisticRegression(ScikitClassifier):
@@ -133,6 +167,7 @@ class LogisticRegression(ScikitClassifier):
 
     def __init__(self,
                  task: str = 'auto',
+                 polynomial: Optional[int] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -143,6 +178,11 @@ class LogisticRegression(ScikitClassifier):
             one-dimensional array), 'multiclass' (i.e., probabilities will be returned in a bi-dimensional array), or
             'auto' for automatic task detection.
 
+        :param polynomial:
+            The (optional) degree used to generate polynomial features. If not None, creates a scikit learn `Pipeline`
+            object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
+            followed by the given model.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -156,9 +196,13 @@ class LogisticRegression(ScikitClassifier):
         :param model_kwargs:
             Custom arguments to be passed to a sklearn.linear_model.LogisticRegression instance.
         """
-        import sklearn.linear_model as lm
         m = lm.LogisticRegression(**model_kwargs)
-        super(LogisticRegression, self).__init__(model=m, task=task, x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
+        super(LogisticRegression, self).__init__(model=m,
+                                                 task=task,
+                                                 polynomial=polynomial,
+                                                 x_scaler=x_scaler,
+                                                 y_scaler=y_scaler,
+                                                 stats=stats)
 
 
 class RandomForestRegressor(ScikitLearner):
@@ -167,6 +211,7 @@ class RandomForestRegressor(ScikitLearner):
     def __init__(self,
                  n_estimators: int = 100,
                  max_depth: Optional[int] = None,
+                 polynomial: Optional[int] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -178,6 +223,11 @@ class RandomForestRegressor(ScikitLearner):
         :param max_depth:
             The maximum depth of the tree. If None, then nodes are expanded until all leaves are pure or until all
             leaves contain less than min_samples_split samples.
+
+        :param polynomial:
+            The (optional) degree used to generate polynomial features. If not None, creates a scikit learn `Pipeline`
+            object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
+            followed by the given model.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -192,9 +242,12 @@ class RandomForestRegressor(ScikitLearner):
         :param model_kwargs:
             Additional arguments to be passed to a sklearn.ensemble.RandomForestRegressor instance.
         """
-        import sklearn.ensemble as ens
         m = ens.RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, **model_kwargs)
-        super(RandomForestRegressor, self).__init__(model=m, x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
+        super(RandomForestRegressor, self).__init__(model=m,
+                                                    polynomial=polynomial,
+                                                    x_scaler=x_scaler,
+                                                    y_scaler=y_scaler,
+                                                    stats=stats)
 
 
 class RandomForestClassifier(ScikitClassifier):
@@ -204,6 +257,7 @@ class RandomForestClassifier(ScikitClassifier):
                  task: str = 'auto',
                  n_estimators: int = 100,
                  max_depth: Optional[int] = None,
+                 polynomial: Optional[int] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -221,6 +275,11 @@ class RandomForestClassifier(ScikitClassifier):
             The maximum depth of the tree. If None, then nodes are expanded until all leaves are pure or until all
             leaves contain less than min_samples_split samples.
 
+        :param polynomial:
+            The (optional) degree used to generate polynomial features. If not None, creates a scikit learn `Pipeline`
+            object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
+            followed by the given model.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -234,10 +293,10 @@ class RandomForestClassifier(ScikitClassifier):
         :param model_kwargs:
             Additional arguments to be passed to a sklearn.ensemble.RandomForestClassifier instance.
         """
-        import sklearn.ensemble as ens
         m = ens.RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, **model_kwargs)
         super(RandomForestClassifier, self).__init__(model=m,
                                                      task=task,
+                                                     polynomial=polynomial,
                                                      x_scaler=x_scaler,
                                                      y_scaler=y_scaler,
                                                      stats=stats)
@@ -249,6 +308,7 @@ class GradientBoostingRegressor(ScikitLearner):
     def __init__(self,
                  n_estimators: int = 100,
                  min_samples_leaf: Union[int, float] = 1,
+                 polynomial: Optional[int] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -261,6 +321,11 @@ class GradientBoostingRegressor(ScikitLearner):
             The minimum number of samples required to be at a leaf node. If int, then consider `min_samples_leaf` as
             the minimum number, otherwise `min_samples_leaf` is a fraction and `ceil(min_samples_leaf * n_samples)` are
             the minimum number of samples for each node.
+
+        :param polynomial:
+            The (optional) degree used to generate polynomial features. If not None, creates a scikit learn `Pipeline`
+            object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
+            followed by the given model.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -275,9 +340,12 @@ class GradientBoostingRegressor(ScikitLearner):
         :param model_kwargs:
             Additional arguments to be passed to a sklearn.ensemble.GradientBoostingRegressor instance.
         """
-        import sklearn.ensemble as ens
         m = ens.GradientBoostingRegressor(n_estimators=n_estimators, min_samples_leaf=min_samples_leaf, **model_kwargs)
-        super(GradientBoostingRegressor, self).__init__(model=m, x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
+        super(GradientBoostingRegressor, self).__init__(model=m,
+                                                        polynomial=polynomial,
+                                                        x_scaler=x_scaler,
+                                                        y_scaler=y_scaler,
+                                                        stats=stats)
 
 
 class GradientBoostingClassifier(ScikitClassifier):
@@ -287,6 +355,7 @@ class GradientBoostingClassifier(ScikitClassifier):
                  task: str = 'auto',
                  n_estimators: int = 100,
                  min_samples_leaf: Union[int, float] = 1,
+                 polynomial: Optional[int] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -305,6 +374,11 @@ class GradientBoostingClassifier(ScikitClassifier):
             the minimum number, otherwise `min_samples_leaf` is a fraction and `ceil(min_samples_leaf * n_samples)` are
             the minimum number of samples for each node.
 
+        :param polynomial:
+            The (optional) degree used to generate polynomial features. If not None, creates a scikit learn `Pipeline`
+            object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
+            followed by the given model.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -318,10 +392,10 @@ class GradientBoostingClassifier(ScikitClassifier):
         :param model_kwargs:
             Additional arguments to be passed to a sklearn.ensemble.GradientBoostingClassifier instance.
         """
-        import sklearn.ensemble as ens
         m = ens.GradientBoostingClassifier(n_estimators=n_estimators, min_samples_leaf=min_samples_leaf, **model_kwargs)
         super(GradientBoostingClassifier, self).__init__(model=m,
                                                          task=task,
+                                                         polynomial=polynomial,
                                                          x_scaler=x_scaler,
                                                          y_scaler=y_scaler,
                                                          stats=stats)

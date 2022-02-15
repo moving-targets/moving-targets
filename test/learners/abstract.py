@@ -32,7 +32,7 @@ class TestLearners(AbstractTest):
         :return:
             The reference predictions.
         """
-        raise NotImplementedError(not_implemented_message(name='_predict'))
+        raise NotImplementedError(not_implemented_message(name='_reference'))
 
     def _test(self, mt_learner: Learner, ref_learner: Any, classification: bool, random_state: Callable):
         """Performs the tests on the given data and checks the correctness of the learner wrt to a reference learner.
