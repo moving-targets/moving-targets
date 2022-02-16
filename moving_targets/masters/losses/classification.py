@@ -17,7 +17,7 @@ class ClassificationLoss(WeightedLoss, ABC):
         :param name:
             The name of the loss.
         """
-        super(ClassificationLoss, self).__init__(aggregation='sum_of_means', name=name)
+        super(ClassificationLoss, self).__init__(aggregation='mean_of_sums', name=name)
 
     def _losses(self, backend: Backend, numeric_variables: np.ndarray, model_variables: np.ndarray) -> np.ndarray:
         if model_variables.ndim == 1:

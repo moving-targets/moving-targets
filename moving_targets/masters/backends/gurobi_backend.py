@@ -90,10 +90,14 @@ class GurobiBackend(Backend):
         return var
 
     def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
-        if not hasattr(self._gp.GRB, vtype.upper()):
+        if len(keys) == 0:
+            # if no keys are passed, builds a single variable then reshape it into a zero-dimensional numpy array
+            var = self.add_variable(vtype=vtype, lb=lb, ub=ub, name=name)
+        elif not hasattr(self._gp.GRB, vtype.upper()):
             raise BackendError(unsupported=f"vtype '{vtype}'")
-        vtype = getattr(self._gp.GRB, vtype.upper())
-        var = self.model.addVars(*keys, vtype=vtype, lb=lb, ub=ub, name=name).values()
+        else:
+            vtype = getattr(self._gp.GRB, vtype.upper())
+            var = self.model.addVars(*keys, vtype=vtype, lb=lb, ub=ub, name=name).values()
         return np.array(var).reshape(keys)
 
     def get_objective(self) -> float:
@@ -102,9 +106,6 @@ class GurobiBackend(Backend):
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         values = [v.x if isinstance(v, self._gp.Var) else v.getValue() for v in expressions.flatten()]
         return np.reshape(values, expressions.shape)
-
-    def sum(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
-        return self.aux(expressions=np.sum(a), aux_vtype=aux)
 
     def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         return self.aux(expressions=a ** 2, aux_vtype=aux)

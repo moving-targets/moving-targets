@@ -33,9 +33,9 @@ class RegressionLoss(WeightedLoss):
         assert norm in [1, 2], f"'norm' should be either '1' for absolute errors or '2' for squared errors, got {norm}"
         # handle aggregation by considering strategy to aggregate both samples and features
         if sum_samples:
-            aggregation = 'sum' if sum_features else 'mean_of_sums'
+            aggregation = 'sum' if sum_features else 'sum_of_means'
         else:
-            aggregation = 'sum_of_means' if sum_features else 'mean'
+            aggregation = 'mean_of_sums' if sum_features else 'mean'
         super(RegressionLoss, self).__init__(aggregation=aggregation, name=name)
 
         if binary:

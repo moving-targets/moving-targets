@@ -58,7 +58,7 @@ class TestBackend(AbstractTest):
             # otherwise, check that the error is a "BackendError"
             self.assertIsInstance(exception, BackendError)
 
-    def _test_numeric_operation(self, *dims: str, operation: str):
+    def _test_numeric_operation(self, *dims: str, operation: str, **op_args):
         """Implements the main strategy to test the backend numeric operations.
 
         :param dims:
@@ -66,6 +66,9 @@ class TestBackend(AbstractTest):
 
         :param operation:
             The operation name, which must be the same between the backend and numpy (which is used as reference).
+
+        :param op_args:
+            The additional operation parameters, which must be the same between the backend and numpy.
         """
         try:
             np.random.seed(self.SEED)
@@ -77,22 +80,22 @@ class TestBackend(AbstractTest):
                 with self.assertRaises(BackendError):
                     values = [np.random.random(size=self._SIZES[d]) for d in dims]
                     values = [backend.add_constants(v) for v in values]
-                    mt_operation(*values)
+                    mt_operation(*values, **op_args)
                 backend.clear()
             else:
                 for i in range(self.NUM_TESTS):
                     # build random vector(s) of reference values and compute the operation result
                     ref_values = [np.random.random(size=self._SIZES[d]) for d in dims]
-                    ref_result = ref_operation(*ref_values)
+                    ref_result = ref_operation(*ref_values, **op_args)
                     # build constant model variables vector(s) from values then obtain the operation result
                     backend.build()
                     mt_values = [backend.add_constants(v) for v in ref_values]
-                    mt_result = mt_operation(*mt_values)
+                    mt_result = mt_operation(*mt_values, **op_args)
                     backend.solve()
                     mt_result = backend.get_value(mt_result)
                     backend.clear()
                     # compare the two results
-                    msg = f'Error at iteration {i} in operation {operation}, {mt_result} != {ref_result}'
+                    msg = f'Error at it. {i}, in op. {operation}, with dims {list(dims)}, {mt_result} != {ref_result}'
                     self.assertTrue(np.allclose(mt_result, ref_result, atol=10 ** -self.PLACES), msg=msg)
         except Exception as exception:
             self._check_exception(operation=operation, exception=exception)
@@ -167,6 +170,17 @@ class TestBackend(AbstractTest):
         self._test_numeric_operation('2D', operation='sum')
         self._test_numeric_operation('3D', operation='sum')
 
+    def test_sum_axis(self):
+        self._test_numeric_operation('1D', operation='sum', axis=-1)
+        self._test_numeric_operation('1D', operation='sum', axis=0)
+        self._test_numeric_operation('2D', operation='sum', axis=-1)
+        self._test_numeric_operation('2D', operation='sum', axis=0)
+        self._test_numeric_operation('2D', operation='sum', axis=1)
+        self._test_numeric_operation('3D', operation='sum', axis=-1)
+        self._test_numeric_operation('3D', operation='sum', axis=0)
+        self._test_numeric_operation('3D', operation='sum', axis=1)
+        self._test_numeric_operation('3D', operation='sum', axis=2)
+
     def test_square(self):
         self._test_numeric_operation('1D', operation='square')
         self._test_numeric_operation('2D', operation='square')
@@ -192,10 +206,32 @@ class TestBackend(AbstractTest):
         self._test_numeric_operation('2D', operation='mean')
         self._test_numeric_operation('3D', operation='mean')
 
+    def test_mean_axis(self):
+        self._test_numeric_operation('1D', operation='mean', axis=-1)
+        self._test_numeric_operation('1D', operation='mean', axis=0)
+        self._test_numeric_operation('2D', operation='mean', axis=-1)
+        self._test_numeric_operation('2D', operation='mean', axis=0)
+        self._test_numeric_operation('2D', operation='mean', axis=1)
+        self._test_numeric_operation('3D', operation='mean', axis=-1)
+        self._test_numeric_operation('3D', operation='mean', axis=0)
+        self._test_numeric_operation('3D', operation='mean', axis=1)
+        self._test_numeric_operation('3D', operation='mean', axis=2)
+
     def test_var(self):
         self._test_numeric_operation('1D', operation='var')
         self._test_numeric_operation('2D', operation='var')
         self._test_numeric_operation('3D', operation='var')
+
+    def test_var_axis(self):
+        # self._test_numeric_operation('1D', operation='var', axis=-1)
+        # self._test_numeric_operation('1D', operation='var', axis=0)
+        self._test_numeric_operation('2D', operation='var', axis=-1)
+        self._test_numeric_operation('2D', operation='var', axis=0)
+        self._test_numeric_operation('2D', operation='var', axis=1)
+        self._test_numeric_operation('3D', operation='var', axis=-1)
+        self._test_numeric_operation('3D', operation='var', axis=0)
+        self._test_numeric_operation('3D', operation='var', axis=1)
+        self._test_numeric_operation('3D', operation='var', axis=2)
 
     # BINARY NUMERIC OPERATIONS
 

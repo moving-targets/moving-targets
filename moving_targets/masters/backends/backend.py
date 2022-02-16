@@ -1,6 +1,6 @@
 """Basic Backend Interface."""
 import logging
-from typing import Any, Union, List, Optional
+from typing import Any, Union, List, Optional, Callable
 
 import numpy as np
 
@@ -12,7 +12,30 @@ class Backend:
 
     _LOGGER: logging.Logger = logging.getLogger('Backend')
 
-    def _nested_names(self, *keys: int, name: Optional[str]) -> List:
+    @staticmethod
+    def _transposed_axes(dim: int, index: int, place: int) -> List[int]:
+        """Computes the order of the transposed axes.
+
+        :param dim:
+            The total number of dimensions.
+
+        :param index:
+            The index of the axis to move.
+
+        :param place:
+            The position where to move the given index. E.g., if dim = 4, index = 2, and place = 0, the third dimension
+            will be brought to front thus it will be returned the list [2, 0, 1, 3]; otherwise, if dim = 4, index = 0,
+            and place = 2, the operation will be inverted, thus returning [1, 2, 0, 3].
+
+        :return:
+            The list of indices of the transposed axes.
+        """
+        axes = list(range(dim))
+        axes.insert(place, axes.pop(index))
+        return axes
+
+    @classmethod
+    def _nested_names(cls, *keys: int, name: Optional[str]) -> List:
         """Generates an keys-dimensional list of nested lists containing the correct variables names when an array of
         variables is wanted instead of a single one by appending the variable position in the keys-dimensional tensor.
 
@@ -28,7 +51,7 @@ class Backend:
         if len(keys) == 1:
             return [None if name is None else f'{name}_{i}' for i in range(keys[0])]
         else:
-            return [self._nested_names(*keys[1:], name=None if name is None else f'{name}_{i}') for i in range(keys[0])]
+            return [cls._nested_names(*keys[1:], name=None if name is None else f'{name}_{i}') for i in range(keys[0])]
 
     @classmethod
     def _aux_warning(cls, exp: Optional[str], aux: Optional[str], msg: str):
@@ -46,8 +69,15 @@ class Backend:
         if not (exp is None and aux is None) and exp != aux:
             cls._LOGGER.warning(f"'aux={aux}' has no effect since the solver needs {exp} auxiliary variables to {msg}.")
 
-    def __init__(self):
+    def __init__(self, sum_fn: Callable = lambda v: np.sum(v)):
+        """
+        :param sum_fn:
+            The backend function to perform a sum over a one-dimensional vector of model variables.
+        """
         super(Backend, self).__init__()
+
+        self._sum_fn: Callable = sum_fn
+        """The backend function to perform a sum over an array of model variables."""
 
         self.model: Optional = None
         """The inner model instance."""
@@ -422,11 +452,18 @@ class Backend:
             self.add_constraints([v == e for v, e in zip(variables.flatten(), expressions.flatten())])
             return variables if is_numpy else variables[0]
 
-    def sum(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
+    def sum(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = None) -> Any:
         """Computes the sum of an array of variables.
 
         :param a:
             An array of model variables.
+
+        :param axis:
+            The dimension on which to aggregate or None to aggregate the whole data.
+
+        :param asarray:
+            In case the aggregation should return a single expression, whether to return it as a numpy zero-dimensional
+            array or as the expression itself.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -440,7 +477,27 @@ class Backend:
         :return:
             The variables sum.
         """
-        raise NotImplementedError(not_implemented_message(name='sum'))
+        # if no axis is specified, simply leverage the internal sum function to get a single expression, otherwise
+        # compute the sum over the requested axis and then reshape the output array accordingly
+        if axis is None:
+            expressions = self._sum_fn(a)
+            expressions = np.reshape(expressions, ()) if asarray else expressions
+        else:
+            # check that the axis is in bound and handle negative axis values
+            assert axis in range(-a.ndim, a.ndim), f"Axis {axis} is out of bound for array with {a.ndim} dimensions"
+            axis = axis % a.ndim
+            # transpose the array in order to bring the axis-th dimension to the back, then reshape it into a matrix so
+            # that we can aggregate only on the last dimension, which is the one representing the chosen axis
+            axes = self._transposed_axes(dim=a.ndim, index=axis, place=a.ndim - 1)
+            expressions = a.transpose(axes).reshape((-1, a.shape[axis]))
+            expressions = [np.sum(row) for row in expressions]
+            # at this point, the "expressions" list will have size a.size / a.shape[axis], thus we need to reshape it
+            # accordingly to the input shape by popping out the axis-th dimension, which is now one due to the sum
+            # (also, take care that the output is at least one-dimensional, otherwise return a single expression)
+            new_shape = list(a.shape)
+            new_shape.pop(axis)
+            expressions = np.reshape(expressions, new_shape) if len(new_shape) > 0 or asarray else expressions[0]
+        return self.aux(expressions, aux_vtype=aux)
 
     def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         """Computes the squared values over an array of variables.
@@ -531,11 +588,18 @@ class Backend:
         """
         raise BackendError(unsupported='logarithms')
 
-    def mean(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
+    def mean(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = None) -> Any:
         """Computes the mean of an array of variables.
 
         :param a:
             An array of model variables.
+
+        :param axis:
+            The dimension on which to aggregate or None to aggregate the whole data.
+
+        :param asarray:
+            In case the aggregation should return a single expression, whether to return it as a numpy zero-dimensional
+            array or as the expression itself.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -549,14 +613,22 @@ class Backend:
         :return:
             The variables mean.
         """
-        sum_expression = self.sum(a, aux=aux)
-        return self.aux(sum_expression / a.size, aux_vtype=aux)
+        sum_expression = self.sum(a, axis=axis, asarray=asarray, aux=aux)
+        num_aggregated = a.size if axis is None else a.shape[axis]
+        return self.aux(sum_expression / num_aggregated, aux_vtype=aux)
 
-    def var(self, a: np.ndarray, aux: Optional[str] = 'auto') -> Any:
+    def var(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         """Computes the variance of an array of variables.
 
         :param a:
             An array of model variables.
+
+        :param axis:
+            The dimension on which to aggregate or None to aggregate the whole data.
+
+        :param asarray:
+            In case the aggregation should return a single expression, whether to return it as a numpy zero-dimensional
+            array or as the expression itself.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -570,11 +642,30 @@ class Backend:
         :return:
             The variables variance.
         """
-        mean_expression = self.mean(a, aux='continuous' if aux == 'auto' else aux)
-        diff_expressions = np.reshape([ai - mean_expression for ai in a.flatten()], a.shape)
+        # if no axis is specified, simply compute the mean (which will be a single expression), then compute the array
+        # of differences and shape it correctly, otherwise compute the means over the requested axis (which will be in
+        # the form of an array), then compute the differences and eventually reshape them accordingly
+        aux_mean, aux_squared = ('continuous', None) if aux == 'auto' else (aux, aux)
+        mean_expressions = self.mean(a, axis=axis, asarray=True, aux=aux_mean)
+        if axis is None:
+            # we compute the array of differences element by element because of some problems that certain backends
+            # arise due to the impossibility to subtract a single variable (or expression) to an array of variables
+            diff_expressions = np.reshape([self.subtract(ai, mean_expressions) for ai in a.flatten()], a.shape)
+        else:
+            # check that the axis is in bound and handle negative axis values
+            assert axis in range(-a.ndim, a.ndim), f"Axis {axis} is out of bound for array with {a.ndim} dimensions"
+            axis = axis % a.ndim
+            # transpose the array in order to bring the axis-th dimension to the front so to compute the differences of
+            # each row in the given axis with respect to the mean of that axis, then transpose the axis from the front
+            # back to its place since we want to match exactly the original shape
+            a = a.transpose(self._transposed_axes(dim=a.ndim, index=axis, place=0))
+            diff_expressions = np.array([self.subtract(ai, mean_expressions) for ai in a])
+            diff_expressions = diff_expressions.transpose(self._transposed_axes(dim=a.ndim, index=0, place=axis))
+        # we can finally build auxiliary variables for the differences (if needed), then square these differences and,
+        # eventually, compute the mean of the squared differences over the given axis
         diff_expressions = self.aux(expressions=diff_expressions, aux_vtype=aux)
-        squared_expressions = self.square(diff_expressions, aux=None if aux == 'auto' else aux)
-        return self.mean(squared_expressions, aux=aux)
+        squared_expressions = self.square(diff_expressions, aux=aux_squared)
+        return self.mean(squared_expressions, axis=axis, asarray=asarray, aux=aux)
 
     def add(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
         """Performs the pairwise sum between two arrays.

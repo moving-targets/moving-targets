@@ -14,7 +14,7 @@ class CplexBackend(Backend):
         :param time_limit:
             The solver time limit.
         """
-        super(CplexBackend, self).__init__()
+        super(CplexBackend, self).__init__(sum_fn=lambda v: self.model.sum(v))
 
         try:
             import docplex.mp.model
@@ -65,40 +65,40 @@ class CplexBackend(Backend):
             raise BackendError(unsupported=f"vtype '{vtype}'")
 
     def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
-        # handle variable types
-        if vtype not in ['binary', 'integer', 'continuous']:
+        if len(keys) == 0:
+            # if no keys are passed, builds a single variable then reshape it into a zero-dimensional numpy array
+            var = self.add_variable(vtype=vtype, lb=lb, ub=ub, name=name)
+        elif vtype not in ['binary', 'integer', 'continuous']:
+            # check correctness of type variables
             raise BackendError(unsupported=f"vtype '{vtype}'")
-        # handle dimensionality
-        if len(keys) == 1:
-            fn = getattr(self.model, f'{vtype}_var_dict')
-            kw = dict(keys=keys[0])
-        elif len(keys) == 2:
-            fn = getattr(self.model, f'{vtype}_var_matrix')
-            kw = dict(keys1=keys[0], keys2=keys[1])
-        elif len(keys) == 3:
-            fn = getattr(self.model, f'{vtype}_var_cube')
-            kw = dict(keys1=keys[0], keys2=keys[1], keys3=keys[2])
         else:
-            raise BackendError(unsupported='variables having more than three dimensions')
-        # handle bounds wrt variable type
-        if vtype == 'binary':
-            assert lb == 0 and ub == 1, f"Binary variable type accepts [0, 1] bounds only, but [{lb}, {ub}] was passed."
-        else:
-            kw.update({'lb': lb, 'ub': ub})
-        # handle variables
-        variables_dict = fn(**kw, name=name)
-        variables_list = list(variables_dict.values())
-        return np.array(variables_list).reshape(keys)
+            # handle non-zero dimensionality
+            if len(keys) == 1:
+                fn = getattr(self.model, f'{vtype}_var_dict')
+                kw = dict(keys=keys[0])
+            elif len(keys) == 2:
+                fn = getattr(self.model, f'{vtype}_var_matrix')
+                kw = dict(keys1=keys[0], keys2=keys[1])
+            elif len(keys) == 3:
+                fn = getattr(self.model, f'{vtype}_var_cube')
+                kw = dict(keys1=keys[0], keys2=keys[1], keys3=keys[2])
+            else:
+                raise BackendError(unsupported='variables having more than three dimensions')
+            # and check the correctness of bounds wrt variable type
+            if vtype == 'binary':
+                assert lb == 0 and ub == 1, f"Binary variables accept [0, 1] bounds only, but [{lb}, {ub}] was passed."
+            else:
+                kw.update({'lb': lb, 'ub': ub})
+            # handle variables
+            var = fn(**kw, name=name)
+            var = list(var.values())
+        return np.array(var).reshape(keys)
 
     def get_objective(self) -> float:
         return self.solution.objective_value
 
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return np.reshape([v.solution_value for v in expressions.flatten()], expressions.shape)
-
-    def sum(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
-        expression = self.model.sum(a)
-        return expression
 
     def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         self._aux_warning(exp=None, aux=aux, msg='cannot impose equality constraints on quadratic expressions')

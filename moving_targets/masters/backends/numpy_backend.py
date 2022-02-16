@@ -65,9 +65,6 @@ class NumpyBackend(Backend):
         self._aux_warning(exp=None, aux=aux_vtype, msg='to compute any value')
         return expressions
 
-    def sum(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
-        return np.sum(a)
-
     def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         return np.square(a)
 
@@ -86,3 +83,7 @@ class NumpyBackend(Backend):
                 self._LOGGER.info(f'Values in the interval [0, {self.clip}] will be clipped to {self.clip}')
             a = a.clip(min=self.clip)
         return np.log(a)
+
+    def var(self, a: np.ndarray, axis: Optional[int] = None, aux: Optional[str] = None) -> Any:
+        # use "None" as aux default value to avoid warnings
+        return super(NumpyBackend, self).var(a, axis, aux)

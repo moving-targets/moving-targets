@@ -89,10 +89,11 @@ class ClassesHistogram(Callback):
             ax = plt.subplot(num_rows, self.num_columns, idx + 1, sharex=ax, sharey=ax)
             # this check is necessary to handle the pretraining step, where no adjusted target is present
             if f'adj_{it}' in self.data:
-                data = np.concatenate((self.data[f'pred_{it}'].values, self.data[f'adj_{it}'].values))
-                hue = np.concatenate((len(self.data) * ['pred'], len(self.data) * ['adj']))
+                data = np.concatenate((self.data[f'adj_{it}'].values, self.data[f'pred_{it}'].values))
+                hue = np.concatenate((len(self.data) * ['adj'], len(self.data) * ['pred']))
             else:
-                data, hue = self.data[f'pred_{it}'].values, np.array(len(self.data) * ['pred'])
+                data = np.concatenate((self.data[f'y'].values, self.data[f'pred_{it}'].values))
+                hue = np.concatenate((len(self.data) * ['y'], len(self.data) * ['pred']))
             sns.countplot(x=data, hue=hue, ax=ax)
             ax.set(xlabel='class', ylabel='count')
             ax.set_title(f'iteration: {it}')

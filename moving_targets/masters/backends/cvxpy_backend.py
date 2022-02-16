@@ -80,7 +80,11 @@ class CvxpyBackend(Backend):
                 return [self._cp.Variable((1,), name=name_fn(i), **kw) for i in range(key)]
             return [_recursive_addition(_keys=_keys.copy(), _name=name_fn(i)) for i in range(key)]
 
-        if vtype not in self._VTYPES.keys():
+        if len(keys) == 0:
+            # if no keys are passed, builds a single variable then reshape it into a zero-dimensional numpy array
+            var = self.add_variable(vtype=vtype, lb=lb, ub=ub, name=name)
+            return np.reshape(var, ())
+        elif vtype not in self._VTYPES.keys():
             raise BackendError(unsupported=f"vtype '{vtype}'")
         kw = self._VTYPES[vtype]
         var = np.array(_recursive_addition(_keys=list(keys), _name=name))
@@ -93,9 +97,6 @@ class CvxpyBackend(Backend):
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return np.reshape([v.value.squeeze() for v in expressions.flatten()], expressions.shape)
 
-    def sum(self, a: np.ndarray, aux: Optional[str] = None) -> Any:
-        return self.aux(expressions=a.sum(), aux_vtype=aux)
-
     def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
         return self.aux(expressions=a ** 2, aux_vtype=aux)
 
@@ -107,7 +108,7 @@ class CvxpyBackend(Backend):
         expressions = np.reshape([self._cp.log(v) for v in a.flatten()], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)
 
-    def var(self, a: np.ndarray, aux: Optional[str] = 'auto') -> Any:
+    def var(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         raise BackendError(unsupported='variance due to numerical instability')
 
     def multiply(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):

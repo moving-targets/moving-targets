@@ -63,17 +63,12 @@ class WeightedLoss(Loss):
         if aggregation == 'sum':
             aggregation = lambda backend, losses: backend.sum(losses)
         elif aggregation == 'mean':
-            aggregation = lambda backend, losses: backend.sum(losses) / losses.size
+            aggregation = lambda backend, losses: backend.mean(losses)
         elif aggregation == 'mean_of_sums':
-            # if losses is a one-dimensional vector, this corresponds to losses.sum()
-            # if losses is a two-dimensional vector, this corresponds to losses.mean(axis=0).sum()
-            # in both cases, this can be achieved by computing losses.sum() / losses.shape[1]
-            aggregation = lambda backend, losses: backend.sum(losses) / (1 if losses.ndim == 1 else losses.shape[1])
+            # reshape the losses to (len(losses), -1) in order to always have bi-dimensional arrays
+            aggregation = lambda backend, losses: backend.mean(backend.sum(losses.reshape((len(losses), -1)), axis=-1))
         elif aggregation == 'sum_of_means':
-            # if losses is a one-dimensional vector, this corresponds to losses.mean()
-            # if losses is a two-dimensional vector, this corresponds to losses.sum(axis=1).mean()
-            # in both cases, this can be achieved by computing losses.sum() / losses.shape[0]
-            aggregation = lambda backend, losses: backend.sum(losses) / losses.shape[0]
+            aggregation = lambda backend, losses: backend.sum(backend.mean(losses.reshape((len(losses), -1)), axis=-1))
         elif not isinstance(aggregation, Callable):
             raise AssertionError(f"Unsupported aggregation strategy '{aggregation}'")
 
