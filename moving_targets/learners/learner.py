@@ -53,7 +53,7 @@ class Learner(StatsLogger):
         self._macs = macs
         self._time = time.time()
 
-    def on_training_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
+    def on_training_end(self, macs, x, y: np.ndarray, p: Optional[np.ndarray], val_data: Optional[Dataset]):
         self._log_stats(elapsed_time=time.time() - self._time)
         self._time = None
         self._macs = None

@@ -63,7 +63,7 @@ class Callback:
         self.on_iteration_start(macs=macs, x=x, y=y, val_data=val_data)
         self.on_training_start(macs=macs, x=x, y=y, val_data=val_data)
 
-    def on_pretraining_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
+    def on_pretraining_end(self, macs, x, y: np.ndarray, p: Optional[np.ndarray], val_data: Optional[Dataset]):
         """Routine called at the end of the `MACS` pretraining phase.
 
         :param macs:
@@ -75,11 +75,14 @@ class Callback:
         :param y:
             The vector of training labels.
 
+        :param p:
+            The vector of learners predictions.
+
         :param val_data:
             A dictionary containing the validation data, indicated as a tuple (xv, yv).
 
         """
-        self.on_training_end(macs=macs, x=x, y=y, val_data=val_data)
+        self.on_training_end(macs=macs, x=x, y=y, p=p, val_data=val_data)
         self.on_iteration_end(macs=macs, x=x, y=y, val_data=val_data)
 
     def on_iteration_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
@@ -136,7 +139,7 @@ class Callback:
         """
         pass
 
-    def on_training_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
+    def on_training_end(self, macs, x, y: np.ndarray, p: Optional[np.ndarray], val_data: Optional[Dataset]):
         """Routine called at the end of a `MACS` training phase.
 
         :param macs:
@@ -147,6 +150,9 @@ class Callback:
 
         :param y:
             The vector of training labels.
+
+        :param p:
+            The vector of learners predictions.
 
         :param val_data:
             A dictionary containing the validation data, indicated as a tuple (xv, yv).
@@ -172,7 +178,7 @@ class Callback:
         """
         pass
 
-    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y: np.ndarray, val_data: Optional[Dataset]):
+    def on_adjustment_end(self, macs, x, y: np.ndarray, z: np.ndarray, val_data: Optional[Dataset]):
         """Routine called at the end of a `MACS` adjustment phase.
 
         :param macs:
@@ -184,7 +190,7 @@ class Callback:
         :param y:
             The vector of training labels.
 
-        :param adjusted_y:
+        :param z:
             The vector of adjusted labels.
 
         :param val_data:

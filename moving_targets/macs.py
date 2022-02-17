@@ -11,7 +11,7 @@ from moving_targets.callbacks.file_logger import FileLogger
 from moving_targets.callbacks.history import History
 from moving_targets.callbacks.logger import Logger, StatsLogger
 from moving_targets.learners.learner import Learner
-from moving_targets.masters.master import Master
+from moving_targets.masters.masters import Master
 from moving_targets.metrics.metric import Metric
 from moving_targets.util.typing import Dataset, is_numeric
 
@@ -135,40 +135,42 @@ class MACS(StatsLogger):
             callbacks += [ConsoleLogger()]
         elif verbose == 2 or verbose is True:
             callbacks += [FileLogger(routines=['on_pretraining_end', 'on_iteration_end'])]
-        self._update_callbacks(callbacks, lambda c: c.on_process_start(macs=self, x=x, y=y, val_data=val_data))
+        self._update(callbacks, lambda c: c.on_process_start(macs=self, x=x, y=y, val_data=val_data))
 
         # handle pretraining
+        p = None
         if self.init_step == 'pretraining':
             self.iteration = 0
-            self._update_callbacks(callbacks, lambda c: c.on_pretraining_start(macs=self, x=x, y=y, val_data=val_data))
+            self._update(callbacks, lambda c: c.on_pretraining_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
             self.learner.fit(x=x, y=y, sample_weight=sample_weight)
             self.fitted = True
+            p = self.learner.predict(x)
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
-            self._update_callbacks(callbacks, lambda c: c.on_pretraining_end(macs=self, x=x, y=y, val_data=val_data))
+            self._update(callbacks, lambda c: c.on_pretraining_end(macs=self, x=x, y=y, p=p, val_data=val_data))
 
         # algorithm core
         for self.iteration in range(1, iterations + 1):
-            self._update_callbacks(callbacks, lambda c: c.on_iteration_start(macs=self, x=x, y=y, val_data=val_data))
-            self._update_callbacks(callbacks, lambda c: c.on_adjustment_start(macs=self, x=x, y=y, val_data=val_data))
+            self._update(callbacks, lambda c: c.on_iteration_start(macs=self, x=x, y=y, val_data=val_data))
+            self._update(callbacks, lambda c: c.on_adjustment_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- MASTER  STEP ----------------------------------------------
-            adjusted_y = self.master.adjust_targets(x=x, y=y)
-            if adjusted_y is None:
+            z = self.master.adjust_targets(x=x, y=y, p=p)
+            if z is None:
                 # in case of no valid solution, raise a warning and stop the training loop
                 warnings.warn(f'No solution found at iteration {self.iteration}, stop training. ' +
                               f'This may have been cause either by time limit or by model infeasibility.')
                 break
             # ---------------------------------------------- MASTER  STEP ----------------------------------------------
-            self._update_callbacks(callbacks, lambda c: c.on_adjustment_end(macs=self, x=x, y=y, val_data=val_data,
-                                                                            adjusted_y=adjusted_y))
-            self._update_callbacks(callbacks, lambda c: c.on_training_start(macs=self, x=x, y=y, val_data=val_data))
+            self._update(callbacks, lambda c: c.on_adjustment_end(macs=self, x=x, y=y, z=z, val_data=val_data))
+            self._update(callbacks, lambda c: c.on_training_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
-            self.learner.fit(x=x, y=adjusted_y, sample_weight=sample_weight)
+            self.learner.fit(x=x, y=z, sample_weight=sample_weight)
             self.fitted = True
+            p = self.learner.predict(x)
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
-            self._update_callbacks(callbacks, lambda c: c.on_training_end(macs=self, x=x, y=y, val_data=val_data))
-            self._update_callbacks(callbacks, lambda c: c.on_iteration_end(macs=self, x=x, y=y, val_data=val_data))
-        self._update_callbacks(callbacks, lambda c: c.on_process_end(macs=self, val_data=val_data))
+            self._update(callbacks, lambda c: c.on_training_end(macs=self, x=x, y=y, p=p, val_data=val_data))
+            self._update(callbacks, lambda c: c.on_iteration_end(macs=self, x=x, y=y, val_data=val_data))
+        self._update(callbacks, lambda c: c.on_process_end(macs=self, val_data=val_data))
         return self._history
 
     def predict(self, x) -> Any:
@@ -207,11 +209,11 @@ class MACS(StatsLogger):
         self._log_stats(iteration=self.iteration)
         self._time = time.time()
 
-    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y: np.ndarray, val_data: Optional[Dataset]):
+    def on_adjustment_end(self, macs, x, y: np.ndarray, z: np.ndarray, val_data: Optional[Dataset]):
         # log metrics on adjusted data
-        self.log(**self._compute_metrics(x=x, y=y, p=adjusted_y, metrics=self.metrics, prefix='adjusted'))
+        self.log(**self._compute_metrics(x=x, y=y, p=z, metrics=self.metrics, prefix='adjusted'))
 
-    def on_training_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
+    def on_training_end(self, macs, x, y: np.ndarray, p: Optional[np.ndarray], val_data: Optional[Dataset]):
         # log metrics on training data
         self.log(**self._compute_metrics(x=x, y=y, p=self.predict(x), metrics=self.metrics, prefix='predictions'))
 
@@ -266,7 +268,7 @@ class MACS(StatsLogger):
                     results[f'{prefix}{metric.__name__}_{i}'] = v
         return results
 
-    def _update_callbacks(self, callbacks: List[Callback], routine: Callable):
+    def _update(self, callbacks: List[Callback], routine: Callable):
         """Runs the given routine for each one of the given callbacks, plus the routine for the `MACS` object itself
         (which is run at the beginning) and the inner `History` callback (which is run at the end).
 

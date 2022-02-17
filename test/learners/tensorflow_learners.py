@@ -28,7 +28,7 @@ class TestTensorflowLearners(TestLearners):
         mt = MultiLayerPerceptron(loss='mse', optimizer='sgd', epochs=2, batch_size=4, verbose=False)
         ref = Sequential([Dense(128, activation='relu'), Dense(1, activation=None)])
         ref.compile(optimizer='sgd', loss='mse')
-        self._test(mt_learner=mt, ref_learner=ref, classification=False, random_state=self._random_state)
+        self._test(mt_learner=mt, ref_learner=ref, classification=False)
 
     def test_classification_mlp(self):
         from tensorflow.keras.layers import Dense
@@ -38,4 +38,4 @@ class TestTensorflowLearners(TestLearners):
                                   epochs=2, batch_size=4, verbose=False)
         ref = Sequential([Dense(128, activation='relu'), Dense(1, activation='sigmoid')])
         ref.compile(optimizer='sgd', loss='binary_crossentropy')
-        self._test(mt_learner=mt, ref_learner=ref, classification=True, random_state=self._random_state)
+        self._test(mt_learner=mt, ref_learner=ref, classification=True)

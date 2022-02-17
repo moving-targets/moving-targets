@@ -40,73 +40,45 @@ class TestScikitLearners(TestLearners):
         return learner.predict_proba(x)[:, 1].squeeze() if hasattr(learner, 'predict_proba') else learner.predict(x)
 
     def test_linear_regression_default(self):
-        self._test(mt_learner=LinearRegression(),
-                   ref_learner=lm.LinearRegression(),
-                   classification=False,
-                   random_state=self._random_state)
+        self._test(mt_learner=LinearRegression(), ref_learner=lm.LinearRegression(), classification=False)
 
     def test_linear_regression_custom(self):
         self._test(mt_learner=self._custom_learner(LinearRegression),
-                   ref_learner=self._custom_pipeline(lm.LinearRegression),
-                   classification=False,
-                   random_state=self._random_state)
+                   ref_learner=self._custom_pipeline(lm.LinearRegression), classification=False)
 
     def test_logistic_regression_default(self):
-        self._test(mt_learner=LogisticRegression(),
-                   ref_learner=lm.LogisticRegression(),
-                   classification=True,
-                   random_state=self._random_state)
+        self._test(mt_learner=LogisticRegression(), ref_learner=lm.LogisticRegression(), classification=True)
 
     def test_logistic_regression_custom(self):
         self._test(mt_learner=self._custom_learner(LogisticRegression),
-                   ref_learner=self._custom_pipeline(lm.LogisticRegression),
-                   classification=True,
-                   random_state=self._random_state)
+                   ref_learner=self._custom_pipeline(lm.LogisticRegression), classification=True)
 
     def test_random_forest_regressor_default(self):
-        self._test(mt_learner=RandomForestRegressor(),
-                   ref_learner=ens.RandomForestRegressor(),
-                   classification=False,
-                   random_state=self._random_state)
+        self._test(mt_learner=RandomForestRegressor(), ref_learner=ens.RandomForestRegressor(), classification=False)
 
     def test_random_forest_regressor_custom(self):
         self._test(mt_learner=self._custom_learner(RandomForestRegressor),
-                   ref_learner=self._custom_pipeline(ens.RandomForestRegressor),
-                   classification=False,
-                   random_state=self._random_state)
+                   ref_learner=self._custom_pipeline(ens.RandomForestRegressor), classification=False)
 
     def test_random_forest_classifier_default(self):
-        self._test(mt_learner=RandomForestClassifier(),
-                   ref_learner=ens.RandomForestClassifier(),
-                   classification=True,
-                   random_state=self._random_state)
+        self._test(mt_learner=RandomForestClassifier(), ref_learner=ens.RandomForestClassifier(), classification=True)
 
     def test_random_forest_classifier_custom(self):
         self._test(mt_learner=self._custom_learner(RandomForestClassifier),
-                   ref_learner=self._custom_pipeline(ens.RandomForestClassifier),
-                   classification=True,
-                   random_state=self._random_state)
+                   ref_learner=self._custom_pipeline(ens.RandomForestClassifier), classification=True)
 
     def test_gradient_boosting_regressor_default(self):
-        self._test(mt_learner=GradientBoostingRegressor(),
-                   ref_learner=ens.GradientBoostingRegressor(),
-                   classification=False,
-                   random_state=self._random_state)
+        self._test(mt_learner=GradientBoostingRegressor(), ref_learner=ens.GradientBoostingRegressor(),
+                   classification=False)
 
     def test_gradient_boosting_regressor_custom(self):
         self._test(mt_learner=self._custom_learner(GradientBoostingRegressor),
-                   ref_learner=self._custom_pipeline(ens.GradientBoostingRegressor),
-                   classification=False,
-                   random_state=self._random_state)
+                   ref_learner=self._custom_pipeline(ens.GradientBoostingRegressor), classification=False)
 
     def test_gradient_boosting_classifier_default(self):
-        self._test(mt_learner=GradientBoostingClassifier(),
-                   ref_learner=ens.GradientBoostingClassifier(),
-                   classification=True,
-                   random_state=self._random_state)
+        self._test(mt_learner=GradientBoostingClassifier(), ref_learner=ens.GradientBoostingClassifier(),
+                   classification=True)
 
     def test_gradient_boosting_classifier_custom(self):
         self._test(mt_learner=self._custom_learner(GradientBoostingClassifier),
-                   ref_learner=self._custom_pipeline(ens.GradientBoostingClassifier),
-                   classification=True,
-                   random_state=self._random_state)
+                   ref_learner=self._custom_pipeline(ens.GradientBoostingClassifier), classification=True)

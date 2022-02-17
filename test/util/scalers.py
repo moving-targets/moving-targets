@@ -39,17 +39,8 @@ class TestScalers(AbstractTest):
     }
 
     def _test(self, columns: Dict[str, str], scaler: Scaler, numpy: bool):
-        """Performs the tests.
-
-        :param columns:
-            The input columns paired with the expected scaling type.
-
-        :param scaler:
-            The scaler to test.
-
-        :param numpy:
-            Whether to test for numpy or pandas.
-        """
+        """Checks that the given scaler, when fitted with certain data (which may be either an array or a dataframe),
+        behaves as expected in the dictionary of input columns paired with the expected scaling type."""
         # handle input and reference
         one_dimensional = len(columns) == 1 and 'onehot' not in columns.values()
         input_data = self.DATA[[k for k in columns.keys()]].squeeze()

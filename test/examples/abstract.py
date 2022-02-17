@@ -16,21 +16,28 @@ from test.abstract import AbstractTest
 
 class TestExamples(AbstractTest):
     def _stratify(self) -> bool:
-        raise NotImplementedError(not_implemented_message('_learner'))
+        """Whether to stratify or not the data when splitting between train and validation."""
+        raise NotImplementedError(not_implemented_message('_stratify'))
 
     def _learner(self) -> Learner:
+        """The `Learner` instance."""
         raise NotImplementedError(not_implemented_message('_learner'))
 
     def _master(self, loss: str) -> Master:
-        raise NotImplementedError(not_implemented_message('_learner'))
+        """The `Master` instance."""
+        raise NotImplementedError(not_implemented_message('_master'))
 
     def _metrics(self) -> List[Metric]:
-        raise NotImplementedError(not_implemented_message('_learner'))
+        """The list of `Metric` instances on which to evaluate the model."""
+        raise NotImplementedError(not_implemented_message('_metrics'))
 
     def _results(self, dataset: str, class_column: str, init_step: str, loss: str) -> Dict[str, float]:
+        """The dictionary of expected results."""
         raise NotImplementedError(not_implemented_message('_results'))
 
     def _test(self, dataset: str, class_column: str, init_step: str, loss: str):
+        """Implements the testing strategy for a given dataset using a certain loss, a certain initial step, and
+        having the given target label."""
         np.random.seed(self.SEED)
         # load data
         with importlib.resources.path('res', f'{dataset}.csv') as filepath:

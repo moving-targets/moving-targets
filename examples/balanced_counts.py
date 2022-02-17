@@ -18,20 +18,19 @@ from moving_targets.util import probabilities
 
 
 class BalancedCounts(ClassificationMaster):
-    def __init__(self, backend='gurobi', loss='mse', alpha=1, beta=1):
-        # backend : the backend instance or backend alias
-        # loss    : the loss function computed between the model variables and the learner predictions
-        # alpha   : the non-negative real number which is used to calibrate the two losses in the alpha step
-        # beta    : the non-negative real number which is used to constraint the p_loss in the beta step
+    def __init__(self, backend='gurobi', loss='crossentropy', alpha='harmonic'):
+        # backend : the backend, which used to solve the master step
+        # loss    : the loss function, which is used to compute the master objective
+        # alpha   : the alpha optimizer, which is used to balance between the gradient term and the squared term
 
-        super().__init__(backend=backend, alpha=alpha, beta=beta, y_loss='hd', p_loss=loss)
+        super().__init__(backend=backend, loss=loss, alpha=alpha)
 
     # here we define the problem formulation, i.e., variables and constraints
-    def build(self, x, y):
+    def build(self, x, y, p):
         # retrieve model variables from the super method, which can be either:
         #   - a 1d vector of binary variables in case of binary classification (i.e., num classes = 2)
         #   - a 2d vector of binary variables in case of multiclass classification (i.e., num classes > 2)
-        variables = super(BalancedCounts, self).build(x, y)
+        variables = super(BalancedCounts, self).build(x, y, p)
 
         # compute the upper bound for number of counts of a class then constraint the sum of the model variables on
         # each column to be lower than that value (the np.atleast_2d() call is used to handle binary tasks)
@@ -41,14 +40,6 @@ class BalancedCounts(ClassificationMaster):
 
         # return the variables at the end
         return variables
-
-    # here we define whether to use the alpha or beta strategy, and beta is used if the constraint is already satisfied
-    def use_beta(self, x, y, p):
-        # the constraint is satisfied if all the classes counts are lower than then average number of counts per class
-        pred = probabilities.get_classes(p)
-        classes, counts = np.unique(pred, return_counts=True)
-        max_count = np.ceil(len(y) / len(classes))
-        return np.all(counts <= max_count)
 
 
 # THEN, WE MAY ADD A CUSTOM CALLBACK TO SEE HOW OUR TRAINING
@@ -70,14 +61,14 @@ class ClassesHistogram(Callback):
         # initially, we store the original targets
         self.data = pd.DataFrame.from_dict({'y': y})
 
-    def on_training_end(self, macs, x, y, val_data):
+    def on_training_end(self, macs, x, y, p, val_data):
         # when the training ends, we use the macs instance to store both the predicted classes and the iterations
         self.data[f'pred_{macs.iteration}'] = probabilities.get_classes(macs.predict(x))
         self.iterations.append(macs.iteration)
 
-    def on_adjustment_end(self, macs, x, y, adjusted_y: np.ndarray, val_data):
+    def on_adjustment_end(self, macs, x, y, z, val_data):
         # we store the adjusted targets as well, but there is no need to store the iteration since it was already done
-        self.data[f'adj_{macs.iteration}'] = adjusted_y
+        self.data[f'adj_{macs.iteration}'] = z
 
     def on_process_end(self, macs, val_data):
         # at the end of the process, we plot the results

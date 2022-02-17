@@ -12,28 +12,26 @@ from moving_targets.metrics import DIDI, R2, MSE
 
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF FAIR CLASSIFICATION
-
-
 class FairRegression(RegressionMaster):
-    def __init__(self, protected, backend='gurobi', loss='mse', violation=0.2, lb=0, ub=float('inf'), alpha=1, beta=1):
+    def __init__(self, protected, backend='gurobi', violation=0.2, loss='mse', alpha='harmonic', lb=0, ub=float('inf')):
         # protected  : the name of the protected feature
-        # backend    : the backend instance or backend alias
-        # loss       : both the y_loss and the p_loss
         # violation  : the maximal accepted level of violation of the constraint.
+        # backend    : the backend, which used to solve the master step
+        # loss       : the loss function, which is used to compute the master objective
+        # alpha      : the alpha optimizer, which is used to balance between the gradient term and the squared term
         # lb         : the model variables lower bounds.
         # ub         : the model variables upper bounds.
-        # alpha      : the non-negative real number which is used to calibrate the two losses in the alpha step
         # ------------------------------------------------------------------------------------------------------
         # didi       : a DIDI metric instance used to compute both the indicator matrices and the satisfiability
 
-        self.violation = violation
+        super().__init__(backend=backend, loss=loss, alpha=alpha, lb=lb, ub=ub)
         self.didi = DIDI(protected=protected, classification=False, percentage=True)
-        super().__init__(backend=backend, lb=lb, ub=ub, alpha=alpha, beta=beta, y_loss=loss, p_loss=loss, stats=False)
+        self.violation = violation
 
     # here we define the problem formulation, i.e., variables and constraints
-    def build(self, x, y):
+    def build(self, x, y, p):
         # retrieve model variables from the super method
-        variables = super(FairRegression, self).build(x, y)
+        variables = super(FairRegression, self).build(x, y, p)
 
         # as a first step, we need to compute the deviations between the average output for the total dataset and the
         # average output respectively to each protected class

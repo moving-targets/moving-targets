@@ -62,6 +62,7 @@ class TestProbabilities(AbstractTest):
     categories, respectively."""
 
     def _test(self, inp: np.ndarray, ref: np.ndarray, fn: Callable):
+        """Checks that the given function, when the given input is supplied, behaves correctly."""
         inp = fn(inp)
         self.assertEqual(inp.shape, ref.shape)
         self.assertTrue(np.all(inp == ref), msg=f'Input:\n{inp}\nReference:\n{ref}')

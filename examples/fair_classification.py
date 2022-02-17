@@ -16,25 +16,24 @@ from moving_targets.metrics import DIDI, CrossEntropy, Accuracy
 
 
 class FairClassification(ClassificationMaster):
-    def __init__(self, protected, backend='gurobi', loss='mse', violation=0.2, alpha=1, beta=1):
+    def __init__(self, protected, violation=0.2, backend='gurobi', loss='crossentropy', alpha='harmonic'):
         # protected  : the name of the protected feature
-        # backend    : the backend instance or backend alias
-        # loss       : the loss function computed between the model variables and the learner predictions
         # violation  : the maximal accepted level of violation of the constraint.
-        # alpha      : the non-negative real number which is used to calibrate the two losses in the alpha step
-        # beta       : the non-negative real number which is used to constraint the p_loss in the beta step
+        # backend    : the backend, which used to solve the master step
+        # loss       : the loss function, which is used to compute the master objective
+        # alpha      : the alpha optimizer, which is used to balance between the gradient term and the squared term
         # ------------------------------------------------------------------------------------------------------
         # didi       : a DIDI metric instance used to compute both the indicator matrices and the satisfiability
 
-        self.violation = violation
+        super().__init__(backend=backend, loss=loss, alpha=alpha)
         self.didi = DIDI(protected=protected, classification=True, percentage=True)
-        super().__init__(backend=backend, alpha=alpha, beta=beta, y_loss='hd', p_loss=loss)
+        self.violation = violation
 
     # here we define the problem formulation, i.e., variables and constraints
-    def build(self, x, y):
+    def build(self, x, y, p):
         # retrieve model variables from the super method and, for compatibility between the binary/multiclass scenarios,
         # optionally transform 1d variables (representing a binary classification task) into a 2d matrix
-        super_vars = super(FairClassification, self).build(x, y)
+        super_vars = super(FairClassification, self).build(x, y, p)
         variables = np.transpose([1 - super_vars, super_vars]) if super_vars.ndim == 1 else super_vars
 
         # as a first step, we need to compute the deviations between the average output for the total dataset and the

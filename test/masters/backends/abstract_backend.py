@@ -19,35 +19,21 @@ class TestBackend(AbstractTest):
 
     @classmethod
     def _backend(cls) -> Backend:
-        """The `Backend` instance to be tested.
-
-        :return
-            The `Backend` instance
-        """
+        """The `Backend` instance to be tested."""
         raise NotImplementedError(not_implemented_message(name='_backend'))
 
     @classmethod
     def _unsupported(cls) -> List[str]:
-        """The list of unsupported operations.
-
-        :return:
-            A list of strings representing the unsupported operations.
-        """
+        """The list of unsupported operations."""
         raise NotImplementedError(not_implemented_message(name='_unsupported'))
 
     @classmethod
     def _get_name(cls, variable: Any) -> str:
-        """Gets a formatted variable.
-
-        :param variable:
-            The variable.
-
-        :return:
-            The formatted variable name.
-        """
+        """Gets a formatted variable name."""
         raise NotImplementedError(not_implemented_message(name='_get_variable_name'))
 
     def _check_exception(self, operation: Optional[str], exception: Exception):
+        """Checks if the correct exception is raised."""
         if self.__class__.__name__ == 'TestBackend':
             # if we are in the abstract test, check that the error is "NotImplementedError"
             self.assertIsInstance(exception, NotImplementedError)
@@ -59,17 +45,8 @@ class TestBackend(AbstractTest):
             self.assertIsInstance(exception, BackendError)
 
     def _test_numeric_operation(self, *dims: str, operation: str, **op_args):
-        """Implements the main strategy to test the backend numeric operations.
-
-        :param dims:
-            The dimension(s) of the vector(s) to be passed to the backend/numpy operation.
-
-        :param operation:
-            The operation name, which must be the same between the backend and numpy (which is used as reference).
-
-        :param op_args:
-            The additional operation parameters, which must be the same between the backend and numpy.
-        """
+        """Checks the correctness, using an array of the given dimensions, of the given the backend numeric operation
+        that is instantiated according to the additional parameters (which must shared between the backend and numpy)"""
         try:
             np.random.seed(self.SEED)
             backend = self._backend()

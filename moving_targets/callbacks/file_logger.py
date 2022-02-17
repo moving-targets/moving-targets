@@ -71,7 +71,7 @@ class FileLogger(Logger):
     def on_pretraining_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'PRETRAINING START', 'on_pretraining_start')
 
-    def on_pretraining_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
+    def on_pretraining_end(self, macs, x, y: np.ndarray, p: Optional[np.ndarray], val_data: Optional[Dataset]):
         self._write_on_file(macs, 'PRETRAINING END', 'on_pretraining_end')
 
     def on_iteration_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
@@ -83,13 +83,13 @@ class FileLogger(Logger):
     def on_training_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'TRAINING START', 'on_training_start')
 
-    def on_training_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
+    def on_training_end(self, macs, x, y: np.ndarray, p: Optional[np.ndarray], val_data: Optional[Dataset]):
         self._write_on_file(macs, 'TRAINING END', 'on_training_end')
 
     def on_adjustment_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'ADJUSTMENT START', 'on_adjustment_start')
 
-    def on_adjustment_end(self, macs, x, y: np.ndarray, adjusted_y: np.ndarray, val_data: Optional[Dataset]):
+    def on_adjustment_end(self, macs, x, y: np.ndarray, z: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'ADJUSTMENT END', 'on_adjustment_end')
 
     def _write_on_file(self, macs, message: str, routine_name: str):
