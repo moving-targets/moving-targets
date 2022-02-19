@@ -21,7 +21,7 @@ class Master(StatsLogger):
 
     @staticmethod
     def _parameters() -> Set[str]:
-        return {'alpha', 'objective', 'elapsed_time'}
+        return {'alpha', 'nabla_term', 'squared_term', 'objective', 'elapsed_time'}
 
     def __init__(self,
                  backend: Union[str, Backend],
@@ -41,7 +41,7 @@ class Master(StatsLogger):
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters in ['alpha',
-            'objective', 'elapsed_time'] whose statistics must be logged.
+           'nabla_term', 'squared_term', 'objective', 'elapsed_time'] whose statistics must be logged.
         """
 
         super(Master, self).__init__(stats=stats, name='Master')
@@ -55,7 +55,7 @@ class Master(StatsLogger):
         self.backend: Backend = backend if isinstance(backend, Backend) else self._get_backend(backend=backend)
         """The `Backend` instance."""
 
-        self.loss: Loss = loss if isinstance(backend, Loss) else self._get_loss(loss=loss)
+        self.loss: Loss = loss if isinstance(loss, Loss) else self._get_loss(loss=loss)
         """The `Loss` instance."""
 
         self.alpha: Optimizer = alpha
@@ -159,20 +159,26 @@ class Master(StatsLogger):
         :return:
             The vector of adjusted targets.
         """
-        assert self._macs is not None, "No reference to the MACS object encapsulating the Master"
         self.backend.build()
         # if no predictions are available due to the initial projection step we use the original targets instead
         p = y if p is None else p
         v = self.build(x=x, y=y, p=p)
-        a = self.alpha(x=x, y=y, p=p)
-        c = self.loss(backend=self.backend, alpha=a, targets=y, variables=v, predictions=p, sample_weight=sample_weight)
-        self.backend.minimize(cost=c)
+        alpha = self.alpha(x=x, y=y, p=p)
+        nabla_term, squared_term = self.loss(backend=self.backend,
+                                             variables=v,
+                                             targets=y,
+                                             predictions=p,
+                                             sample_weight=sample_weight)
+        self.backend.minimize(cost=alpha * nabla_term + squared_term)
         # if the problem is infeasible return None, otherwise log stats and return the adjusted labels
         if self.backend.solve().solution is not None:
-            self._log_stats(alpha=a, objective=self.backend.get_objective())
+            self._log_stats(alpha=alpha,
+                            nabla_term=self.backend.get_value(nabla_term),
+                            squared_term=self.backend.get_value(squared_term),
+                            objective=self.backend.get_objective())
             adjusted = self.backend.get_values(expressions=v)
         else:
-            self._log_stats(alpha=a)
+            self._log_stats(alpha=alpha)
             adjusted = None
         self.backend.clear()
         return adjusted
@@ -206,7 +212,7 @@ class RegressionMaster(Master, ABC):
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters in ['alpha',
-            'objective', 'elapsed_time'] whose statistics must be logged.
+            'nabla_term', 'squared_term', 'objective', 'elapsed_time'] whose statistics must be logged.
         """
         super(RegressionMaster, self).__init__(backend=backend, loss=loss, alpha=alpha, stats=stats)
 
@@ -229,19 +235,12 @@ class RegressionMaster(Master, ABC):
 class ClassificationMaster(Master, ABC):
     """An abstract Moving Targets Master for Classification Tasks."""
 
-    VTYPES: Set[str] = {'auto', 'discrete', 'continuous'}
-    """Set of accepted vtypes."""
-
-    RTYPES: Set[str] = {'class', 'probability'}
-    """Set of accepted rtypes."""
-
     def __init__(self,
                  backend: Union[str, Backend],
                  loss: Union[str, Loss] = 'crossentropy',
                  alpha: Union[str, float, Optimizer] = 'harmonic',
                  labelling: bool = False,
-                 vtype: str = 'auto',
-                 rtype: str = 'class',
+                 types: str = 'auto',
                  stats: Union[bool, List[str]] = False):
         """
         :param backend:
@@ -257,30 +256,44 @@ class ClassificationMaster(Master, ABC):
         :param labelling:
             Whether this is a labelling or a classification task.
 
-        :param vtype:
-            The model variables vtype, either 'continuous' or 'discrete', or 'auto' for automatic type inference
-            depending on the given losses.
+        :param types:
+            The variables and adjustments types, which must be in ['auto', 'discrete', 'discretized', 'continuous'].
 
-        :param rtype:
-            The return type of the adjusted targets, either 'class' to get class targets, or 'probability' to get class
-            probabilities. Please notice that when returning probabilities, the learner may need to be adjusted
-            accordingly, since some learners do not accept continuous targets and/or bi-dimensional targets.
+            - if 'discrete' is chosen, the model will use binary variables to represent class targets, and the returned
+            adjustments will be discrete (i.e., a matrix of binary labels in case of labelling tasks, or a vector of
+            categorical values in case of classification tasks);
+            - if 'discretized' is chosen, the model will use continuous variables to represent class probabilities, but
+            the returned adjustments will be discretized in order to match the same return type of 'discrete';
+            - if 'continuous' is chosen, the model will use continuous variables to represent class probabilities, and
+            the returned adjustments will be continuous as well (i.e., a matrix of binary class/label probabilities for
+            both multiclass and multilabel tasks, or a vector of probabilities for binary tasks);
+            - if 'auto' is chosen, the model will go for the 'discrete' option unless an explicit loss instance is
+            passed, since in that case it will leverage the 'binary' field of the loss to choose the variables types
+            while returning discrete adjustments.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters in ['alpha',
-            'objective', 'elapsed_time'] whose statistics must be logged.
+           'nabla_term', 'squared_term', 'objective', 'elapsed_time'] whose statistics must be logged.
         """
-        assert vtype in self.VTYPES, f"'vtype' should be in {self.VTYPES}, got '{vtype}'"
-        assert rtype in self.RTYPES, f"'rtype' should be in {self.RTYPES}, got '{rtype}'"
+        if types == 'auto':
+            binary, classes = loss.binary if isinstance(loss, Loss) else True, True
+        elif types == 'discrete':
+            binary, classes = True, True
+        elif types == 'discretized':
+            binary, classes = False, True
+        elif types == 'continuous':
+            binary, classes = False, False
+        else:
+            raise AssertionError("'vtype' should be one in 'discrete', 'discretized', or 'continuous', got '{vtype}'")
+
+        self.binary: bool = binary
+        """Whether to use binary or continuous model variables."""
+
+        self.classes: bool = classes
+        """Whether to return class targets or class probabilities."""
 
         self.labelling: bool = labelling
         """Whether this is a labelling or a classification task."""
-
-        self.vtype: str = vtype
-        """The model variables vtype."""
-
-        self.rtype: str = rtype
-        """The model variables vtype."""
 
         super(ClassificationMaster, self).__init__(backend=backend, loss=loss, alpha=alpha, stats=stats)
 
@@ -289,19 +302,15 @@ class ClassificationMaster(Master, ABC):
         assert loss_class is not None, f"Unknown loss alias '{loss}'"
         # by default, use continuous values for each loss but hamming distance that cannot handle them
         if loss_class == HammingDistance:
-            if self.vtype == 'continuous':
-                raise AssertionError(f"{loss} loss can handle only discrete targets, got vtype = 'continuous'")
-            else:
-                self.vtype = 'binary'
-                return HammingDistance()
+            assert self.binary, f"{loss} loss can handle only discrete targets, please use types = 'discrete'"
+            return HammingDistance(labelling=self.labelling)
         else:
-            binary = self.vtype == 'discrete'
-            self.vtype = 'binary' if binary else 'continuous'
-            return loss_class(binary=binary)
+            return loss_class(binary=self.binary)
 
     def build(self, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         # we can simply build variables by shape (the y targets will be already onehot encoded for multiclass tasks)
-        variables = self.backend.add_variables(*y.shape, vtype=self.vtype, lb=0, ub=1, name='y')
+        vtype = 'binary' if self.binary else 'continuous'
+        variables = self.backend.add_variables(*y.shape, vtype=vtype, lb=0, ub=1, name='y')
         if variables.ndim == 2 and not self.labelling:
             # if we are dealing with multiclass classification (i.e., we have a bi-dimensional array of variables but
             # we are not in the multilabel scenario), we constraint variables in each row to sum up to one in order to
@@ -322,4 +331,4 @@ class ClassificationMaster(Master, ABC):
         y = y if self.labelling else probabilities.get_onehot(y)
         z = super(ClassificationMaster, self).adjust_targets(x, y, p, sample_weight)
         # eventually, we return class/label targets if we are asked so, or class/label probabilities otherwise
-        return probabilities.get_classes(z, labelling=self.labelling) if self.rtype == 'class' else z
+        return probabilities.get_classes(z, labelling=self.labelling) if self.classes else z

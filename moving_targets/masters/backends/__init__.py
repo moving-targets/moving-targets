@@ -9,5 +9,5 @@ from moving_targets.masters.backends.numpy_backend import NumpyBackend
 aliases: dict = {
     'cvxpy': CvxpyBackend,
     'cplex': CplexBackend,
-    'gurobi': GurobiBackend,
+    'gurobi': GurobiBackend
 }

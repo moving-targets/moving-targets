@@ -213,9 +213,9 @@ class MACS(StatsLogger):
         # log metrics on adjusted data
         self.log(**self._compute_metrics(x=x, y=y, p=z, metrics=self.metrics, prefix='adjusted'))
 
-    def on_training_end(self, macs, x, y: np.ndarray, p: Optional[np.ndarray], val_data: Optional[Dataset]):
+    def on_training_end(self, macs, x, y: np.ndarray, p: np.ndarray, val_data: Optional[Dataset]):
         # log metrics on training data
-        self.log(**self._compute_metrics(x=x, y=y, p=self.predict(x), metrics=self.metrics, prefix='predictions'))
+        self.log(**self._compute_metrics(x=x, y=y, p=p, metrics=self.metrics, prefix='predictions'))
 
     def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         # log metrics on validation data

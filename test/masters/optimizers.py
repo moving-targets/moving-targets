@@ -36,10 +36,10 @@ class TestOptimizers(AbstractTest):
         self._test(policy=lambda it: 2 / (it + 1), optimizer='harmonic', base=2)
 
     def test_geometric_default(self):
-        self._test(policy=lambda it: 1 / (2 ** (it + 1)), optimizer='geometric')
+        self._test(policy=lambda it: 1 / (2 ** it), optimizer='geometric')
 
     def test_geometric_base(self):
-        self._test(policy=lambda it: 2 / (2 ** (it + 1)), optimizer='geometric', base=2)
+        self._test(policy=lambda it: 2 / (2 ** it), optimizer='geometric', base=2)
 
     def test_geometric_slope(self):
-        self._test(policy=lambda it: 1 / (3 ** (it + 1)), optimizer='geometric', slope=3)
+        self._test(policy=lambda it: 1 / (3 ** it), optimizer='geometric', slope=3)

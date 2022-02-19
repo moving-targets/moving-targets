@@ -100,15 +100,15 @@ class CplexBackend(Backend):
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return np.reshape([v.solution_value for v in expressions.flatten()], expressions.shape)
 
-    def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         self._aux_warning(exp=None, aux=aux, msg='cannot impose equality constraints on quadratic expressions')
         return a ** 2
 
-    def abs(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def abs(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         expressions = np.reshape([self.model.abs(v) for v in a.flatten()], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)
 
-    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
         try:
             return super(CplexBackend, self).divide(a, b, aux=aux)
         except self._cp.DOcplexException:

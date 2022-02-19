@@ -65,16 +65,16 @@ class NumpyBackend(Backend):
         self._aux_warning(exp=None, aux=aux_vtype, msg='to compute any value')
         return expressions
 
-    def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         return np.square(a)
 
-    def sqrt(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def sqrt(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         return np.sqrt(a)
 
-    def abs(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def abs(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         return np.abs(a)
 
-    def log(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def log(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         if self.clip is not None:
             a_min = np.min(a)
             if a_min < 0:

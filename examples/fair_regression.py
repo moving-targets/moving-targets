@@ -13,18 +13,20 @@ from moving_targets.metrics import DIDI, R2, MSE
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF FAIR CLASSIFICATION
 class FairRegression(RegressionMaster):
-    def __init__(self, protected, backend='gurobi', violation=0.2, loss='mse', alpha='harmonic', lb=0, ub=float('inf')):
+    def __init__(self, protected, violation=0.2, backend='gurobi', loss='mse',
+                 alpha='harmonic', lb=0, ub=float('inf'), stats=False):
         # protected  : the name of the protected feature
         # violation  : the maximal accepted level of violation of the constraint.
         # backend    : the backend, which used to solve the master step
         # loss       : the loss function, which is used to compute the master objective
         # alpha      : the alpha optimizer, which is used to balance between the gradient term and the squared term
-        # lb         : the model variables lower bounds.
-        # ub         : the model variables upper bounds.
+        # lb         : the model variables lower bounds
+        # ub         : the model variables upper bounds
+        # stats      : whether to include master statistics in the history object
         # ------------------------------------------------------------------------------------------------------
         # didi       : a DIDI metric instance used to compute both the indicator matrices and the satisfiability
 
-        super().__init__(backend=backend, loss=loss, alpha=alpha, lb=lb, ub=ub)
+        super().__init__(backend=backend, loss=loss, alpha=alpha, lb=lb, ub=ub, stats=stats)
         self.didi = DIDI(protected=protected, classification=False, percentage=True)
         self.violation = violation
 

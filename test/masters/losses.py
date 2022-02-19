@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -17,12 +17,11 @@ class TestLosses(AbstractTest):
         return array if array.ndim == 1 else np.transpose(array.transpose() / array.sum(axis=1))
 
     @staticmethod
-    def _ref_value(loss: str,
-                   alpha: float,
-                   values: np.ndarray,
-                   targets: np.ndarray,
-                   predictions: np.ndarray,
-                   weights: Optional[np.ndarray] = None) -> float:
+    def _ref_loss(loss: str,
+                  values: np.ndarray,
+                  targets: np.ndarray,
+                  predictions: np.ndarray,
+                  weights: Optional[np.ndarray] = None) -> Tuple[float, float]:
         """Implements the correct loss definition based on the derivative of the given reference loss."""
         import tensorflow as tf
         import tensorflow.keras.losses as ls
@@ -52,18 +51,9 @@ class TestLosses(AbstractTest):
         with tf.GradientTape() as tape:
             loss = loss(t, p, sample_weight=w)
             nabla = tape.gradient(loss, p)
-        nabla_term = tf.reduce_sum(nabla * (v - p), axis=1)
-        squared_term = ls.MeanSquaredError(reduction='none').__call__(v, p, sample_weight=w)
-        return tf.reduce_mean(alpha * nabla_term + squared_term).numpy()
-
-        # nabla_term = []
-        # for v, t, p in zip(values, targets, predictions):
-        #     nabla = derivative(func=lambda x: loss(np.reshape(t, (1, -1)), np.reshape(x, (1, -1))), x0=p - t, dx=1e-3)
-        #     nabla_term.append(np.dot(nabla, v - p))
-        # nabla_term = np.array(nabla_term) if sample_weight is None else np.multiply(sample_weight, nabla_term)
-        # squared_term = mean_squared_error(values, predictions, sample_weight=sample_weight)
-        # losses = alpha * nabla_term + squared_term
-        # return losses.mean()
+        nabla_term = tf.reduce_mean(tf.reduce_sum(nabla * (v - p), axis=1))
+        squared_term = ls.MeanSquaredError().__call__(v, p, sample_weight=w)
+        return nabla_term.numpy(), squared_term.numpy()
 
     def _test(self, loss: str, task: str, classes: Optional[int], weights: bool, **loss_args):
         """Checks that the given moving targets loss behaves as the reference one with respect to the given task (which
@@ -74,6 +64,7 @@ class TestLosses(AbstractTest):
             backend = GurobiBackend()
             size = (self.NUM_SAMPLES,) if classes is None or classes == 2 else (self.NUM_SAMPLES, classes)
             kind = 'binary' if task in ['indicator', 'probability'] else 'continuous'
+            mt_loss = losses.aliases[loss](**loss_args)
             for i in range(self.NUM_TESTS):
                 backend.build()
                 # assign alpha, predictions, and sample weights
@@ -90,15 +81,15 @@ class TestLosses(AbstractTest):
                     targets = self._normalize(np.random.uniform(0, 1, size=size))
                 # create constant model variables from values then compute the backend objective
                 variables = backend.add_constants(values, vtype=kind, name='var')
-                mt_loss = losses.aliases[loss](**loss_args).__call__(
+                mt_nabla, mt_squared = mt_loss(
                     backend=backend,
-                    alpha=alpha,
                     variables=variables,
                     targets=targets,
                     predictions=predictions,
                     sample_weight=sample_weight
                 )
-                mt_value = backend.minimize(mt_loss).solve().get_objective()
+                mt_value = backend.minimize(alpha * mt_nabla + mt_squared).solve().get_objective()
+                mt_nabla, mt_squared = backend.get_value(mt_nabla), backend.get_value(mt_squared)
                 backend.clear()
                 # optionally post-process the values then compute the reference objective
                 if task == 'indicator':
@@ -110,16 +101,18 @@ class TestLosses(AbstractTest):
                         values = probabilities.get_onehot(values, classes=classes)
                         targets = probabilities.get_onehot(targets, classes=classes)
                         predictions = probabilities.get_onehot(predictions, classes=classes)
-                ref_value = self._ref_value(
+                ref_nabla, ref_squared = self._ref_loss(
                     loss=loss,
-                    alpha=alpha,
                     values=values,
                     targets=targets,
                     predictions=predictions,
                     weights=sample_weight
                 )
-                # compare moving targets objective with the reference one
-                self.assertAlmostEqual(mt_value, ref_value, places=self.PLACES, msg=f'Error at iteration {i}')
+                ref_value = alpha * ref_nabla + ref_squared
+                # compare moving targets losses with the reference ones
+                self.assertAlmostEqual(mt_nabla, ref_nabla, places=self.PLACES, msg=f'Error in nabla, it: {i}')
+                self.assertAlmostEqual(mt_squared, ref_squared, places=self.PLACES, msg=f'Error in squared, it: {i}')
+                self.assertAlmostEqual(mt_value, ref_value, places=self.PLACES, msg=f'Error in loss, it: {i}')
         except NotImplementedError:
             # the abstract testcase will be executed as well, thus if we check whether we are running one of its tests
             self.assertTrue(self.__class__.__name__ == 'TestBackend')

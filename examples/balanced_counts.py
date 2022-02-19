@@ -15,31 +15,32 @@ from moving_targets.util import probabilities
 
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF BALANCED COUNTS
-
-
 class BalancedCounts(ClassificationMaster):
-    def __init__(self, backend='gurobi', loss='crossentropy', alpha='harmonic'):
+    def __init__(self, backend='gurobi', loss='crossentropy', alpha='harmonic', types='auto', stats=False):
         # backend : the backend, which used to solve the master step
         # loss    : the loss function, which is used to compute the master objective
         # alpha   : the alpha optimizer, which is used to balance between the gradient term and the squared term
+        # types   : the model variables and adjustments types
+        # stats   : whether to include master statistics in the history object
 
-        super().__init__(backend=backend, loss=loss, alpha=alpha)
+        super().__init__(backend=backend, loss=loss, alpha=alpha, types=types, stats=stats, labelling=False)
 
     # here we define the problem formulation, i.e., variables and constraints
     def build(self, x, y, p):
         # retrieve model variables from the super method, which can be either:
         #   - a 1d vector of binary variables in case of binary classification (i.e., num classes = 2)
         #   - a 2d vector of binary variables in case of multiclass classification (i.e., num classes > 2)
-        variables = super(BalancedCounts, self).build(x, y, p)
+        # then reshape it into a column vector to better handle both cases
+        variables = super(BalancedCounts, self).build(x, y, p).reshape((len(y), -1))
 
-        # compute the upper bound for number of counts of a class then constraint the sum of the model variables on
-        # each column to be lower than that value (the np.atleast_2d() call is used to handle binary tasks)
-        num_samples, num_classes = y.shape
+        # use the number of samples and classes to compute the upper bound for number of counts of a class then
+        # constraint the sum of the model variables on each column to be lower than that value
+        num_samples, num_classes = (len(y), 2) if y.ndim == 1 else y.shape
         max_count = np.ceil(num_samples / num_classes)
-        self.backend.add_constraints([self.backend.sum(column) <= max_count for column in np.atleast_2d(variables).T])
+        self.backend.add_constraints([c <= max_count for c in self.backend.sum(variables, axis=0)])
 
-        # return the variables at the end
-        return variables
+        # return the variables at the end after reshaping them into their default shape (which is the same as y)
+        return variables.reshape(y.shape)
 
 
 # THEN, WE MAY ADD A CUSTOM CALLBACK TO SEE HOW OUR TRAINING
@@ -63,7 +64,7 @@ class ClassesHistogram(Callback):
 
     def on_training_end(self, macs, x, y, p, val_data):
         # when the training ends, we use the macs instance to store both the predicted classes and the iterations
-        self.data[f'pred_{macs.iteration}'] = probabilities.get_classes(macs.predict(x))
+        self.data[f'pred_{macs.iteration}'] = probabilities.get_classes(p)
         self.iterations.append(macs.iteration)
 
     def on_adjustment_end(self, macs, x, y, z, val_data):

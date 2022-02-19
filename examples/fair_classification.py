@@ -16,16 +16,19 @@ from moving_targets.metrics import DIDI, CrossEntropy, Accuracy
 
 
 class FairClassification(ClassificationMaster):
-    def __init__(self, protected, violation=0.2, backend='gurobi', loss='crossentropy', alpha='harmonic'):
+    def __init__(self, protected, violation=0.2, backend='gurobi', loss='crossentropy',
+                 alpha='harmonic', types='auto', stats=False):
         # protected  : the name of the protected feature
         # violation  : the maximal accepted level of violation of the constraint.
         # backend    : the backend, which used to solve the master step
         # loss       : the loss function, which is used to compute the master objective
         # alpha      : the alpha optimizer, which is used to balance between the gradient term and the squared term
+        # types      : the model variables and adjustments types
+        # stats      : whether to include master statistics in the history object
         # ------------------------------------------------------------------------------------------------------
         # didi       : a DIDI metric instance used to compute both the indicator matrices and the satisfiability
 
-        super().__init__(backend=backend, loss=loss, alpha=alpha)
+        super().__init__(backend=backend, loss=loss, alpha=alpha, types=types, stats=stats, labelling=False)
         self.didi = DIDI(protected=protected, classification=True, percentage=True)
         self.violation = violation
 
@@ -81,11 +84,11 @@ if __name__ == '__main__':
         x_tr, x_ts, y_tr, y_ts = train_test_split(x_df, y_df, stratify=y_df, shuffle=True)
 
     # create a moving targets instance and fit it, then plot the training history
-    # moreover, we pass a custom alpha and a custom backend with a time limit
+    # moreover, we pass a custom backend with a time limit
     model = MACS(
         init_step='pretraining',
         learner=LogisticRegression(x_scaler='std', max_iter=10000),
-        master=FairClassification(protected='race', backend=GurobiBackend(time_limit=10), alpha=0.1),
+        master=FairClassification(protected='race', backend=GurobiBackend(time_limit=10)),
         metrics=[Accuracy(), CrossEntropy(), DIDI(protected='race', classification=True, percentage=True)]
     )
     history = model.fit(x=x_tr, y=y_tr, iterations=10, val_data={'test': (x_ts, y_ts)}, verbose=True)

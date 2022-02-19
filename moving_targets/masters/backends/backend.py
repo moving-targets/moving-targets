@@ -66,7 +66,7 @@ class Backend:
         :param msg:
             The warning explanation.
         """
-        if not (exp is None and aux is None) and exp != aux:
+        if aux != 'auto' and exp != aux:
             cls._LOGGER.warning(f"'aux={aux}' has no effect since the solver needs {exp} auxiliary variables to {msg}.")
 
     def __init__(self, sum_fn: Callable = lambda v: np.sum(v)):
@@ -452,7 +452,7 @@ class Backend:
             self.add_constraints([v == e for v, e in zip(variables.flatten(), expressions.flatten())])
             return variables if is_numpy else variables[0]
 
-    def sum(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = None) -> Any:
+    def sum(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         """Computes the sum of an array of variables.
 
         :param a:
@@ -499,7 +499,7 @@ class Backend:
             expressions = np.reshape(expressions, new_shape) if len(new_shape) > 0 or asarray else expressions[0]
         return self.aux(expressions, aux_vtype=aux)
 
-    def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         """Computes the squared values over an array of variables.
 
         :param a:
@@ -522,7 +522,7 @@ class Backend:
         """
         raise BackendError(unsupported='squared values')
 
-    def sqrt(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def sqrt(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         """Computes the squared roots over an array of variables.
 
         :param a:
@@ -542,7 +542,7 @@ class Backend:
         """
         raise BackendError(unsupported='squared roots')
 
-    def abs(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def abs(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         """Computes the absolute values over a vector of variables.
 
         :param a:
@@ -565,7 +565,7 @@ class Backend:
         """
         raise BackendError(unsupported='absolute values')
 
-    def log(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def log(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         """Computes the logarithms over an array of variables.
 
         :param a:
@@ -588,7 +588,11 @@ class Backend:
         """
         raise BackendError(unsupported='logarithms')
 
-    def mean(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = None) -> Any:
+    def mean(self,
+             a: np.ndarray,
+             axis: Optional[int] = None,
+             asarray: bool = False,
+             aux: Optional[str] = 'auto') -> Any:
         """Computes the mean of an array of variables.
 
         :param a:
@@ -667,7 +671,7 @@ class Backend:
         squared_expressions = self.square(diff_expressions, aux=aux_squared)
         return self.mean(squared_expressions, axis=axis, asarray=asarray, aux=aux)
 
-    def add(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+    def add(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
         """Performs the pairwise sum between two arrays.
 
         :param a:
@@ -690,7 +694,7 @@ class Backend:
         """
         return self.aux(expressions=a + b, aux_vtype=aux)
 
-    def subtract(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+    def subtract(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
         """Performs the pairwise subtraction between two arrays.
 
         :param a:
@@ -713,7 +717,7 @@ class Backend:
         """
         return self.aux(expressions=a - b, aux_vtype=aux)
 
-    def multiply(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+    def multiply(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
         """Performs the pairwise product between two arrays.
 
         :param a:
@@ -736,7 +740,7 @@ class Backend:
         """
         return self.aux(expressions=a * b, aux_vtype=aux)
 
-    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
         """Performs the pairwise division between two arrays.
 
         :param a:
@@ -759,7 +763,7 @@ class Backend:
         """
         return self.aux(expressions=a / b, aux_vtype=aux)
 
-    def dot(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None) -> Union[Any, np.ndarray]:
+    def dot(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto') -> Union[Any, np.ndarray]:
         """Performs the vector product between two arrays.
 
         :param a:

@@ -1,5 +1,5 @@
 """Moving Targets Losses."""
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Tuple
 
 import numpy as np
 
@@ -37,6 +37,9 @@ class Loss:
         else:
             square = lambda b, v, p: b.square(v - p)
 
+        self.binary: bool = binary
+        """Whether the model variables are expected to be binary or not."""
+
         self.square: Callable = square
         """A callable function of type f(<b>, <v>, <p>) -> <(p - v) ** 2> representing the square strategy, where <b>
         is the backend instance, <v> is the array of backend variables, and <p> is the array of predictions."""
@@ -46,27 +49,24 @@ class Loss:
 
     def __call__(self,
                  backend: Backend,
-                 alpha: float,
                  variables: np.ndarray,
                  targets: np.ndarray,
                  predictions: np.ndarray,
-                 sample_weight: Optional[np.ndarray] = None) -> Any:
-        """Computes the loss value, which is obtained from the first order taylor expansion of the actual loss.
+                 sample_weight: Optional[np.ndarray] = None) -> Tuple[Any, Any]:
+        """Computes the two terms of the loss value, which are obtained by approximating the actual loss <L> to its
+        first order taylor expansion L(z, y) in the point <p>, where <z> are the model variables, <y> the original
+        targets, and <p> the learners predictions.
 
-        Given the loss <L>, the model variables <z>, the original targets <y>, and the learners predictions <p>, the
-        taylor expansion of L(z, y) at point p is defined as: L(p, y) + dL(p, y) / dp * (z - p) + o((z - p) ^ 2). Since
-        the term "L(p, y)" is constant, we can discard it when minimizing <L>, thus the final loss can be seen as a
-        balance between the term "dL(p, y) / dp * (z - p)" and the term "(z - p) ^ 2", which is achieved through the
+        The taylor expansion of L(z, y) at point p is defined as: L(p, y) + dL(p, y) / dp * (z - p) + o((z - p) ^ 2).
+        Since the term "L(p, y)" is constant, we can discard it when minimizing <L>, thus the final loss can be seen as
+        a balance between the term "dL(p, y) / dp * (z - p)" and the term "(z - p) ^ 2", which is achieved through the
         balancing parameter <alpha>, thus obtaining: min_z {alpha * dL(p, y) / dp * (z - p) + (z - p) ^ 2}.
 
         In case of multiple features, the term dL(p, y) / dp * (z - p) is replaced by the sum of partial derivatives
         dL(p, y) / dp_i multiplied by the respective component (z_i - p_i), while the (z - p) ^ 2 term will be computed
         as a mean over all the features according to the norm-two definition, leading to a final formulation which is:
-        min_z {alpha * (dL(p, y) / dp_1 * (z_1 - p_1) + ... + dL(p, y) / dp_F * (z_F - p_F)) + (z - p) ^ 2}, or else:
+        min_z {alpha * (dL(p, y) / dp_1 * (z_1 - p_1) + ... + dL(p, y) / dp_F * (z_F - p_F)) + |z - p|_2^2}, or else:
         min_z {alpha * sum(nabla_L(p, y) * (z - p)) + (z - p) ^ 2}.
-
-        :param alpha:
-            The loss balancing parameter.
 
         :param backend:
             The `Backend` instance used to compute the loss.
@@ -84,25 +84,25 @@ class Loss:
             The (optional) array of sample weights.
 
         :return:
-            Either a single value/expression or an array of values/expressions.
+            A tuple containing the nabla term nabla_L(p, y) @ (z - p)^T and the squared term (z - p) @ (z - p)^T.
         """
         # reshape inputs in order to create a NxF matrix, where N is the number of samples and F the number of features
         variables = np.reshape(variables, (len(variables), -1))
         targets = np.reshape(targets, (len(targets), -1))
         predictions = np.reshape(predictions, (len(predictions), -1))
+        # flatten sample weights (or create a vector of ones is none are passed), then normalize them
+        sample_weight = np.ones(len(variables)) if sample_weight is None else sample_weight.flatten()
+        sample_weight = len(sample_weight) * np.array(sample_weight) / np.sum(sample_weight)
         # compute the nabla term, which is a summation of the terms dL / dp_i * (z_i - p_i), with i in {1, ..., F}
         nabla_term = self.nabla(targets=targets, predictions=predictions)
         nabla_term = backend.sum(nabla_term * (variables - predictions), axis=1)
+        nabla_term = backend.mean(sample_weight * nabla_term)
         # compute the squared term, which is the mean of the terms (z_i - p_i) ^ 2, with i in {1, ..., F}
         squared_term = self.square(b=backend, v=variables, p=predictions)
         squared_term = backend.mean(squared_term, axis=1)
-        # compute the N-sized vector of partial losses and, if present, multiply by (normalized) sample weights
-        partial_losses = alpha * nabla_term + squared_term
-        if sample_weight is not None:
-            sample_weight = len(sample_weight) * np.array(sample_weight) / np.sum(sample_weight)
-            partial_losses = sample_weight * partial_losses
-        # finally, aggregate the results of each sample by computing the mean expression
-        return backend.mean(partial_losses)
+        squared_term = backend.mean(sample_weight * squared_term)
+        # finally return the two losses
+        return nabla_term, squared_term
 
     def nabla(self, targets: np.ndarray, predictions: np.ndarray) -> np.ndarray:
         """Computes the nabla_L(p, y) values, with <p> being the predictions and <y> being the original targets.
@@ -188,11 +188,10 @@ class HammingDistance(Loss):
 
     def __call__(self,
                  backend: Backend,
-                 alpha: float,
                  variables: np.ndarray,
                  targets: np.ndarray,
                  predictions: np.ndarray,
-                 sample_weight: Optional[np.ndarray] = None) -> Any:
+                 sample_weight: Optional[np.ndarray] = None) -> Tuple[Any, Any]:
         assert np.all(targets == targets.astype(int)), f"HammingDistance can handle integer targets only, got {targets}"
         # since the hamming distance works on discrete targets only, we retrieve the class values from the predictions
         if self.labelling:
@@ -203,13 +202,13 @@ class HammingDistance(Loss):
             classes = 2 if targets.squeeze().ndim == 1 else targets.shape[1]
             predictions = probabilities.get_classes(prob=predictions, labelling=False)
             predictions = probabilities.get_onehot(vector=predictions, classes=classes)
-        return super(HammingDistance, self).__call__(backend, alpha, variables, targets, predictions, sample_weight)
+        return super(HammingDistance, self).__call__(backend, variables, targets, predictions, sample_weight)
 
 
 class CrossEntropy(Loss):
     """Negative Log-Likelihood Loss."""
 
-    def __init__(self, binary: bool = False, clip_value: float = 1e-15, name: str = 'crossentropy'):
+    def __init__(self, binary: bool = True, clip_value: float = 1e-3, name: str = 'crossentropy'):
         """
         :param binary:
             Whether the model variables are expected to be binary or not.
@@ -226,24 +225,23 @@ class CrossEntropy(Loss):
         """The clipping value to be used to avoid numerical errors."""
 
     def nabla(self, targets: np.ndarray, predictions: np.ndarray) -> np.ndarray:
-        # given a target vector with <F> features, the loss is: L(p, t) = sum(-t - ln(p))
+        # given a target vector with <F> features, the loss is: L(p, t) = sum(-t * ln(p))
         # thus, its partial derivative will be: dL / dp_i = -t / p
         return -targets / predictions.clip(min=self.clip_value, max=1 - self.clip_value)
 
     def __call__(self,
                  backend: Backend,
-                 alpha: float,
                  variables: np.ndarray,
                  targets: np.ndarray,
                  predictions: np.ndarray,
-                 sample_weight: Optional[np.ndarray] = None) -> Any:
+                 sample_weight: Optional[np.ndarray] = None) -> Tuple[Any, Any]:
         # in order to deal with both binary and categorical crossentropy, if the prediction array has either size (N,)
         # or (N, 1), we convert it (along with the targets and variables vectors) to the form [1 - a, a]
         if predictions.squeeze().ndim == 1:
             variables = np.concatenate([1 - variables.reshape((-1, 1)), variables.reshape((-1, 1))], axis=1)
             targets = np.concatenate([1 - targets.reshape((-1, 1)), targets.reshape((-1, 1))], axis=1)
             predictions = np.concatenate([1 - predictions.reshape((-1, 1)), predictions.reshape((-1, 1))], axis=1)
-        return super(CrossEntropy, self).__call__(backend, alpha, variables, targets, predictions, sample_weight)
+        return super(CrossEntropy, self).__call__(backend, variables, targets, predictions, sample_weight)
 
 
 aliases: dict = {
@@ -259,10 +257,10 @@ aliases: dict = {
     'hd': HammingDistance,
     'hamming_distance': HammingDistance,
     'hamming distance': HammingDistance,
-    'bh': HammingDistance,
-    '_hamming': HammingDistance,
-    ' hamming': HammingDistance,
-    'ch': HammingDistance,
+    'bhd': HammingDistance,
+    'binary_hamming': HammingDistance,
+    'binary hamming': HammingDistance,
+    'chd': HammingDistance,
     'categorical_hamming': HammingDistance,
     'categorical hamming': HammingDistance,
     # CrossEntropy

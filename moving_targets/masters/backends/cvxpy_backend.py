@@ -97,20 +97,20 @@ class CvxpyBackend(Backend):
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return np.reshape([v.value.squeeze() for v in expressions.flatten()], expressions.shape)
 
-    def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         return self.aux(expressions=a ** 2, aux_vtype=aux)
 
-    def abs(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def abs(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         expressions = np.reshape([self._cp.abs(v) for v in a.flatten()], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)
 
-    def log(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def log(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         expressions = np.reshape([self._cp.log(v) for v in a.flatten()], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)
 
     def var(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         raise BackendError(unsupported='variance due to numerical instability')
 
-    def multiply(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+    def multiply(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
         expressions = np.reshape([self._cp.multiply(ai, bi) for ai, bi in zip(a.flatten(), b.flatten())], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)

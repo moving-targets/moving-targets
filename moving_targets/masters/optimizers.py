@@ -95,7 +95,7 @@ class Geometric(Optimizer):
         """The slope used to decrease the hyper-parameter value."""
 
     def _next(self, x, y: np.ndarray, p: np.ndarray) -> float:
-        return (self.base if self.value is None else self.value) / self.slope
+        return self.base if self.value is None else self.value / self.slope
 
 
 aliases: dict = {

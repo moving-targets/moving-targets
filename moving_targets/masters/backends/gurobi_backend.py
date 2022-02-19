@@ -107,7 +107,7 @@ class GurobiBackend(Backend):
         values = [v.x if isinstance(v, self._gp.Var) else v.getValue() for v in expressions.flatten()]
         return np.reshape(values, expressions.shape)
 
-    def square(self, a: np.ndarray, aux: Optional[str] = None) -> np.ndarray:
+    def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         return self.aux(expressions=a ** 2, aux_vtype=aux)
 
     def sqrt(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
@@ -137,7 +137,7 @@ class GurobiBackend(Backend):
             self.model.addGenConstrExp(log_var, aux_var)
         return log_vector
 
-    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = None):
+    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
         try:
             return super(GurobiBackend, self).divide(a, b, aux=aux)
         except self._gp.GurobiError:

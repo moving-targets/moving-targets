@@ -63,7 +63,7 @@ class Callback:
         self.on_iteration_start(macs=macs, x=x, y=y, val_data=val_data)
         self.on_training_start(macs=macs, x=x, y=y, val_data=val_data)
 
-    def on_pretraining_end(self, macs, x, y: np.ndarray, p: Optional[np.ndarray], val_data: Optional[Dataset]):
+    def on_pretraining_end(self, macs, x, y: np.ndarray, p: np.ndarray, val_data: Optional[Dataset]):
         """Routine called at the end of the `MACS` pretraining phase.
 
         :param macs:
@@ -139,7 +139,7 @@ class Callback:
         """
         pass
 
-    def on_training_end(self, macs, x, y: np.ndarray, p: Optional[np.ndarray], val_data: Optional[Dataset]):
+    def on_training_end(self, macs, x, y: np.ndarray, p: np.ndarray, val_data: Optional[Dataset]):
         """Routine called at the end of a `MACS` training phase.
 
         :param macs:

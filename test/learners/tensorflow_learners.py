@@ -34,8 +34,12 @@ class TestTensorflowLearners(TestLearners):
         from tensorflow.keras.layers import Dense
         from tensorflow.keras.models import Sequential
 
-        mt = MultiLayerPerceptron(loss='binary_crossentropy', output_activation='sigmoid', optimizer='sgd',
-                                  epochs=2, batch_size=4, verbose=False)
+        mt = MultiLayerPerceptron(loss='binary_crossentropy',
+                                  output_activation='sigmoid',
+                                  optimizer='sgd',
+                                  epochs=2,
+                                  batch_size=4,
+                                  verbose=False)
         ref = Sequential([Dense(128, activation='relu'), Dense(1, activation='sigmoid')])
         ref.compile(optimizer='sgd', loss='binary_crossentropy')
         self._test(mt_learner=mt, ref_learner=ref, classification=True)
