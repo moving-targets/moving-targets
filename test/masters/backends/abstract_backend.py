@@ -50,23 +50,26 @@ class TestBackend(AbstractTest):
         try:
             np.random.seed(self.SEED)
             backend = self._backend()
+            sizes = (self._SIZES['1D'], 1) if dim == '0D' else (self._SIZES[dim], self._SIZES[dim])
             mt_operation = getattr(backend, operation)
             ref_operation = getattr(np, operation.lstrip('is_'))
             if operation in self._unsupported():
                 backend.build()
                 with self.assertRaises(BackendError):
-                    a, b = np.random.random(size=[2] + self._SIZES[dim])
-                    a, b = backend.add_constants(a), backend.add_constants(b)
+                    a, b = [np.random.random(size=size) for size in sizes]
+                    a = backend.add_constants(a)
+                    b = backend.add_constant(b[0]) if dim == '0D' else backend.add_constants(b)
                     mt_operation(a, b, **op_args)
                 backend.clear()
             else:
                 for i in range(self.NUM_TESTS):
                     # build random vectors of reference values and compute the operation result
-                    ref_a, ref_b = np.random.random(size=[2] + self._SIZES[dim])
+                    ref_a, ref_b = [np.random.random(size=size) for size in sizes]
                     ref_result = ref_operation(ref_a, ref_b, **op_args)
                     # build constant model variables vector(s) from values then obtain the operation result
                     backend.build()
-                    mt_a, mt_b = backend.add_constants(ref_a), backend.add_constants(ref_b)
+                    mt_a = backend.add_constants(ref_a)
+                    mt_b = backend.add_constant(ref_b[0]) if dim == '0D' else backend.add_constants(ref_b)
                     mt_result = mt_operation(mt_a, mt_b, **op_args)
                     backend.solve()
                     mt_result = backend.get_value(mt_result)
@@ -188,11 +191,13 @@ class TestBackend(AbstractTest):
     # INDICATOR OPERATIONS
 
     def test_is_greater(self):
+        self._test_indicator_operations('0D', operation='is_greater')
         self._test_indicator_operations('1D', operation='is_greater')
         self._test_indicator_operations('2D', operation='is_greater')
         self._test_indicator_operations('3D', operation='is_greater')
 
     def test_is_less(self):
+        self._test_indicator_operations('0D', operation='is_less')
         self._test_indicator_operations('1D', operation='is_less')
         self._test_indicator_operations('2D', operation='is_less')
         self._test_indicator_operations('3D', operation='is_less')

@@ -16,19 +16,17 @@ from moving_targets.metrics import DIDI, CrossEntropy, Accuracy
 
 
 class FairClassification(ClassificationMaster):
-    def __init__(self, protected, violation=0.2, backend='gurobi', loss='crossentropy',
-                 alpha='harmonic', types='auto', stats=False):
+    def __init__(self, protected, violation=0.2, backend='gurobi', loss='crossentropy', alpha='harmonic', stats=False):
         # protected  : the name of the protected feature
         # violation  : the maximal accepted level of violation of the constraint.
         # backend    : the backend, which used to solve the master step
         # loss       : the loss function, which is used to compute the master objective
         # alpha      : the alpha optimizer, which is used to balance between the gradient term and the squared term
-        # types      : the model variables and adjustments types
         # stats      : whether to include master statistics in the history object
         # ------------------------------------------------------------------------------------------------------
         # didi       : a DIDI metric instance used to compute both the indicator matrices and the satisfiability
 
-        super().__init__(backend=backend, loss=loss, alpha=alpha, types=types, stats=stats, labelling=False)
+        super().__init__(backend=backend, loss=loss, alpha=alpha, stats=stats, types='discrete', labelling=False)
         self.didi = DIDI(protected=protected, classification=True, percentage=True)
         self.violation = violation
 
@@ -65,11 +63,6 @@ class FairClassification(ClassificationMaster):
 
         # return the original model variables at the end
         return super_vars
-
-    # here we define whether to use the alpha or beta strategy, and beta is used if the constraint is already satisfied
-    def use_beta(self, x, y, p):
-        # the constraint is satisfied if the percentage DIDI is lower or equal to the expected violation
-        return self.didi(x=x, y=y, p=p) <= self.violation
 
 
 if __name__ == '__main__':

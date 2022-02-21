@@ -40,11 +40,11 @@ class FairRegression(RegressionMaster):
         indicator_matrix = DIDI.get_indicator_matrix(x=x, protected=self.didi.protected)
         deviations = self.backend.add_continuous_variables(len(indicator_matrix), lb=0.0, name='deviations')
         # this is the average output target for the whole dataset
-        total_avg = self.backend.sum(variables) / len(variables)
+        total_avg = self.backend.mean(variables)
         for g, protected_group in enumerate(indicator_matrix):
             # this is the subset of the variables having <label> as protected feature (i.e., the protected group)
             protected_vars = variables[protected_group]
-            if len(protected_vars) == 0:
+            if len(protected_vars) > 0:
                 continue
             # this is the average output target for the protected group
             protected_avg = self.backend.mean(protected_vars)
@@ -61,13 +61,6 @@ class FairRegression(RegressionMaster):
 
         # return the variables at the end
         return variables
-
-    # here we define whether to use the alpha or beta strategy, and beta is used if the constraint is already satisfied
-    def use_beta(self, x, y, p):
-        # the constraint is satisfied if the percentage DIDI is lower or equal to the expected violation; moreover,
-        # since we know that the predictions must be positive, so we clip them to 0.0 in order to avoid (wrong)
-        # negative predictions to influence the satisfiability computation
-        return self.didi(x=x, y=y, p=p.clip(0.0)) <= self.violation
 
 
 if __name__ == '__main__':

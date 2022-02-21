@@ -521,17 +521,17 @@ class Backend:
         """
         raise BackendError(unsupported='indicator constraints')
 
-    def is_greater(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def is_greater(self, a: np.ndarray, b: Union[float, np.ndarray]) -> np.ndarray:
         """Builds auxiliary binary indicator variables which take value one if the expressions in the first array are
          greater than the expressions in the second array. Please note that this is enforced via indicator constraints
          so that if z[i] == 1 -> a[i] >= b[i] and if z[i] == 0 -> a[i] <= b[i], thus in case a[i] is strictly equal to
          b[i] the indicator variable z[i] can assume both values.
 
         :param a:
-            The first array.
+            The first array representing the left-hand sides.
 
         :param b:
-            The second array.
+            Either a single reference value or a second array of expressions representing the right-hand sides.
 
         :return:
             The array of binary indicator variables.
@@ -539,10 +539,16 @@ class Backend:
         :raise `BackendError`:
             If the backend cannot handle indicator variables.
         """
-        af, bf, zf = a.flatten(), b.flatten(), self.add_binary_variables(a.size)
-        self.add_indicator_constraints(indicators=zf, expressions=[af[i] >= bf[i] for i in range(a.size)], value=1)
-        self.add_indicator_constraints(indicators=zf, expressions=[af[i] <= bf[i] for i in range(a.size)], value=0)
-        return zf.reshape(a.shape)
+        # if b is an array of expressions, the i-th right hand side will be b[i] (with b flattened), otherwise it is b
+        if isinstance(b, np.ndarray):
+            b = b.flatten()
+            rhs = lambda i: b[i]
+        else:
+            rhs = lambda i: b
+        z = self.add_binary_variables(a.size)
+        self.add_indicator_constraints(z, expressions=[lhs >= rhs(i) for i, lhs in enumerate(a.flatten())], value=1)
+        self.add_indicator_constraints(z, expressions=[lhs <= rhs(i) for i, lhs in enumerate(a.flatten())], value=0)
+        return z.reshape(a.shape)
 
     def is_less(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
         """Builds auxiliary binary indicator variables which take value one if the expressions in the first array are
@@ -562,10 +568,16 @@ class Backend:
         :raise `BackendError`:
             If the backend cannot handle indicator variables.
         """
-        af, bf, zf = a.flatten(), b.flatten(), self.add_binary_variables(a.size)
-        self.add_indicator_constraints(indicators=zf, expressions=[af[i] <= bf[i] for i in range(a.size)], value=1)
-        self.add_indicator_constraints(indicators=zf, expressions=[af[i] >= bf[i] for i in range(a.size)], value=0)
-        return zf.reshape(a.shape)
+        # if b is an array of expressions, the i-th right hand side will be b[i] (with b flattened), otherwise it is b
+        if isinstance(b, np.ndarray):
+            b = b.flatten()
+            rhs = lambda i: b[i]
+        else:
+            rhs = lambda i: b
+        z = self.add_binary_variables(a.size)
+        self.add_indicator_constraints(z, expressions=[lhs <= rhs(i) for i, lhs in enumerate(a.flatten())], value=1)
+        self.add_indicator_constraints(z, expressions=[lhs >= rhs(i) for i, lhs in enumerate(a.flatten())], value=0)
+        return z.reshape(a.shape)
 
     def sum(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         """Computes the sum of an array of variables.

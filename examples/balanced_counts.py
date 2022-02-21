@@ -16,14 +16,13 @@ from moving_targets.util import probabilities
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF BALANCED COUNTS
 class BalancedCounts(ClassificationMaster):
-    def __init__(self, backend='gurobi', loss='crossentropy', alpha='harmonic', types='auto', stats=False):
+    def __init__(self, backend='gurobi', loss='crossentropy', alpha='harmonic', stats=False):
         # backend : the backend, which used to solve the master step
         # loss    : the loss function, which is used to compute the master objective
         # alpha   : the alpha optimizer, which is used to balance between the gradient term and the squared term
-        # types   : the model variables and adjustments types
         # stats   : whether to include master statistics in the history object
 
-        super().__init__(backend=backend, loss=loss, alpha=alpha, types=types, stats=stats, labelling=False)
+        super().__init__(backend=backend, loss=loss, alpha=alpha, stats=stats, types='discrete', labelling=False)
 
     # here we define the problem formulation, i.e., variables and constraints
     def build(self, x, y, p):
@@ -33,7 +32,7 @@ class BalancedCounts(ClassificationMaster):
         # then reshape it into a column vector to better handle both cases
         variables = super(BalancedCounts, self).build(x, y, p).reshape((len(y), -1))
 
-        # use the number of samples and classes to compute the upper bound for number of counts of a class then
+        # use the number of samples and classes to compute the upper bound for the number of counts of a class then
         # constraint the sum of the model variables on each column to be lower than that value
         num_samples, num_classes = (len(y), 2) if y.ndim == 1 else y.shape
         max_count = np.ceil(num_samples / num_classes)
