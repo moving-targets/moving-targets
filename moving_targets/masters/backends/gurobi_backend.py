@@ -46,8 +46,10 @@ class GurobiBackend(Backend):
         """The gurobi environment instance."""
 
         if time_limit is not None and 'TimeLimit' not in self.solver_args:
+            assert time_limit > 0, f"the time limit must be positive, got {time_limit}"
             self.solver_args['TimeLimit'] = time_limit
         if solution_limit is not None and 'SolutionLimit' not in self.solver_args:
+            assert solution_limit > 0, f"the solution limit must be positive, got {solution_limit}"
             self.solver_args['SolutionLimit'] = solution_limit
 
     def _build_model(self) -> Any:
@@ -77,9 +79,12 @@ class GurobiBackend(Backend):
         self.model.setObjective(cost, self._gp.GRB.MAXIMIZE)
         return self
 
-    def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
-        self.model.addConstrs((c for c in constraints), name=name)
-        return self
+    def get_objective(self) -> float:
+        return self.solution.objVal
+
+    def get_values(self, expressions: np.ndarray) -> np.ndarray:
+        values = [v.x if isinstance(v, self._gp.Var) else v.getValue() for v in expressions.flatten()]
+        return np.reshape(values, expressions.shape)
 
     def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
         if not hasattr(self._gp.GRB, vtype.upper()):
@@ -100,12 +105,24 @@ class GurobiBackend(Backend):
             var = self.model.addVars(*keys, vtype=vtype, lb=lb, ub=ub, name=name).values()
         return np.array(var).reshape(keys)
 
-    def get_objective(self) -> float:
-        return self.solution.objVal
+    def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
+        self.model.addConstrs((c for c in constraints), name=name)
+        return self
 
-    def get_values(self, expressions: np.ndarray) -> np.ndarray:
-        values = [v.x if isinstance(v, self._gp.Var) else v.getValue() for v in expressions.flatten()]
-        return np.reshape(values, expressions.shape)
+    def add_constraint(self, constraint, name: Optional[str] = None) -> Any:
+        # addConstr does not accept name=None as parameter
+        kwargs = dict() if name is None else dict(name=name)
+        self.model.addConstr(constraint, **kwargs)
+        return self
+
+    def add_indicator_constraint(self,
+                                 indicator: Any,
+                                 expression: Any,
+                                 value: int = 1,
+                                 name: Optional[str] = None) -> Any:
+        # addGenConstrIndicator does not accept name=None as parameter
+        kwargs = dict() if name is None else dict(name=name)
+        self.model.addGenConstrIndicator(indicator, value, expression, **kwargs)
 
     def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         return self.aux(expressions=a ** 2, aux_vtype=aux)

@@ -62,22 +62,25 @@ class CvxpyBackend(Backend):
         self._objective = self._cp.Maximize(cost)
         return self
 
-    def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
-        self.model += constraints
-        return self
+    def get_objective(self) -> float:
+        return self.solution.value
+
+    def get_values(self, expressions: np.ndarray) -> np.ndarray:
+        return np.reshape([v.value.squeeze() for v in expressions.flatten()], expressions.shape)
 
     def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
         if vtype not in self._VTYPES.keys():
             raise BackendError(unsupported=f"vtype '{vtype}'")
-        var = self._cp.Variable(1, name=name, **self._VTYPES[vtype])
-        self.add_constraints([var[0] >= lb, var[0] <= ub])
+        var = self._cp.Variable(shape=(), name=name, **self._VTYPES[vtype])
+        # noinspection PyTypeChecker
+        self.add_constraints([var >= lb, var <= ub])
         return var
 
     def add_variables(self, *keys: int, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> np.ndarray:
         def _recursive_addition(_keys: List[int], _name: Optional[str]):
             key, name_fn = _keys.pop(0), lambda i: None if _name is None else f'{_name}_{i}'
             if len(_keys) == 0:
-                return [self._cp.Variable((1,), name=name_fn(i), **kw) for i in range(key)]
+                return [self._cp.Variable(shape=(), name=name_fn(i), **kw) for i in range(key)]
             return [_recursive_addition(_keys=_keys.copy(), _name=name_fn(i)) for i in range(key)]
 
         if len(keys) == 0:
@@ -88,14 +91,20 @@ class CvxpyBackend(Backend):
             raise BackendError(unsupported=f"vtype '{vtype}'")
         kw = self._VTYPES[vtype]
         var = np.array(_recursive_addition(_keys=list(keys), _name=name))
-        self.add_constraints([v[0] >= lb for v in var.flatten()] + [v[0] <= ub for v in var.flatten()])
+        self.add_constraints([v >= lb for v in var.flatten()] + [v <= ub for v in var.flatten()])
         return var
 
-    def get_objective(self) -> float:
-        return self.solution.value
+    def add_constraint(self, constraint, name: Optional[str] = None) -> Any:
+        if name is not None:
+            self._LOGGER.warning(f"name = '{name}' has no effect since cvxpy does not support constraint names")
+        self.model += [constraint]
+        return self
 
-    def get_values(self, expressions: np.ndarray) -> np.ndarray:
-        return np.reshape([v.value.squeeze() for v in expressions.flatten()], expressions.shape)
+    def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
+        if name is not None:
+            self._LOGGER.warning(f"name = '{name}' has no effect since cvxpy does not support constraint names")
+        self.model += constraints
+        return self
 
     def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         return self.aux(expressions=a ** 2, aux_vtype=aux)

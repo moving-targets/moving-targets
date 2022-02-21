@@ -11,7 +11,7 @@ class TestCvxpyBackend(TestBackend):
 
     @classmethod
     def _unsupported(cls) -> List[str]:
-        return ['sqrt', 'var']
+        return ['is_greater', 'is_less', 'sqrt', 'var']
 
     @classmethod
     def _get_name(cls, variable: Any) -> str:

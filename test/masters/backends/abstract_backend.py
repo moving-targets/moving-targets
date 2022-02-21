@@ -44,6 +44,39 @@ class TestBackend(AbstractTest):
             # otherwise, check that the error is a "BackendError"
             self.assertIsInstance(exception, BackendError)
 
+    def _test_indicator_operations(self, dim: str, operation: str, **op_args):
+        """Checks the correctness, using an array of the given dimensions, of the given the backend indicator operation
+        that is instantiated according to the additional parameters"""
+        try:
+            np.random.seed(self.SEED)
+            backend = self._backend()
+            mt_operation = getattr(backend, operation)
+            ref_operation = getattr(np, operation.lstrip('is_'))
+            if operation in self._unsupported():
+                backend.build()
+                with self.assertRaises(BackendError):
+                    a, b = np.random.random(size=[2] + self._SIZES[dim])
+                    a, b = backend.add_constants(a), backend.add_constants(b)
+                    mt_operation(a, b, **op_args)
+                backend.clear()
+            else:
+                for i in range(self.NUM_TESTS):
+                    # build random vectors of reference values and compute the operation result
+                    ref_a, ref_b = np.random.random(size=[2] + self._SIZES[dim])
+                    ref_result = ref_operation(ref_a, ref_b, **op_args)
+                    # build constant model variables vector(s) from values then obtain the operation result
+                    backend.build()
+                    mt_a, mt_b = backend.add_constants(ref_a), backend.add_constants(ref_b)
+                    mt_result = mt_operation(mt_a, mt_b, **op_args)
+                    backend.solve()
+                    mt_result = backend.get_value(mt_result)
+                    backend.clear()
+                    # compare the two results
+                    msg = f'Error at it. {i} with dim {dim}, {mt_result} != {ref_result}'
+                    self.assertTrue(np.allclose(mt_result, ref_result, atol=10 ** -self.PLACES), msg=msg)
+        except Exception as exception:
+            self._check_exception(operation='indicator', exception=exception)
+
     def _test_numeric_operation(self, *dims: str, operation: str, **op_args):
         """Checks the correctness, using an array of the given dimensions, of the given the backend numeric operation
         that is instantiated according to the additional parameters (which must shared between the backend and numpy)"""
@@ -103,13 +136,21 @@ class TestBackend(AbstractTest):
     def test_objectives(self):
         try:
             backend = self._backend()
-            for operation in ['minimize', 'maximize']:
-                backend.build()
-                operation = getattr(backend, operation)
-                operation(backend.add_constant(1.0))
-                backend.solve()
-                self.assertAlmostEqual(backend.get_objective(), 1.0, places=self.PLACES)
-                backend.clear()
+            ref_value = self.NUM_SAMPLES + 1
+            # test minimize function and variables bounds (expected objective is -ref_value)
+            backend = backend.build()
+            variable = backend.add_continuous_variable(lb=-1, ub=1, name='variable')
+            variables = backend.add_continuous_variables(self.NUM_SAMPLES, lb=-1, ub=1, name='variables')
+            mt_value = backend.minimize(variable + backend.sum(variables)).solve().get_objective()
+            self.assertAlmostEqual(mt_value, -ref_value, places=self.PLACES)
+            backend.clear()
+            # test maximize function and variables bounds (expected objective is +ref_value)
+            backend = backend.build()
+            variable = backend.add_continuous_variable(lb=-1, ub=1, name='variable')
+            variables = backend.add_continuous_variables(self.NUM_SAMPLES, lb=-1, ub=1, name='variables')
+            mt_value = backend.maximize(variable + backend.sum(variables)).solve().get_objective()
+            self.assertAlmostEqual(mt_value, ref_value, places=self.PLACES)
+            backend.clear()
         except Exception as exception:
             self._check_exception(operation='objectives', exception=exception)
 
@@ -120,6 +161,8 @@ class TestBackend(AbstractTest):
             for dim in ['0D', '1D', '2D', '3D']:
                 if dim == '0D':
                     var = backend.add_variable(vtype='continuous', lb=0, ub=1, name='var')
+                    backend.add_constraint(var >= 0, name=None)
+                    backend.add_constraint(var >= 0, name='test')
                     backend.solve()
                     self.assertEqual(self._get_name(var), 'var')
                 else:
@@ -134,11 +177,25 @@ class TestBackend(AbstractTest):
 
                     keys = self._SIZES[dim]
                     var = backend.add_variables(*keys, vtype='continuous', lb=0, ub=1, name='var').flatten()
+                    backend.add_constraints([v >= 0 for v in var.flatten()], name=None)
+                    backend.add_constraints([v >= 0 for v in var.flatten()], name='test')
                     backend.solve()
                     self.assertListEqual([self._get_name(v) for v in var], _expected_names(*keys, _name='var'))
             backend.clear()
         except Exception as exception:
             self._check_exception(operation='variables', exception=exception)
+
+    # INDICATOR OPERATIONS
+
+    def test_is_greater(self):
+        self._test_indicator_operations('1D', operation='is_greater')
+        self._test_indicator_operations('2D', operation='is_greater')
+        self._test_indicator_operations('3D', operation='is_greater')
+
+    def test_is_less(self):
+        self._test_indicator_operations('1D', operation='is_less')
+        self._test_indicator_operations('2D', operation='is_less')
+        self._test_indicator_operations('3D', operation='is_less')
 
     # UNARY NUMERIC OPERATIONS
 

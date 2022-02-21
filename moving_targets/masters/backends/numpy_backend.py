@@ -1,4 +1,4 @@
-from typing import Any, Union, List, Optional
+from typing import Any, Optional
 
 import numpy as np
 
@@ -38,23 +38,20 @@ class NumpyBackend(Backend):
     def maximize(self, cost) -> Any:
         raise BackendError(unsupported='no solution can be maximized', message=self._ERROR_MESSAGE)
 
-    def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
-        raise BackendError(unsupported='no constraint can be added')
+    def get_objective(self) -> float:
+        raise BackendError(unsupported='no objective can be retrieved', message=self._ERROR_MESSAGE)
+
+    def get_values(self, expressions: np.ndarray) -> np.ndarray:
+        return expressions
 
     def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
         raise BackendError(unsupported='no variable can be added', message=self._ERROR_MESSAGE)
-
-    def get_objective(self) -> float:
-        raise BackendError(unsupported='no objective can be retrieved', message=self._ERROR_MESSAGE)
 
     def add_constant(self, val: Any, vtype: str = 'continuous', name: Optional[str] = None) -> Any:
         return val
 
     def add_constants(self, val: np.ndarray, vtype: str = 'continuous', name: Optional[str] = None) -> np.ndarray:
         return val
-
-    def get_values(self, expressions: np.ndarray) -> np.ndarray:
-        return expressions
 
     def aux(self,
             expressions: Any,
@@ -64,6 +61,22 @@ class NumpyBackend(Backend):
             aux_name: Optional[str] = None) -> Any:
         self._aux_warning(exp=None, aux=aux_vtype, msg='to compute any value')
         return expressions
+
+    def add_constraint(self, constraint, name: Optional[str] = None) -> Any:
+        raise BackendError(unsupported='no constraint can be added', message=self._ERROR_MESSAGE)
+
+    def add_indicator_constraint(self,
+                                 indicator: Any,
+                                 expression: Any,
+                                 value: int = 1,
+                                 name: Optional[str] = None) -> Any:
+        raise BackendError(unsupported='no constraint can be added', message=self._ERROR_MESSAGE)
+
+    def is_greater(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+        return (a > b).astype(int)
+
+    def is_less(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+        return (a < b).astype(int)
 
     def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         return np.square(a)

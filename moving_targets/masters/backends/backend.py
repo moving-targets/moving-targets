@@ -1,6 +1,6 @@
 """Basic Backend Interface."""
 import logging
-from typing import Any, Union, List, Optional, Callable
+from typing import Any, Union, List, Optional, Callable, Set
 
 import numpy as np
 
@@ -11,6 +11,9 @@ class Backend:
     """Basic Interface for a Moving Targets Master Backend."""
 
     _LOGGER: logging.Logger = logging.getLogger('Backend')
+    """The inner backend logger instance."""
+
+    _INDICATORS: Set[str] = {'>', '>=', '<', '<=', '==', '!='}
 
     @staticmethod
     def _transposed_axes(dim: int, index: int, place: int) -> List[int]:
@@ -72,7 +75,7 @@ class Backend:
     def __init__(self, sum_fn: Callable = lambda v: np.sum(v)):
         """
         :param sum_fn:
-            The backend function to perform a sum over a one-dimensional vector of model variables.
+            The backend function to perform a sum over a one-dimensional array of model variables.
         """
         super(Backend, self).__init__()
 
@@ -155,33 +158,35 @@ class Backend:
         """
         raise NotImplementedError(not_implemented_message(name='maximize'))
 
-    def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
-        """Adds a list of constraints to the model.
-
-        :param constraints:
-            The list of constraints.
-
-        :param name:
-            The constraints name.
+    def get_objective(self) -> float:
+        """Gets the objective value of the solved model.
 
         :return:
-            The backend itself.
+            The objective value.
         """
-        raise NotImplementedError(not_implemented_message(name='add_constraints'))
+        raise NotImplementedError(not_implemented_message(name='get_objective'))
 
-    def add_constraint(self, constraint, name: Optional[str] = None) -> Any:
-        """Adds a constraint to the model.
+    def get_values(self, expressions: np.ndarray) -> np.ndarray:
+        """Gets the values of an array of expressions as found in the model solution.
 
-        :param constraint:
-            The constraint.
-
-        :param name:
-            The constraint name.
+        :param expressions:
+            The array of expressions.
 
         :return:
-            The backend itself.
+            The array of solution values.
         """
-        return self.add_constraints(constraints=[constraint], name=name)
+        raise NotImplementedError(not_implemented_message(name='get_values'))
+
+    def get_value(self, expression: Any) -> float:
+        """Gets the value of an expressions as found in the model solution.
+
+        :param expression:
+            The expressions.
+
+        :return:
+            The solution value.
+        """
+        return self.get_values(np.array([expression]))[0]
 
     def add_binary_variables(self, *keys: int, name: Optional[str] = None) -> np.ndarray:
         """Creates an array of binary model variables.
@@ -381,36 +386,6 @@ class Backend:
         names = np.array(self._nested_names(*keys, name=name)).flatten()
         return np.reshape([self.add_variable(vtype=vtype, lb=lb, ub=ub, name=n) for n in names], keys)
 
-    def get_objective(self) -> float:
-        """Gets the objective value of the solved model.
-
-        :return:
-            The objective value.
-        """
-        raise NotImplementedError(not_implemented_message(name='get_objective'))
-
-    def get_values(self, expressions: np.ndarray) -> np.ndarray:
-        """Gets the values of a vector of expressions as found in the model solution.
-
-        :param expressions:
-            The vector of expressions.
-
-        :return:
-            The vector of solution values.
-        """
-        raise NotImplementedError(not_implemented_message(name='get_values'))
-
-    def get_value(self, expression: Any) -> float:
-        """Gets the value of an expressions as found in the model solution.
-
-        :param expression:
-            The expressions.
-
-        :return:
-            The solution value.
-        """
-        return self.get_values(np.array([expression]))[0]
-
     def aux(self,
             expressions: Any,
             aux_vtype: Optional[str] = 'continuous',
@@ -418,13 +393,13 @@ class Backend:
             aux_ub: float = float('inf'),
             aux_name: Optional[str] = None) -> Any:
         """If the 'aux_vtype' parameter is None, it simply return the input expressions, otherwise it builds and return
-        an auxiliary variable (or a vector of variables) having the given vtype and the respective other properties,
-        which is equal to the given expression (or vector of expressions). Using auxiliary variables may come in handy
-        when dealing with huge datasets since they can considerably speedup the model formulation; still, imposing
-        equality constraints on certain expressions may lead to solving errors due to broken model assumptions.
+        an auxiliary variable (or an array of variables) having the given vtype and the respective other properties,
+        which is equal to the given expression (or an array of expressions). Using auxiliary variables may come in
+        handy when dealing with huge datasets since they can considerably speedup the model formulation; still,
+        imposing equality constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :param expressions:
-            Either a single expression or a vector of expressions.
+            Either a single expression or a array of expressions.
 
         :param aux_vtype:
             Either None (or 'auto') or the auxiliary variables type, usually 'binary', 'integer', or 'continuous'.
@@ -452,6 +427,146 @@ class Backend:
             self.add_constraints([v == e for v, e in zip(variables.flatten(), expressions.flatten())])
             return variables if is_numpy else variables[0]
 
+    def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
+        """Adds a list of constraints to the model.
+
+        :param constraints:
+            The list of constraints.
+
+        :param name:
+            The constraints name.
+
+        :return:
+            The backend itself.
+        """
+        constraints = np.array(constraints)
+        names = np.array(self._nested_names(*constraints.shape, name=name))
+        for c, n in zip(constraints.flatten(), names.flatten()):
+            self.add_constraint(constraint=c, name=n)
+        return self
+
+    def add_constraint(self, constraint, name: Optional[str] = None) -> Any:
+        """Adds a constraint to the model.
+
+        :param constraint:
+            The constraint.
+
+        :param name:
+            The constraint name.
+
+        :return:
+            The backend itself.
+        """
+        raise NotImplementedError(not_implemented_message(name='add_constraint'))
+
+    def add_indicator_constraints(self,
+                                  indicators: np.ndarray,
+                                  expressions: Union[List, np.ndarray],
+                                  value: int = 1,
+                                  name: Optional[str] = None) -> Any:
+        """Impose a set of indicator constraints over the given expressions using the given binary indicators. The
+        indicators indicators[i] are such that if indicators[i] == value (with value either 0 or 1), then the i-th
+        expression holds, but in case indicators[i] == not value, then there is no information about that expression.
+
+        :param indicators:
+            An array of binary variables on which to impose the indicator constraints.
+
+        :param expressions:
+            An array or list of expressions for which it is necessary to check whether they hold or not.
+
+        :param value:
+            The value assumed by a binary variable when the respective expression holds, either 0 or 1.
+
+        :param name:
+            The constraints name.
+
+        :return:
+            The backend itself.
+
+        :raise `BackendError`:
+            If the backend cannot handle indicator variables.
+        """
+        expressions = np.array(expressions)
+        names = np.array(self._nested_names(*expressions.shape, name=name))
+        for i, e, n in zip(indicators.flatten(), expressions.flatten(), names.flatten()):
+            self.add_indicator_constraint(indicator=i, expression=e, value=value, name=n)
+        return self
+
+    def add_indicator_constraint(self,
+                                 indicator: Any,
+                                 expression: Any,
+                                 value: int = 1,
+                                 name: Optional[str] = None) -> Any:
+        """Impose an indicator constraint over the given expression using the given binary indicator. The indicator
+        is such that if indicator == value (with value either 0 or 1), then the expression holds, but in case
+        indicator == not value, then there is no information about the expression.
+
+        :param indicator:
+            The binary variable on which to impose the indicator constraints.
+
+        :param expression:
+            The expression for which it is necessary to check whether they hold or not.
+
+        :param value:
+            The value assumed by a binary variable when the respective expression holds, either 0 or 1.
+
+        :param name:
+            The constraint name.
+
+        :return:
+            The backend itself.
+
+        :raise `BackendError`:
+            If the backend cannot handle indicator variables.
+        """
+        raise BackendError(unsupported='indicator constraints')
+
+    def is_greater(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+        """Builds auxiliary binary indicator variables which take value one if the expressions in the first array are
+         greater than the expressions in the second array. Please note that this is enforced via indicator constraints
+         so that if z[i] == 1 -> a[i] >= b[i] and if z[i] == 0 -> a[i] <= b[i], thus in case a[i] is strictly equal to
+         b[i] the indicator variable z[i] can assume both values.
+
+        :param a:
+            The first array.
+
+        :param b:
+            The second array.
+
+        :return:
+            The array of binary indicator variables.
+
+        :raise `BackendError`:
+            If the backend cannot handle indicator variables.
+        """
+        af, bf, zf = a.flatten(), b.flatten(), self.add_binary_variables(a.size)
+        self.add_indicator_constraints(indicators=zf, expressions=[af[i] >= bf[i] for i in range(a.size)], value=1)
+        self.add_indicator_constraints(indicators=zf, expressions=[af[i] <= bf[i] for i in range(a.size)], value=0)
+        return zf.reshape(a.shape)
+
+    def is_less(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+        """Builds auxiliary binary indicator variables which take value one if the expressions in the first array are
+         lower than the expressions in the second array. Please note that this is enforced via indicator constraints
+         so that if z[i] == 1 -> a[i] <= b[i] and if z[i] == 0 -> a[i] >= b[i], thus in case a[i] is strictly equal to
+         b[i] the indicator variable z[i] can assume both values.
+
+        :param a:
+            The first array.
+
+        :param b:
+            The second array.
+
+        :return:
+            The array of binary indicator variables.
+
+        :raise `BackendError`:
+            If the backend cannot handle indicator variables.
+        """
+        af, bf, zf = a.flatten(), b.flatten(), self.add_binary_variables(a.size)
+        self.add_indicator_constraints(indicators=zf, expressions=[af[i] <= bf[i] for i in range(a.size)], value=1)
+        self.add_indicator_constraints(indicators=zf, expressions=[af[i] >= bf[i] for i in range(a.size)], value=0)
+        return zf.reshape(a.shape)
+
     def sum(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         """Computes the sum of an array of variables.
 
@@ -462,8 +577,8 @@ class Backend:
             The dimension on which to aggregate or None to aggregate the whole data.
 
         :param asarray:
-            In case the aggregation should return a single expression, whether to return it as a numpy zero-dimensional
-            array or as the expression itself.
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -515,7 +630,7 @@ class Backend:
             constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :return:
-            The vector of squared values.
+            The array of squared values.
 
         :raise `BackendError`:
             If the backend cannot handle squared values.
@@ -538,12 +653,12 @@ class Backend:
             constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :return:
-            The vector of squared roots.
+            The array of squared roots.
         """
         raise BackendError(unsupported='squared roots')
 
     def abs(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
-        """Computes the absolute values over a vector of variables.
+        """Computes the absolute values over an array of variables.
 
         :param a:
             An array of model variables.
@@ -558,7 +673,7 @@ class Backend:
             constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :return:
-            The vector of absolute values.
+            The array of absolute values.
 
         :raise `BackendError`:
             If the backend cannot handle absolute values.
@@ -581,7 +696,7 @@ class Backend:
             constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :return:
-            The vector of logarithms.
+            The array of logarithms.
 
         :raise `BackendError`:
             If the backend cannot handle logarithms.
@@ -602,8 +717,8 @@ class Backend:
             The dimension on which to aggregate or None to aggregate the whole data.
 
         :param asarray:
-            In case the aggregation should return a single expression, whether to return it as a numpy zero-dimensional
-            array or as the expression itself.
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -631,8 +746,8 @@ class Backend:
             The dimension on which to aggregate or None to aggregate the whole data.
 
         :param asarray:
-            In case the aggregation should return a single expression, whether to return it as a numpy zero-dimensional
-            array or as the expression itself.
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -764,7 +879,7 @@ class Backend:
         return self.aux(expressions=a / b, aux_vtype=aux)
 
     def dot(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto') -> Union[Any, np.ndarray]:
-        """Performs the vector product between two arrays.
+        """Performs the dot product between two arrays.
 
         :param a:
             The first array (at most 2d).

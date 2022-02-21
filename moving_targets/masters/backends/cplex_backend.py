@@ -48,9 +48,11 @@ class CplexBackend(Backend):
         self.model.minimize(cost)
         return self
 
-    def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
-        self.model.add_constraints(constraints, names=name)
-        return self
+    def get_objective(self) -> float:
+        return self.solution.objective_value
+
+    def get_values(self, expressions: np.ndarray) -> np.ndarray:
+        return np.reshape([v.solution_value for v in expressions.flatten()], expressions.shape)
 
     def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
         # handle variable type and bounds
@@ -94,11 +96,29 @@ class CplexBackend(Backend):
             var = list(var.values())
         return np.array(var).reshape(keys)
 
-    def get_objective(self) -> float:
-        return self.solution.objective_value
+    def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
+        self.model.add_constraints(constraints, names=name)
+        return self
 
-    def get_values(self, expressions: np.ndarray) -> np.ndarray:
-        return np.reshape([v.solution_value for v in expressions.flatten()], expressions.shape)
+    def add_constraint(self, constraint, name: Optional[str] = None) -> Any:
+        self.model.add_constraint(constraint, ctname=name)
+        return self
+
+    def add_indicator_constraints(self,
+                                  indicators: np.ndarray,
+                                  expressions: Union[List, np.ndarray],
+                                  value: int = 1,
+                                  name: Optional[str] = None) -> Any:
+        binary_vars, cst = indicators.flatten(), np.array(expressions).flatten()
+        self.model.add_indicators(binary_vars=binary_vars, cts=cst, true_values=value, names=name)
+        return self
+
+    def add_indicator_constraint(self,
+                                 indicator: Any,
+                                 expression: Any,
+                                 value: int = 1,
+                                 name: Optional[str] = None) -> Any:
+        self.model.add_indicator(binary_var=indicator, linear_ct=expression, active_value=value, name=name)
 
     def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         self._aux_warning(exp=None, aux=aux, msg='cannot impose equality constraints on quadratic expressions')
