@@ -39,7 +39,7 @@ class TestLosses(AbstractTest):
             loss = ls.BinaryCrossentropy(reduction='none')
         elif loss == 'cce':
             loss = ls.CategoricalCrossentropy(reduction='none')
-        elif loss in ['bh', 'ch']:
+        elif loss in ['bhd', 'chd']:
             def _hamming_distance(y_true, y_pred, sample_weight):
                 partial_losses = tf.reduce_mean(y_true * (1 - y_pred) + (1 - y_true) * y_pred, axis=1)
                 return partial_losses if sample_weight is None else sample_weight * partial_losses
@@ -142,28 +142,28 @@ class TestLosses(AbstractTest):
         self._test(loss='mse', task='probability', classes=self.NUM_CLASSES, weights=True, binary=True)
 
     def test_bh(self):
-        self._test(loss='bh', task='indicator', classes=2, weights=False)
+        self._test(loss='bhd', task='indicator', classes=2, weights=False)
 
     def test_bh_weights(self):
-        self._test(loss='bh', task='indicator', classes=2, weights=True)
+        self._test(loss='bhd', task='indicator', classes=2, weights=True)
 
     def test_labelling_bh(self):
-        self._test(loss='bh', task='indicator', classes=2, weights=False, labelling=True)
+        self._test(loss='bhd', task='indicator', classes=2, weights=False, labelling=True)
 
     def test_labelling_bh_weights(self):
-        self._test(loss='bh', task='indicator', classes=2, weights=True, labelling=True)
+        self._test(loss='bhd', task='indicator', classes=2, weights=True, labelling=True)
 
     def test_ch(self):
-        self._test(loss='ch', task='indicator', classes=self.NUM_CLASSES, weights=False)
+        self._test(loss='chd', task='indicator', classes=self.NUM_CLASSES, weights=False)
 
     def test_ch_weights(self):
-        self._test(loss='ch', task='indicator', classes=self.NUM_CLASSES, weights=True)
+        self._test(loss='chd', task='indicator', classes=self.NUM_CLASSES, weights=True)
 
     def test_labelling_ch(self):
-        self._test(loss='ch', task='indicator', classes=self.NUM_CLASSES, weights=False, labelling=True)
+        self._test(loss='chd', task='indicator', classes=self.NUM_CLASSES, weights=False, labelling=True)
 
     def test_labelling_ch_weights(self):
-        self._test(loss='ch', task='indicator', classes=self.NUM_CLASSES, weights=True, labelling=True)
+        self._test(loss='chd', task='indicator', classes=self.NUM_CLASSES, weights=True, labelling=True)
 
     def test_bce(self):
         self._test(loss='bce', task='probability', classes=2, weights=False)
