@@ -23,11 +23,9 @@ class FairRegression(RegressionMaster):
         # lb         : the model variables lower bounds
         # ub         : the model variables upper bounds
         # stats      : whether to include master statistics in the history object
-        # ------------------------------------------------------------------------------------------------------
-        # didi       : a DIDI metric instance used to compute both the indicator matrices and the satisfiability
 
         super().__init__(backend=backend, loss=loss, alpha=alpha, lb=lb, ub=ub, stats=stats)
-        self.didi = DIDI(protected=protected, classification=False, percentage=True)
+        self.protected = protected
         self.violation = violation
 
     # here we define the problem formulation, i.e., variables and constraints
@@ -37,14 +35,14 @@ class FairRegression(RegressionMaster):
 
         # as a first step, we need to compute the deviations between the average output for the total dataset and the
         # average output respectively to each protected class
-        indicator_matrix = DIDI.get_indicator_matrix(x=x, protected=self.didi.protected)
+        indicator_matrix = DIDI.get_indicator_matrix(x=x, protected=self.protected)
         deviations = self.backend.add_continuous_variables(len(indicator_matrix), lb=0.0, name='deviations')
         # this is the average output target for the whole dataset
         total_avg = self.backend.mean(variables)
         for g, protected_group in enumerate(indicator_matrix):
             # this is the subset of the variables having <label> as protected feature (i.e., the protected group)
             protected_vars = variables[protected_group]
-            if len(protected_vars) > 0:
+            if len(protected_vars) == 0:
                 continue
             # this is the average output target for the protected group
             protected_avg = self.backend.mean(protected_vars)

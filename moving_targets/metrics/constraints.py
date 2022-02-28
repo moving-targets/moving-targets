@@ -60,7 +60,7 @@ class DIDI(Metric):
             If there is no column name starting with the `protected` string.
         """
         features = [c for c in x.columns if c.startswith(protected)]
-        assert len(features) > 0, AssertionError(f"No column starting with the given protected feature '{protected}'")
+        assert len(features) > 0, f"No column starting with the given protected feature '{protected}'"
         matrix = x[features].values.astype(int).squeeze()
         # if a single protected column is found out, this is interpreted as a categorical column thus is onehot encoded,
         # otherwise, if multiple protected columns are found out, these are interpreted as already encoded columns

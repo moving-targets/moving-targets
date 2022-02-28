@@ -23,11 +23,9 @@ class FairClassification(ClassificationMaster):
         # loss       : the loss function, which is used to compute the master objective
         # alpha      : the alpha optimizer, which is used to balance between the gradient term and the squared term
         # stats      : whether to include master statistics in the history object
-        # ------------------------------------------------------------------------------------------------------
-        # didi       : a DIDI metric instance used to compute both the indicator matrices and the satisfiability
 
         super().__init__(backend=backend, loss=loss, alpha=alpha, stats=stats, types='discrete', labelling=False)
-        self.didi = DIDI(protected=protected, classification=True, percentage=True)
+        self.protected = protected
         self.violation = violation
 
     # here we define the problem formulation, i.e., variables and constraints
@@ -39,7 +37,7 @@ class FairClassification(ClassificationMaster):
 
         # as a first step, we need to compute the deviations between the average output for the total dataset and the
         # average output respectively to each protected class
-        indicator_matrix = DIDI.get_indicator_matrix(x=x, protected=self.didi.protected)
+        indicator_matrix = DIDI.get_indicator_matrix(x=x, protected=self.protected)
         groups, classes = len(indicator_matrix), len(np.unique(y))
         deviations = self.backend.add_continuous_variables(groups, classes, lb=0.0, name='deviations')
         # this is the average number of samples from the whole dataset <class[c]> as target class
