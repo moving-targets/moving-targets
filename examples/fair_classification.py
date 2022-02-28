@@ -3,16 +3,19 @@ import importlib.resources
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 
 from moving_targets import MACS
+from moving_targets.callbacks import DataLogger
 from moving_targets.learners import LogisticRegression
 from moving_targets.masters import ClassificationMaster
 from moving_targets.masters.backends import GurobiBackend
 from moving_targets.metrics import DIDI, CrossEntropy, Accuracy
-
-
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF FAIR CLASSIFICATION
+from moving_targets.util import probabilities
+
+
 class FairClassification(ClassificationMaster):
     def __init__(self, protected, violation=0.2, backend='gurobi', loss='hd', alpha='harmonic', stats=False):
         # protected  : the name of the protected feature
@@ -61,6 +64,44 @@ class FairClassification(ClassificationMaster):
         return super_vars
 
 
+# THEN, WE MAY ADD A CUSTOM CALLBACK TO SEE HOW OUR TRAINING HAS PROCEEDED
+class FairnessPlots(DataLogger):
+    def __init__(self, protected, num_columns=4, **plt_kwargs):
+        # protected   : the name of the protected feature
+        # num_columns : the number of columns to display the subplots
+        # plt_kwargs  : custom arguments to be passed to the 'matplotlib.pyplot.plot' function
+
+        super().__init__()
+        self.protected = protected
+        self.num_columns = num_columns
+        self.plt_kwargs = plt_kwargs
+
+    def on_process_start(self, macs, x, y, val_data):
+        # retrieve the subset of input features regarding the protected groups and store them in the inner 'data'
+        # variable by replacing the input data which will not be useful during the plotting
+        group = x[[c for c in x.columns if c.startswith(self.protected)]].values.squeeze().astype(int)
+        self.data['group'] = group.argmax(axis=1) if group.ndim == 2 else group
+
+    def on_training_end(self, macs, x, y, p, val_data):
+        # store class targets instead of class probabilities
+        super(FairnessPlots, self).on_training_end(macs, x, y, probabilities.get_classes(p), val_data)
+
+    def on_process_end(self, macs, val_data):
+        plt.figure(**self.plt_kwargs)
+        num_rows = int(np.ceil(len(self.iterations) / self.num_columns))
+        ax = None
+        for it in self.iterations:
+            ax = plt.subplot(num_rows, self.num_columns, it + 1, sharex=ax, sharey=ax)
+            # we do not use count plot since we would like to show the percentage of predicted classes per group in
+            # order to better see how moving targets affect the class balancing, thus we use instead a standard bar
+            # plot to plot the bars with normalized value counts
+            groups = self.data.rename(columns={f'p{it}': 'prediction'}).groupby('group')
+            groups['prediction'].value_counts(normalize=True).mul(100).unstack().plot(kind='bar', stacked=True, ax=ax)
+            ax.set(xlabel='group', ylabel='%')
+            ax.set_title(f'iteration: {it}')
+        plt.show()
+
+
 if __name__ == '__main__':
     sns.set_style('whitegrid')
     sns.set_context('notebook')
@@ -74,11 +115,12 @@ if __name__ == '__main__':
 
     # create a moving targets instance and fit it, then plot the training history
     # moreover, we pass a custom backend with a time limit
+    cbs = [FairnessPlots(protected='race', figsize=(16, 9), tight_layout=True)]
     model = MACS(
         init_step='pretraining',
         learner=LogisticRegression(x_scaler='std', max_iter=10000),
         master=FairClassification(protected='race', backend=GurobiBackend(time_limit=10)),
         metrics=[Accuracy(), CrossEntropy(), DIDI(protected='race', classification=True, percentage=True)]
     )
-    history = model.fit(x=x_tr, y=y_tr, iterations=10, val_data={'test': (x_ts, y_ts)}, verbose=True)
+    history = model.fit(x=x_tr, y=y_tr, iterations=10, val_data={'test': (x_ts, y_ts)}, callbacks=cbs, verbose=True)
     history.plot()

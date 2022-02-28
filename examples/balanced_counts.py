@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 
 from moving_targets import MACS
-from moving_targets.callbacks import Callback
+from moving_targets.callbacks import DataLogger
 from moving_targets.learners import LogisticRegression
 from moving_targets.masters import ClassificationMaster
 from moving_targets.metrics import Accuracy, ClassFrequenciesStd, CrossEntropy
@@ -42,33 +42,19 @@ class BalancedCounts(ClassificationMaster):
         return variables.reshape(y.shape)
 
 
-# THEN, WE MAY ADD A CUSTOM CALLBACK TO SEE HOW OUR TRAINING
-class ClassesHistogram(Callback):
+# THEN, WE MAY ADD A CUSTOM CALLBACK TO SEE HOW OUR TRAINING HAS PROCEEDED
+class ClassesHistogram(DataLogger):
     def __init__(self, num_columns=4, **plt_kwargs):
         # num_columns : the number of columns to display the subplots
         # plt_kwargs  : custom arguments to be passed to the 'matplotlib.pyplot.plot' function
-        # ------------------------------------------------------------------------------------
-        # data        : a dataframe with the learner predictions and the adjusted targets
-        # iterations  : a list of iteration names
 
         super().__init__()
-        self.data = None
-        self.iterations = []
         self.num_columns = num_columns
         self.plt_kwargs = plt_kwargs
 
-    def on_process_start(self, macs, x, y, val_data):
-        # initially, we store the original targets
-        self.data = pd.DataFrame.from_dict({'y': y})
-
     def on_training_end(self, macs, x, y, p, val_data):
-        # when the training ends, we use the macs instance to store both the predicted classes and the iterations
-        self.data[f'pred_{macs.iteration}'] = probabilities.get_classes(p)
-        self.iterations.append(macs.iteration)
-
-    def on_adjustment_end(self, macs, x, y, z, val_data):
-        # we store the adjusted targets as well, but there is no need to store the iteration since it was already done
-        self.data[f'adj_{macs.iteration}'] = z
+        # store class targets instead of class probabilities
+        super(ClassesHistogram, self).on_training_end(macs, x, y, probabilities.get_classes(p), val_data)
 
     def on_process_end(self, macs, val_data):
         # at the end of the process, we plot the results
@@ -76,15 +62,12 @@ class ClassesHistogram(Callback):
         num_rows = int(np.ceil(len(self.iterations) / self.num_columns))
         ax = None
         # for each iteration, we we plot the classes counts for both the predictions and the adjusted targets
-        for idx, it in enumerate(self.iterations):
-            ax = plt.subplot(num_rows, self.num_columns, idx + 1, sharex=ax, sharey=ax)
+        for it in self.iterations:
+            ax = plt.subplot(num_rows, self.num_columns, it + 1, sharex=ax, sharey=ax)
             # this check is necessary to handle the pretraining step, where no adjusted target is present
-            if f'adj_{it}' in self.data:
-                data = np.concatenate((self.data[f'adj_{it}'].values, self.data[f'pred_{it}'].values))
-                hue = np.concatenate((len(self.data) * ['adj'], len(self.data) * ['pred']))
-            else:
-                data = np.concatenate((self.data[f'y'].values, self.data[f'pred_{it}'].values))
-                hue = np.concatenate((len(self.data) * ['y'], len(self.data) * ['pred']))
+            column, name = ('y', 'targets') if it == 0 else (f'z{it}', 'adjusted')
+            data = np.concatenate((self.data[column].values, self.data[f'p{it}'].values))
+            hue = np.concatenate((len(self.data) * [name], len(self.data) * ['predictions']))
             sns.countplot(x=data, hue=hue, ax=ax)
             ax.set(xlabel='class', ylabel='count')
             ax.set_title(f'iteration: {it}')

@@ -3,9 +3,11 @@ import importlib.resources
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 
 from moving_targets import MACS
+from moving_targets.callbacks import DataLogger
 from moving_targets.learners import LinearRegression
 from moving_targets.masters import RegressionMaster
 from moving_targets.metrics import DIDI, R2, MSE
@@ -61,6 +63,43 @@ class FairRegression(RegressionMaster):
         return variables
 
 
+# THEN, WE MAY ADD A CUSTOM CALLBACK TO SEE HOW OUR TRAINING HAS PROCEEDED
+class FairnessPlots(DataLogger):
+    def __init__(self, protected, num_columns=4, **plt_kwargs):
+        # protected   : the name of the protected feature
+        # num_columns : the number of columns to display the subplots
+        # plt_kwargs  : custom arguments to be passed to the 'matplotlib.pyplot.plot' function
+
+        super().__init__()
+        self.protected = protected
+        self.num_columns = num_columns
+        self.plt_kwargs = plt_kwargs
+
+    def on_process_start(self, macs, x, y, val_data):
+        # retrieve the subset of input features regarding the protected groups (in case of multiple groups, the index
+        # must be obtained via argmax) and store them in the inner 'data' variable
+        super(FairnessPlots, self).on_process_start(macs, x, y, val_data)
+        group = x[[c for c in x.columns if c.startswith(self.protected)]].values.squeeze().astype(int)
+        self.data['group'] = group.argmax(axis=1) if group.ndim == 2 else group
+
+    def on_process_end(self, macs, val_data):
+        plt.figure(**self.plt_kwargs)
+        num_rows = int(np.ceil(len(self.iterations) / self.num_columns))
+        ax = None
+        for it in self.iterations:
+            ax = plt.subplot(num_rows, self.num_columns, it + 1, sharex=ax, sharey=ax)
+            # this check is necessary to handle the pretraining step, where no adjusted target is present
+            column, name = ('y', 'targets') if it == 0 else (f'z{it}', 'adjusted')
+            data = pd.DataFrame.from_dict({
+                'group': np.concatenate((self.data['group'].values, self.data['group'].values)),
+                'targets': np.concatenate((self.data[column].values, self.data[f'p{it}'].values)),
+                'hue': np.concatenate((len(self.data) * [name], len(self.data) * ['predictions']))
+            })
+            sns.boxplot(data=data, x='group', y='targets', hue='hue', ax=ax)
+            ax.set_title(f'iteration: {it}')
+        plt.show()
+
+
 if __name__ == '__main__':
     sns.set_style('whitegrid')
     sns.set_context('notebook')
@@ -74,11 +113,12 @@ if __name__ == '__main__':
         x_tr, x_ts, y_tr, y_ts = train_test_split(x_df, y_df, shuffle=True)
 
     # create a moving targets instance and fit it, then plot the training history
+    cbs = [FairnessPlots(protected='race', figsize=(16, 9), tight_layout=True)]
     model = MACS(
         init_step='pretraining',
         learner=LinearRegression(x_scaler='std', y_scaler='norm'),
         master=FairRegression(protected='race'),
         metrics=[R2(), MSE(), DIDI(protected='race', classification=False, percentage=True)]
     )
-    history = model.fit(x=x_tr, y=y_tr, iterations=10, val_data={'test': (x_ts, y_ts)}, verbose=True)
+    history = model.fit(x=x_tr, y=y_tr, iterations=10, val_data={'test': (x_ts, y_ts)}, callbacks=cbs, verbose=True)
     history.plot()
