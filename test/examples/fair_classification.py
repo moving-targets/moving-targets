@@ -11,68 +11,67 @@ from test.examples.abstract import TestExamples
 class TestFairClassification(TestExamples):
     RESULTS: Dict[str, Dict[str, float]] = {
         'pretraining-ce': {
-            'train_acc': 0.8484593961363335,
-            'train_ce': 0.8054257266659179,
-            'train_didi': 0.21900563218058464,
-            'test_acc': 0.8443177297440658,
-            'test_ce': 0.858181155909902,
-            'test_didi': 0.40581167184915606
+            'train-acc': 0.8464258874497149,
+            'train-ce': 0.32723644103481114,
+            'train-didi': 0.2686298053945948,
+            'test-acc': 0.8448481633735578,
+            'test-ce': 0.3338098009458882,
+            'test-didi': 0.38514044533373576
         },
         'pretraining-hd': {
-            'train_acc': 0.7514698731267406,
-            'train_ce': 3.6614882632520014,
-            'train_didi': 0.11239426937050906,
-            'test_acc': 0.7516244529903195,
-            'test_ce': 3.663267204949637,
-            'test_didi': 0.18918639898902026
+            'train-acc': 0.8406348083639097,
+            'train-ce': 1.5722980342687716,
+            'train-didi': 0.22082223974210263,
+            'test-acc': 0.8415329531892322,
+            'test-ce': 1.6632173225965998,
+            'test-didi': 0.2880360610111668
         },
         'pretraining-mae': {
-            'train_acc': 0.8462490606074002,
-            'train_ce': 0.3305013647046738,
-            'train_didi': 0.259439667062541,
-            'test_acc': 0.8436546877072006,
-            'test_ce': 0.337123136363474,
-            'test_didi': 0.3482011586210676
+            'train-acc': 0.7512488395738474,
+            'train-ce': 4.057117828731541,
+            'train-didi': 0.014369104265741079,
+            'test-acc': 0.7510940193608274,
+            'test-ce': 4.058965047539217,
+            'test-didi': 0.0
         },
         'pretraining-mse': {
-            'train_acc': 0.8462932673179788,
-            'train_ce': 0.3310296783739907,
-            'train_didi': 0.2629533503358335,
-            'test_acc': 0.8441851213366928,
-            'test_ce': 0.3374851792593458,
-            'test_didi': 0.34737495135656643
+            'train-acc': 0.7510720127315327,
+            'train-ce': 1.300984522733852,
+            'train-didi': 0.0,
+            'test-acc': 0.7510940193608274,
+            'test-ce': 1.303033491486402,
+            'test-didi': 0.0
         },
         'projection-ce': {
-            'train_acc': 0.8477520887670749,
-            'train_ce': 0.32796634699589094,
-            'train_didi': 0.31988394860656894,
-            'test_acc': 0.8463068558546611,
-            'test_ce': 0.3344659093437666,
-            'test_didi': 0.26151594590002947
+            'train-acc': 0.8221564033420273,
+            'train-ce': 0.36713668739106503,
+            'train-didi': 0.14988098539710373,
+            'test-acc': 0.8245590770454847,
+            'test-ce': 0.369416393502257,
+            'test-didi': 0.1451249778538799
         },
         'projection-hd': {
-            'train_acc': 0.7514698731267406,
-            'train_ce': 3.6614882632520014,
-            'train_didi': 0.11239426937050906,
-            'test_acc': 0.7516244529903195,
-            'test_ce': 3.663267204949637,
-            'test_didi': 0.18918639898902026
+            'train-acc': 0.8465143008708722,
+            'train-ce': 1.3273700399501647,
+            'train-didi': 0.21434295815856858,
+            'test-acc': 0.845245988595677,
+            'test-ce': 1.4050198331575598,
+            'test-didi': 0.32160864501229514
         },
         'projection-mae': {
-            'train_acc': 0.7514698731267406,
-            'train_ce': 3.6614882632520014,
-            'train_didi': 0.11239426937050906,
-            'test_acc': 0.7516244529903195,
-            'test_ce': 3.663267204949637,
-            'test_didi': 0.18918639898902026
+            'train-acc': 0.8464700941602935,
+            'train-ce': 0.5276367968094331,
+            'train-didi': 0.19692639632575293,
+            'test-acc': 0.8423286036334704,
+            'test-ce': 0.5554519401155185,
+            'test-didi': 0.3406549905425884
         },
         'projection-mse': {
-            'train_acc': 0.7514698731267406,
-            'train_ce': 3.6614882632520014,
-            'train_didi': 0.11239426937050906,
-            'test_acc': 0.7516244529903195,
-            'test_ce': 3.663267204949637,
-            'test_didi': 0.18918639898902026
+            'train-ce': 0.39180277939327857,
+            'train-didi': 0.24245036155113317,
+            'test-acc': 0.8445829465588118,
+            'test-ce': 0.40707912342906016,
+            'test-didi': 0.3311465584675247
         }
     }
 
@@ -83,9 +82,8 @@ class TestFairClassification(TestExamples):
         return LogisticRegression(max_iter=10000, x_scaler='std')
 
     def _master(self, loss: str) -> Master:
-        # we use 'solution_limit' instead of 'time_limit' to avoid time-based stopping criteria which may lead to
-        # different results, and we use a value of '2' since the first solution simply returns a vector of zeros
-        return FairClassification(backend=GurobiBackend(solution_limit=2), protected='race', loss=loss)
+        # we use 'solution_limit' instead of 'time_limit' to avoid time-based stopping criteria
+        return FairClassification(backend=GurobiBackend(solution_limit=3), protected='race', loss=loss)
 
     def _metrics(self) -> List[Metric]:
         return [Accuracy(name='acc'), CrossEntropy(name='ce'), DIDI(protected='race', classification=True, name='didi')]

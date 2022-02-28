@@ -16,7 +16,7 @@ from moving_targets.util import probabilities
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF BALANCED COUNTS
 class BalancedCounts(ClassificationMaster):
-    def __init__(self, backend='gurobi', loss='crossentropy', alpha='harmonic', stats=False):
+    def __init__(self, backend='gurobi', loss='hd', alpha='harmonic', stats=False):
         # backend : the backend, which used to solve the master step
         # loss    : the loss function, which is used to compute the master objective
         # alpha   : the alpha optimizer, which is used to balance between the gradient term and the squared term

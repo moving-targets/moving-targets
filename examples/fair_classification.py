@@ -13,10 +13,8 @@ from moving_targets.metrics import DIDI, CrossEntropy, Accuracy
 
 
 # AS A FIRST STEP, WE NEED TO DEFINE OUR MASTER PROBLEM, WHICH IN THIS CASE WOULD BE THAT OF FAIR CLASSIFICATION
-
-
 class FairClassification(ClassificationMaster):
-    def __init__(self, protected, violation=0.2, backend='gurobi', loss='crossentropy', alpha='harmonic', stats=False):
+    def __init__(self, protected, violation=0.2, backend='gurobi', loss='hd', alpha='harmonic', stats=False):
         # protected  : the name of the protected feature
         # violation  : the maximal accepted level of violation of the constraint.
         # backend    : the backend, which used to solve the master step

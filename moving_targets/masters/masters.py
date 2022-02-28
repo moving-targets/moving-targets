@@ -303,9 +303,9 @@ class ClassificationMaster(Master, ABC):
         # by default, use continuous values for each loss but hamming distance that cannot handle them
         if loss_class == HammingDistance:
             assert self.binary, f"{loss} loss can handle only discrete targets, please use types = 'discrete'"
-            return HammingDistance(labelling=self.labelling)
+            return HammingDistance(labelling=self.labelling, name=loss)
         else:
-            return loss_class(binary=self.binary)
+            return loss_class(binary=self.binary, name=loss)
 
     def build(self, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         # we can simply build variables by shape (the y targets will be already onehot encoded for multiclass tasks)

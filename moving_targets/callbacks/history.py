@@ -43,7 +43,7 @@ class History(Logger):
             List of strings representing the names of the columns to plot. If None, plots all the columns.
 
         :param num_subplots:
-            float of row/columns in the final subplot, respectively to the value of the orient_rows argument.
+            Number of row/columns in the final subplot, respectively to the value of the orient_rows argument.
             If a string is passed, that is used to display the subplots according to a common prefix (e.g.,
             if num_subplots = '/' and the features are ['trn/loss', 'trn/metric', 'val/loss', 'val/metric'],
             then there will be a row/column for the 'trn' prefix and another one for the 'val' prefix).
