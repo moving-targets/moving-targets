@@ -890,7 +890,11 @@ class Backend:
         """
         return self.aux(expressions=a / b, aux_vtype=aux)
 
-    def dot(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto') -> Union[Any, np.ndarray]:
+    def dot(self,
+            a: np.ndarray,
+            b: np.ndarray,
+            asarray: bool = False,
+            aux: Optional[str] = 'auto') -> Union[Any, np.ndarray]:
         """Performs the dot product between two arrays.
 
         :param a:
@@ -898,6 +902,10 @@ class Backend:
 
         :param b:
             The second array (at most 2d).
+
+        :param asarray:
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -911,14 +919,5 @@ class Backend:
         :return:
             The dot product between a and b.
         """
-        a = a if a.ndim == 2 else a.reshape((1, len(a)))
-        b = b if b.ndim == 2 else b.reshape((len(b), 1))
-        # we use a list of lists instead of an array to let numpy handle the data type on its own
-        r = []
-        for i, row in enumerate(a):
-            r.append([])
-            for j, column in enumerate(b.T):
-                pairwise_products = self.multiply(a=row, b=column, aux=aux)
-                r[i].append(self.sum(pairwise_products, aux=aux))
-        r = np.array(r)
-        return r[0, 0] if r.size == 1 else r.squeeze()
+        dot_expression = self.aux(expressions=a @ b, aux_vtype=aux)
+        return np.array(dot_expression) if asarray else dot_expression
