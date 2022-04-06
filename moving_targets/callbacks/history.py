@@ -33,6 +33,7 @@ class History(Logger):
 
     def plot(self,
              features: Union[None, int, str, List[str], List[List[Optional[str]]]] = '/',
+             excluded: Optional[List[str]] = None,
              orient_rows: bool = False,
              tight_layout=True,
              figsize=(16, 9),
@@ -53,6 +54,9 @@ class History(Logger):
             If a list of lists is passed, it displays the subplots accordingly to each entry in the grid (if an entry
             is None, the respective subplot will be left empty).
 
+        :param excluded:
+            The list of either patterns or full feature names to be excluded from the plots.
+
         :param orient_rows:
             Whether to orient the plots by column or by row. This influences also the 'num_subplots' parameter since
             when 'orient_rows' is set to True the 'num_subplots' indicates the number of rows while when 'orient_rows'
@@ -72,11 +76,16 @@ class History(Logger):
             return
         # HANDLE COLUMNS TO BE PLOTTED (FEATURES)
         # 1. first of all, retrieve all the columns that can be plotted (i.e., they are numeric)
-        # 2. if <features> is None, compute the best subplots disposition according to their number, the figure ratio,
+        # 2. if <excluded> is not None, builds the set of excluded features matching the patterns and removes each of
+        #    them from the list of columns
+        # 3. if <features> is None, compute the best subplots disposition according to their number, the figure ratio,
         #    and the orientation, so that it is brought back to the case in which <features> is an integer
-        # 3. if <features> is a string, retrieve all the prefixes matching that separator and store them into a list,
+        # 4. if <features> is a string, retrieve all the prefixes matching that separator and store them into a list,
         #    so that it is brought back to the case in which <features> is a list of patterns
         columns = [c for c in self._history.columns if np.issubdtype(self._history[c].dtype, np.number)]
+        if excluded is not None:
+            excluded = {c for e in excluded for c in fnmatch.filter(columns, e)}
+            columns = [c for c in columns if c not in excluded]
         if features is None:
             ratio = figsize[0] / figsize[1] if orient_rows else figsize[1] / figsize[0]
             features = int(max(np.sqrt(ratio * len(columns)).round(), 1))
