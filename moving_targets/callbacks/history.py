@@ -1,4 +1,5 @@
 """History Callback"""
+import fnmatch
 import warnings
 from typing import List, Optional, Union
 
@@ -31,8 +32,7 @@ class History(Logger):
             self._history = pd.concat(self._history, ignore_index=True)
 
     def plot(self,
-             features: Optional[List[str]] = None,
-             num_subplots: Union[str, int] = '/',
+             features: Union[None, int, str, List[str], List[List[Optional[str]]]] = '/',
              orient_rows: bool = False,
              tight_layout=True,
              figsize=(16, 9),
@@ -40,13 +40,18 @@ class History(Logger):
         """Plots the training information which were previously collected in a dataframe.
 
         :param features:
-            List of strings representing the names of the columns to plot. If None, plots all the columns.
-
-        :param num_subplots:
-            Number of row/columns in the final subplot, respectively to the value of the orient_rows argument.
-            If a string is passed, that is used to display the subplots according to a common prefix (e.g.,
-            if num_subplots = '/' and the features are ['trn/loss', 'trn/metric', 'val/loss', 'val/metric'],
-            then there will be a row/column for the 'trn' prefix and another one for the 'val' prefix).
+            Indicates which feature to plot as well as the plotting strategy.
+            If None is passed, all the (numeric) features are automatically displayed according to the figure ratio.
+            If an integer is passed, all the (numeric) features are plotted and the parameter indicates number of row
+            or columns in the final subplot, respectively to the value of the orient_rows argument.
+            If a string is passed, this is used to display the subplots according to a common prefix (for instance, if
+            features = '/' and the features are ['trn/loss', 'trn/metric', 'val/loss', 'val/metric'], then there will
+            be a row or column for the 'trn' prefix and another one for the 'val' prefix).
+            If a list of strings is passed, these strings are considered as patters, therefore there will be a row or
+            column for each feature matching with the pattern (each pattern can be either the exact name of a feature
+            or it can contain a wildcard, e.g., '*/mse' or 'predictions/*').
+            If a list of lists is passed, it displays the subplots accordingly to each entry in the grid (if an entry
+            is None, the respective subplot will be left empty).
 
         :param orient_rows:
             Whether to orient the plots by column or by row. This influences also the 'num_subplots' parameter since
@@ -66,50 +71,57 @@ class History(Logger):
             warnings.warn('Process did not end correctly, therefore no dataframe can be plotted')
             return
         # HANDLE COLUMNS TO BE PLOTTED (FEATURES)
-        #   1. we use the given columns if explicitly passed, otherwise we use the df columns
-        #   2. the features are then obtained as those who are a subset of the number data type
-        features = self._history.columns if features is None else features
-        features = [f for f in features if f is None or np.issubdtype(self._history[f].dtype, np.number)]
+        # 1. first of all, retrieve all the columns that can be plotted (i.e., they are numeric)
+        # 2. if <features> is None, compute the best subplots disposition according to their number, the figure ratio,
+        #    and the orientation, so that it is brought back to the case in which <features> is an integer
+        # 3. if <features> is a string, retrieve all the prefixes matching that separator and store them into a list,
+        #    so that it is brought back to the case in which <features> is a list of patterns
+        columns = [c for c in self._history.columns if np.issubdtype(self._history[c].dtype, np.number)]
+        if features is None:
+            ratio = figsize[0] / figsize[1] if orient_rows else figsize[1] / figsize[0]
+            features = int(max(np.sqrt(ratio * len(columns)).round(), 1))
+        elif isinstance(features, str):
+            prefixes = {f'{column.split(features)[0]}' for column in columns}
+            features = [f'{prefix}{features}*' for prefix in prefixes]
         # HANDLE THE SUBPLOT POSITIONS
-        #   1. if the given number of subplots is an integer, it arranges the features by taking them in groups of
-        #      <num_subplots>, otherwise it means that the argument is a prefix separator thus it arranges the features
-        #      by constructing a dictionary of features sharing the prefix and taking them as a group
-        #   2. computes the dimensions of the newly arranged features list as the number of rows and the length of the
-        #      longest column, then creates a numpy array of None values having that shape and eventually fills it
-        #   3. if 'orient_column' is False, transpose the array of positions
-        if isinstance(num_subplots, int):
-            features = [features[i::num_subplots] for i in range(num_subplots)]
-            # the behaviour here is inverted since we are taking the features by <num_subplots> steps
+        # 1. if <features> is an integer, it arranges the subplots by taking them in groups of <features>; moreover the
+        #    orientation behaviour is inverted since columns are taken by <features> steps
+        # 2. otherwise, <features> must be either a list of strings or a list of lists; in the first case, each string
+        #    is mapped to the list of columns matching for the pattern, otherwise it means that this is the list of
+        #    lists directly passed by the user, thus some integrity checks are performed
+        # 3. eventually, the list of lists is converted into a well-shaped numpy array by filling up each row to the
+        #    length of the maximal rows since some of them may have less subplots than the maximum one
+        if isinstance(features, int):
+            columns = [columns[i::features] for i in range(features)]
             orient_rows = not orient_rows
         else:
-            prefixes = {}
-            for column in features:
-                prefix = column.split(num_subplots)[0]
-                if prefix in prefixes:
-                    prefixes[prefix].append(column)
+            for i, entry in enumerate(features):
+                if isinstance(entry, str):
+                    features[i] = fnmatch.filter(columns, entry)
                 else:
-                    prefixes[prefix] = [column]
-            features = [v for v in prefixes.values()]
-        num_rows = len(features)
-        num_cols = np.max([len(row) for row in features])
+                    for f in entry:
+                        if f is not None:
+                            assert f in columns, f"Feature '{f} is either not present in history or it is not numeric"
+            columns = features
+        num_rows = len(columns)
+        num_cols = np.max([len(row) for row in columns])
         positions = np.array([[None] * num_cols] * num_rows)
-        for i, row in enumerate(features):
-            # filling up to len(row) is necessary since some rows may have less features than the maximum one
+        for i, row in enumerate(columns):
             positions[i, :len(row)] = row
         positions = positions if orient_rows else positions.transpose()
-        # PLOT EACH FEATURE IN A SUBPLOT
+        # PLOT EACH COLUMN IN A SUBPLOT
         #   1. iterates by rows and columns
-        #   2. if the feature name is not None, it plots the data
+        #   2. if the column is not None, it plots the data
         ax = None
         num_rows, num_cols = positions.shape
         plt.figure(figsize=figsize, tight_layout=tight_layout, **plt_kwargs)
-        for idx, feature in enumerate(positions.flatten()):
-            if feature is not None:
+        for idx, column in enumerate(positions.flatten()):
+            if column is not None:
                 ax = plt.subplot(num_rows, num_cols, idx + 1, sharex=ax)
-                x, y = self._history.index, self._history[feature]
+                x, y = self._history.index, self._history[column]
                 plt.plot(x, y)
                 plt.scatter(x, y)
-                ax.set(title=feature, xlabel='', ylabel='')
+                ax.set(title=column, xlabel='', ylabel='')
                 # fix integer x_ticks based on autogenerated ones in order to avoid superimposed values
                 ticks = np.unique(ax.get_xticks().round().astype(int))
                 ax.set_xticks([t for t in ticks if t in range(x.min(), x.max() + 1)])
