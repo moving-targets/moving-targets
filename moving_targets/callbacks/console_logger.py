@@ -32,5 +32,5 @@ class ConsoleLogger(Callback):
         print(f'{time.time() - self._time:.4f} s')
         self._time = None
 
-    def on_process_end(self, macs, val_data: Optional[Dataset]):
+    def on_process_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         print('... process ended correctly!')

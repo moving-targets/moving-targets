@@ -39,10 +39,10 @@ class DataLogger(Callback):
     def on_training_end(self, macs, x, y: np.ndarray, p: np.ndarray, val_data: Optional[Dataset]):
         self.data[f'p{macs.iteration}'] = p
 
-    def on_adjustment_end(self, macs, x, y, z, val_data):
+    def on_adjustment_end(self, macs, x, y: np.ndarray, z: np.ndarray, val_data: Optional[Dataset]):
         self.data[f'z{macs.iteration}'] = z
 
-    def on_process_end(self, macs, val_data: Optional[Dataset]):
+    def on_process_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         if self.filepath is None:
             return
         elif self.filepath.endswith('.csv'):

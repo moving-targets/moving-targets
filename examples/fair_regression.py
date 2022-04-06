@@ -82,7 +82,7 @@ class FairnessPlots(DataLogger):
         group = x[[c for c in x.columns if c.startswith(self.protected)]].values.squeeze().astype(int)
         self.data['group'] = group.argmax(axis=1) if group.ndim == 2 else group
 
-    def on_process_end(self, macs, val_data):
+    def on_process_end(self, macs, x, y, val_data):
         plt.figure(**self.plt_kwargs)
         num_rows = int(np.ceil(len(self.iterations) / self.num_columns))
         ax = None

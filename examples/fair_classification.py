@@ -86,7 +86,7 @@ class FairnessPlots(DataLogger):
         # store class targets instead of class probabilities
         super(FairnessPlots, self).on_training_end(macs, x, y, probabilities.get_classes(p), val_data)
 
-    def on_process_end(self, macs, val_data):
+    def on_process_end(self, macs, x, y, val_data):
         plt.figure(**self.plt_kwargs)
         num_rows = int(np.ceil(len(self.iterations) / self.num_columns))
         ax = None

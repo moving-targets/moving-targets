@@ -2,6 +2,9 @@
 #   > "python setup.py clean" in order to clean previous builds
 #   > "python setup.py test" in order to execute all the unittests
 #   > "python setup.py sdist" in order to build the library
+#
+# The package can then be published with:
+#   > twin upload dist/*
 
 from setuptools import find_packages, setup
 
@@ -9,7 +12,7 @@ from setuptools import find_packages, setup
 with open('README.md', 'r') as readme:
     setup(
         name='moving-targets',
-        version='0.2.0',
+        version='0.2.1',
         maintainer='Luca Giuliani',
         maintainer_email='luca.giuliani13@unibo.it',
         author='University of Bologna - DISI',

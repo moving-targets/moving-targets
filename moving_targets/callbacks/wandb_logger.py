@@ -54,5 +54,5 @@ class WandBLogger(Logger):
         self._wandb.log({k: self._cache[k] for k in sorted(self._cache)})
         self._cache = {}
 
-    def on_process_end(self, macs, val_data: Optional[Dataset]):
+    def on_process_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._wandb.finish()

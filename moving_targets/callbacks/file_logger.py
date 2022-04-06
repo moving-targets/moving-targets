@@ -65,7 +65,7 @@ class FileLogger(Logger):
 
         self._write_on_file(macs, 'PROCESS START', 'on_process_start')
 
-    def on_process_end(self, macs, val_data: Optional[Dataset]):
+    def on_process_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._write_on_file(macs, 'PROCESS END', 'on_process_end')
 
     def on_pretraining_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):

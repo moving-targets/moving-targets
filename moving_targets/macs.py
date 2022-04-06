@@ -170,7 +170,7 @@ class MACS(StatsLogger):
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
             self._update(callbacks, lambda c: c.on_training_end(macs=self, x=x, y=y, p=p, val_data=val_data))
             self._update(callbacks, lambda c: c.on_iteration_end(macs=self, x=x, y=y, val_data=val_data))
-        self._update(callbacks, lambda c: c.on_process_end(macs=self, val_data=val_data))
+        self._update(callbacks, lambda c: c.on_process_end(macs=self, x=x, y=y, val_data=val_data))
         return self._history
 
     def predict(self, x) -> Any:

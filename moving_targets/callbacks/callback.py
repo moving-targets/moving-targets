@@ -28,19 +28,23 @@ class Callback:
 
         :param val_data:
             A dictionary containing the validation data, indicated as a tuple (xv, yv).
-
         """
         pass
 
-    def on_process_end(self, macs, val_data: Optional[Dataset]):
+    def on_process_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         """Routine called at the beginning of the `MACS` fitting process.
 
         :param macs:
             Reference to the `MACS` object encapsulating the master.
 
+        :param x:
+            The matrix/dataframe of training samples.
+
+        :param y:
+            The vector of training labels.
+
         :param val_data:
             A dictionary containing the validation data, indicated as a tuple (xv, yv).
-
         """
         pass
 

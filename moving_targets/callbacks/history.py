@@ -25,7 +25,7 @@ class History(Logger):
         self._history.append(pd.DataFrame([self._cache.values()], columns=self._cache.keys()))
         self._cache = {}
 
-    def on_process_end(self, macs, val_data: Optional[Dataset]):
+    def on_process_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         # Creates a single dataframe by concatenating the sub-dataframes from each iteration.
         if len(self._history) > 0:
             self._history = pd.concat(self._history, ignore_index=True)
