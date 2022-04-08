@@ -1,9 +1,8 @@
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
 
-from moving_targets.learners import Learner
 from moving_targets.util.errors import not_implemented_message
 from test.abstract import AbstractTest
 
@@ -18,7 +17,7 @@ class TestLearners(AbstractTest):
         """Implements the strategy to fit the reference learner and retrieve its predictions."""
         raise NotImplementedError(not_implemented_message(name='_reference'))
 
-    def _test(self, mt_learner: Learner, ref_learner: Any, classification: bool):
+    def _test(self, mt_learner: Callable, ref_learner: Callable, classification: bool):
         """Performs the tests on the given data and checks the correctness of the learner wrt to a reference learner."""
         np.random.seed(self.SEED)
         for weights in [True, False]:
@@ -29,11 +28,12 @@ class TestLearners(AbstractTest):
                 sample_weight = np.random.random(self.NUM_SAMPLES) if weights else None
                 # fit and predict using the moving targets learner
                 self._random_state()
-                mt_learner.fit(x, y, sample_weight=sample_weight)
-                mt_pred = mt_learner.predict(x)
+                mt_pred = mt_learner().fit(x, y, sample_weight=sample_weight).predict(x)
                 # fit and predict using the reference learner
                 self._random_state()
-                ref_pred = self._reference(ref_learner, x, y, sample_weight)
+                ref_pred = self._reference(ref_learner(), x, y, sample_weight)
                 # check correctness
-                df = pd.DataFrame(mt_pred).join(pd.DataFrame(ref_pred), lsuffix='_mt', rsuffix='_ref')
-                self.assertTrue(np.all(mt_pred == ref_pred), msg=f'iteration: {i}, weights: {weights}\n\n\n{df}')
+                df = pd.DataFrame.from_dict({'y': y, 'mt': mt_pred, 'ref': ref_pred})
+                diff = np.abs(mt_pred - ref_pred)
+                msg = f'iteration: {i}, weights: {weights}, diff: {diff.max()} (sample {diff.argmax()})\n\n\n{df}'
+                self.assertTrue(np.allclose(mt_pred, ref_pred, atol=10 ** -self.PLACES), msg=msg)

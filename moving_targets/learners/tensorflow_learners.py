@@ -1,4 +1,4 @@
-from typing import Optional, List, Union, Dict
+from typing import Optional, List, Union, Dict, Any
 
 import numpy as np
 
@@ -18,7 +18,7 @@ class TensorflowLearner(Learner):
                  **fit_kwargs):
         """
         :param model:
-            The Tensorflow/Keras model which should have been already compiled.
+            The tensorflow/keras model which should have been already compiled.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -36,9 +36,9 @@ class TensorflowLearner(Learner):
         super(TensorflowLearner, self).__init__(x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
 
         self.model = model
-        """The Tensorflow/Keras model."""
+        """The tensorflow/keras model."""
 
-        self.fit_kwargs = fit_kwargs
+        self.fit_kwargs: Dict[str, Any] = fit_kwargs
         """Custom arguments to be passed to the model '.fit()' method."""
 
     def _fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None):
@@ -48,7 +48,7 @@ class TensorflowLearner(Learner):
         return self.model.predict(x).squeeze()
 
 
-class MultiLayerPerceptron(TensorflowLearner):
+class TensorflowMLP(TensorflowLearner):
     """Tensorflow/Keras Dense Neural Network Wrapper"""
 
     def __init__(self,
@@ -63,6 +63,7 @@ class MultiLayerPerceptron(TensorflowLearner):
                  weighted_metrics: Optional[List] = None,
                  run_eagerly: bool = False,
                  epochs: int = 1,
+                 shuffle: bool = True,
                  validation_split: float = 0.,
                  batch_size: Optional[int] = None,
                  class_weight: Optional[Dict] = None,
@@ -91,7 +92,7 @@ class MultiLayerPerceptron(TensorflowLearner):
             The neural network optimizer.
 
         :param metrics:
-            The list of keras metrics for the evaluation phase.
+            The list of tensorflow/keras metrics for the evaluation phase.
 
         :param loss_weights:
             Optional list or dictionary specifying scalar coefficients to weight the loss contributions.
@@ -105,6 +106,9 @@ class MultiLayerPerceptron(TensorflowLearner):
         :param epochs:
             The number of training epochs.
 
+        :param shuffle:
+            Whether or not to shuffle the dataset when training.
+
         :param validation_split:
             The validation split for neural network training.
 
@@ -115,7 +119,7 @@ class MultiLayerPerceptron(TensorflowLearner):
             Optional dictionary mapping class indices to a weight, used for weighting the loss function during training.
 
         :param callbacks:
-            The list of keras callbacks for the training phase.
+            The list of tensorflow/keras callbacks for the training phase.
 
         :param verbose:
             Whether or not to print information during the neural network training.
@@ -131,8 +135,8 @@ class MultiLayerPerceptron(TensorflowLearner):
             statistics must be logged.
         """
         try:
-            from tensorflow.keras.layers import Dense
-            from tensorflow.keras.models import Sequential
+            from keras.layers import Dense
+            from keras.models import Sequential
         except ModuleNotFoundError:
             raise MissingDependencyError(package='tensorflow')
 
@@ -147,13 +151,14 @@ class MultiLayerPerceptron(TensorflowLearner):
                         weighted_metrics=weighted_metrics,
                         run_eagerly=run_eagerly)
 
-        super(MultiLayerPerceptron, self).__init__(model=network,
-                                                   epochs=epochs,
-                                                   batch_size=batch_size,
-                                                   validation_split=validation_split,
-                                                   callbacks=callbacks,
-                                                   class_weight=class_weight,
-                                                   verbose=verbose,
-                                                   x_scaler=x_scaler,
-                                                   y_scaler=y_scaler,
-                                                   stats=stats)
+        super(TensorflowMLP, self).__init__(model=network,
+                                            epochs=epochs,
+                                            shuffle=shuffle,
+                                            batch_size=batch_size,
+                                            validation_split=validation_split,
+                                            callbacks=callbacks,
+                                            class_weight=class_weight,
+                                            verbose=verbose,
+                                            x_scaler=x_scaler,
+                                            y_scaler=y_scaler,
+                                            stats=stats)

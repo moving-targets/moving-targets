@@ -2,7 +2,7 @@ import os
 from typing import Dict, Callable
 
 from moving_targets.callbacks import WandBLogger
-from moving_targets.learners import MultiLayerPerceptron
+from moving_targets.learners import TorchMLP, TensorflowMLP
 from moving_targets.masters.backends import CplexBackend, CvxpyBackend, GurobiBackend
 from moving_targets.util.errors import MissingDependencyError
 from test.abstract import AbstractTest
@@ -72,8 +72,9 @@ class TestExternalPackages(AbstractTest):
         ('cvxpy', CvxpyBackend),
         ('docplex', CplexBackend),
         ('gurobipy', GurobiBackend),
-        ('wandb', lambda: WandBLogger(project='', entity='', run_name='')),
-        ('tensorflow', lambda: MultiLayerPerceptron(loss='', output_units=1, output_activation=None))
+        ('tensorflow', lambda: TensorflowMLP(loss='', output_units=1)),
+        ('torch', lambda: TorchMLP(loss='', input_units=1, output_units=1)),
+        ('wandb', lambda: WandBLogger(project='', entity='', run_name=''))
     ]}
 
     def test(self):

@@ -24,7 +24,7 @@ class TestLosses(AbstractTest):
                   weights: Optional[np.ndarray] = None) -> Tuple[float, float]:
         """Implements the correct loss definition based on the derivative of the given reference loss."""
         import tensorflow as tf
-        import tensorflow.keras.losses as ls
+        import keras.losses as ls
         # handle inputs
         v = tf.constant(values.reshape((len(values), -1)), dtype=tf.float32)
         t = tf.constant(targets.reshape((len(targets), -1)), dtype=tf.float32)
