@@ -15,6 +15,16 @@ from test.abstract import AbstractTest
 
 
 class TestExamples(AbstractTest):
+    _PRINT_GROUND_TRUTHS: bool = False
+    """Turn this flag on whenever some requirement or algorithm change is expected to modify the examples results.
+    When this flag is on, run the tests in order to print the expected results on the console and then copy them.
+    Be careful to change the least amount of requirements or lines of code as possible since an error in this step
+    will eventually lead to wrong ground truths and, subsequently, wrong regression tests."""
+
+    RESULTS: Dict[str, Dict[str, float]]
+    """Contains the expected results indexed via '<dataset>-<init_step>-<loss>' in the form of a dictionary where each
+    key is a string '<split>-<metric>' and the value is the metric result."""
+
     def _stratify(self) -> bool:
         """Whether to stratify or not the data when splitting between train and validation."""
         raise NotImplementedError(not_implemented_message('_stratify'))
@@ -31,10 +41,6 @@ class TestExamples(AbstractTest):
         """The list of `Metric` instances on which to evaluate the model."""
         raise NotImplementedError(not_implemented_message('_metrics'))
 
-    def _results(self, dataset: str, class_column: str, init_step: str, loss: str) -> Dict[str, float]:
-        """The dictionary of expected results."""
-        raise NotImplementedError(not_implemented_message('_results'))
-
     def _test(self, dataset: str, class_column: str, init_step: str, loss: str):
         """Implements the testing strategy for a given dataset using a certain loss, a certain initial step, and
         having the given target label."""
@@ -50,9 +56,16 @@ class TestExamples(AbstractTest):
         model = MACS(init_step=init_step, learner=self._learner(), master=master, metrics=self._metrics())
         model.fit(xtr, ytr, iterations=3, verbose=False)
         # test results
-        exp_res = self._results(dataset=dataset, class_column=class_column, init_step=init_step, loss=loss)
+        exp_res = self.RESULTS[f'{dataset}-{init_step}-{loss}']
         act_res = dict(train=model.evaluate(xtr, ytr), test=model.evaluate(xts, yts))
-        for split, act in act_res.items():
-            for metric, val in act.items():
-                msg = f'{metric} does not match in {split}'
-                self.assertAlmostEqual(exp_res[f'{split}_{metric}'], val, places=self.PLACES, msg=msg)
+        if self._PRINT_GROUND_TRUTHS:
+            print(f"'{dataset}-{init_step}-{loss}': " + '{')
+            for split, act in act_res.items():
+                for metric, val in act.items():
+                    print(f"    '{split}_{metric}': {val},")
+            print('},')
+        else:
+            for split, act in act_res.items():
+                for metric, val in act.items():
+                    msg = f'{metric} does not match in {split}'
+                    self.assertAlmostEqual(exp_res[f'{split}_{metric}'], val, places=self.PLACES, msg=msg)

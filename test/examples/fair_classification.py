@@ -10,69 +10,69 @@ from test.examples.abstract import TestExamples
 
 class TestFairClassification(TestExamples):
     RESULTS: Dict[str, Dict[str, float]] = {
-        'pretraining-ce': {
+        'adult-pretraining-ce': {
             'train_acc': 0.8464258874497149,
-            'train_ce': 0.32723644103481114,
-            'train_didi': 0.2686298053945948,
-            'test_acc': 0.8448481633735578,
-            'test_ce': 0.3338098009458882,
-            'test_didi': 0.38514044533373576
+            'train_ce': 0.3273146658852211,
+            'train_didi': 0.26263046393957795,
+            'test_acc': 0.84537859700305,
+            'test_ce': 0.3336856663273787,
+            'test_didi': 0.32541518651841117
         },
-        'pretraining-hd': {
-            'train_acc': 0.8406348083639097,
-            'train_ce': 1.5722980342687716,
-            'train_didi': 0.22082223974210263,
-            'test_acc': 0.8415329531892322,
-            'test_ce': 1.6632173225965998,
-            'test_didi': 0.2880360610111668
+        'adult-pretraining-hd': {
+            'train_acc': 0.840590601653331,
+            'train_ce': 1.6114427450352018,
+            'train_didi': 0.2352616299019666,
+            'test_acc': 0.8414003447818592,
+            'test_ce': 1.7056061163756506,
+            'test_didi': 0.2923796901198495
         },
-        'pretraining-mae': {
-            'train_acc': 0.7512488395738474,
-            'train_ce': 4.057117828731541,
-            'train_didi': 0.014369104265741079,
-            'test_acc': 0.7510940193608274,
-            'test_ce': 4.058965047539217,
-            'test_didi': 0.0
-        },
-        'pretraining-mse': {
-            'train_acc': 0.7510720127315327,
-            'train_ce': 1.300984522733852,
-            'train_didi': 0.0,
-            'test_acc': 0.7510940193608274,
-            'test_ce': 1.303033491486402,
-            'test_didi': 0.0
-        },
-        'projection-ce': {
-            'train_acc': 0.8221564033420273,
-            'train_ce': 0.36713668739106503,
-            'train_didi': 0.14988098539710373,
-            'test_acc': 0.8245590770454847,
-            'test_ce': 0.369416393502257,
-            'test_didi': 0.1451249778538799
-        },
-        'projection-hd': {
-            'train_acc': 0.8465143008708722,
-            'train_ce': 1.3273700399501647,
-            'train_didi': 0.21434295815856858,
+        'adult-pretraining-mae': {
+            'train_acc': 0.8481499491622828,
+            'train_ce': 0.8208600391856758,
+            'train_didi': 0.21561414128655274,
             'test_acc': 0.845245988595677,
-            'test_ce': 1.4050198331575598,
-            'test_didi': 0.32160864501229514
+            'test_ce': 0.872181988548318,
+            'test_didi': 0.35198008105013934
         },
-        'projection-mae': {
-            'train_acc': 0.8464700941602935,
-            'train_ce': 0.5276367968094331,
-            'train_didi': 0.19692639632575293,
-            'test_acc': 0.8423286036334704,
-            'test_ce': 0.5554519401155185,
-            'test_didi': 0.3406549905425884
-        },
-        'projection-mse': {
-            'train_acc': 0.8473542283718668,
-            'train_ce': 0.39180277939327857,
-            'train_didi': 0.24245036155113317,
+        'adult-pretraining-mse': {
+            'train_acc': 0.8473984350824455,
+            'train_ce': 0.3975507272845652,
+            'train_didi': 0.22452896719584453,
             'test_acc': 0.8445829465588118,
-            'test_ce': 0.40707912342906016,
-            'test_didi': 0.3311465584675247
+            'test_ce': 0.41351429520578087,
+            'test_didi': 0.33413079657672795
+        },
+        'adult-projection-ce': {
+            'train_acc': 0.8467353344237655,
+            'train_ce': 0.3272828293160022,
+            'train_didi': 0.26176691087685144,
+            'test_acc': 0.845113380188304,
+            'test_ce': 0.33383612851494265,
+            'test_didi': 0.34240540535006486
+        },
+        'adult-projection-hd': {
+            'train_acc': 0.8476194686353389,
+            'train_ce': 1.3298530667700381,
+            'train_didi': 0.23145880707214603,
+            'test_acc': 0.8444503381514388,
+            'test_ce': 1.411019984964159,
+            'test_didi': 0.43141606612379135
+        },
+        'adult-projection-mae': {
+            'train_acc': 0.8489456699526988,
+            'train_ce': 0.733863555987578,
+            'train_didi': 0.23234632753361797,
+            'test_acc': 0.845113380188304,
+            'test_ce': 0.7799597506168637,
+            'test_didi': 0.38688779560590514
+        },
+        'adult-projection-mse': {
+            'train_acc': 0.8473542283718668,
+            'train_ce': 0.40470002445051095,
+            'train_didi': 0.2325922068995007,
+            'test_acc': 0.8448481633735578,
+            'test_ce': 0.42138531705150434,
+            'test_didi': 0.3484499271239641
         }
     }
 
@@ -88,9 +88,6 @@ class TestFairClassification(TestExamples):
 
     def _metrics(self) -> List[Metric]:
         return [Accuracy(name='acc'), CrossEntropy(name='ce'), DIDI(protected='race', classification=True, name='didi')]
-
-    def _results(self, dataset: str, class_column: str, init_step: str, loss: str) -> Dict[str, float]:
-        return self.RESULTS[f'{init_step}-{loss}']
 
     def test_pretraining_hd(self):
         self._test(dataset='adult', class_column='income', init_step='pretraining', loss='hd')

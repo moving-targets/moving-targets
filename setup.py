@@ -12,7 +12,7 @@ from setuptools import find_packages, setup
 with open('README.md', 'r') as readme:
     setup(
         name='moving-targets',
-        version='0.2.2',
+        version='0.2.3',
         maintainer='Luca Giuliani',
         maintainer_email='luca.giuliani13@unibo.it',
         author='University of Bologna - DISI',
@@ -20,7 +20,7 @@ with open('README.md', 'r') as readme:
         long_description=readme.read(),
         long_description_content_type='text/markdown',
         packages=find_packages(include=['moving_targets*']),
-        python_requires='>=3.7',
-        install_requires=['matplotlib~=3.4.3', 'numpy~=1.21.4', 'pandas~=1.3.4', 'scikit-learn~=1.0.1'],
+        python_requires='~=3.7',
+        install_requires=['matplotlib~=3.5.1', 'numpy~=1.21.5', 'pandas~=1.3.5', 'scikit-learn~=1.0.2'],
         test_suite='test'
     )

@@ -28,12 +28,12 @@ class MissingDependencyError(ModuleNotFoundError):
     """Error class for missing external dependencies which mat be lazily imported."""
 
     _versions: Dict[str, str] = {
-        'cvxpy': '1.1.13',
-        'docplex': '2.20.204',
-        'gurobipy': '9.1.2',
-        'tensorflow': '2.8.0',
+        'cvxpy': '1.2.0',
+        'docplex': '2.23.222',
+        'gurobipy': '9.5.1',
         'torch': '1.11.0',
-        'wandb': '0.12.6'
+        'tensorflow': '2.8.0',
+        'wandb': '0.12.13'
     }
     """Expected versions (as in project requirements) of each external dependency which may be lazily imported."""
 

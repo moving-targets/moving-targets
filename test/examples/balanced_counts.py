@@ -19,10 +19,10 @@ class TestBalancedCounts(TestExamples):
         },
         'iris-pretraining-hd': {
             'train_acc': 0.9375,
-            'train_ce': 0.20345882632970388,
+            'train_ce': 0.19236475717832052,
             'train_std': 0.011135885079684334,
-            'test_acc': 0.8421052631578947,
-            'test_ce': 0.26922524852558893,
+            'test_acc': 0.8947368421052632,
+            'test_ce': 0.24274953809928973,
             'test_std': 0.03282155602433281
         },
         'iris-pretraining-mae': {
@@ -51,10 +51,10 @@ class TestBalancedCounts(TestExamples):
         },
         'iris-projection-hd': {
             'train_acc': 0.9375,
-            'train_ce': 0.20345882632970388,
+            'train_ce': 0.19236475717832052,
             'train_std': 0.011135885079684334,
-            'test_acc': 0.8421052631578947,
-            'test_ce': 0.26922524852558893,
+            'test_acc': 0.8947368421052632,
+            'test_ce': 0.24274953809928973,
             'test_std': 0.03282155602433281
         },
         'iris-projection-mae': {
@@ -74,132 +74,132 @@ class TestBalancedCounts(TestExamples):
             'test_std': 0.03282155602433281
         },
         'redwine-pretraining-ce': {
-            'train_acc': 0.19849874895746455,
-            'train_ce': 2.3545488218311874,
-            'train_std': 0.019644963105717457,
-            'test_acc': 0.26,
-            'test_ce': 2.2849908030558295,
-            'test_std': 0.03463099125863358
+            'train_acc': 0.20100083402835697,
+            'train_ce': 2.3503051283799477,
+            'train_std': 0.01871408398364784,
+            'test_acc': 0.2525,
+            'test_ce': 2.273321243823182,
+            'test_std': 0.030023139224419706
         },
         'redwine-pretraining-hd': {
-            'train_acc': 0.3469557964970809,
-            'train_ce': 3.2981379745466124,
-            'train_std': 0.014735156641115424,
-            'test_acc': 0.3425,
-            'test_ce': 3.5058195292908145,
-            'test_std': 0.024438130497691963
+            'train_acc': 0.3427856547122602,
+            'train_ce': 3.6993290755927895,
+            'train_std': 0.0162254900332621,
+            'test_acc': 0.33,
+            'test_ce': 3.944571788044401,
+            'test_std': 0.02612735901098481
         },
         'redwine-pretraining-mae': {
-            'train_acc': 0.3502919099249375,
-            'train_ce': 4.1157856576353895,
-            'train_std': 0.004236794732868549,
-            'test_acc': 0.3175,
-            'test_ce': 4.513083125564008,
-            'test_std': 0.019561157657175844
+            'train_acc': 0.34528773978315264,
+            'train_ce': 4.130049656675954,
+            'train_std': 0.005195505029477557,
+            'test_acc': 0.315,
+            'test_ce': 4.544605338663489,
+            'test_std': 0.021730674684008827
         },
         'redwine-pretraining-mse': {
             'train_acc': 0.33611342785654713,
-            'train_ce': 3.6188422377132903,
-            'train_std': 0.004236794732868551,
-            'test_acc': 0.33,
-            'test_ce': 3.8851092142505324,
-            'test_std': 0.025481474752367755
+            'train_ce': 3.6111965110778663,
+            'train_std': 0.005013813955204731,
+            'test_acc': 0.3125,
+            'test_ce': 3.842640971474335,
+            'test_std': 0.017179606773406922
         },
         'redwine-projection-ce': {
-            'train_acc': 0.3085904920767306,
-            'train_ce': 2.159520632453983,
-            'train_std': 0.008792529664091449,
-            'test_acc': 0.3,
-            'test_ce': 2.262814512316213,
-            'test_std': 0.027600825269465324
+            'train_acc': 0.3094245204336947,
+            'train_ce': 2.2397569751055455,
+            'train_std': 0.02256719360777349,
+            'test_acc': 0.3025,
+            'test_ce': 2.279483294413772,
+            'test_std': 0.0268741924943285
         },
         'redwine-projection-hd': {
-            'train_acc': 0.33527939949958296,
-            'train_ce': 3.281921168030774,
-            'train_std': 0.020363599350330296,
-            'test_acc': 0.3375,
-            'test_ce': 3.537296087855616,
-            'test_std': 0.03975620147292188
+            'train_acc': 0.3286071726438699,
+            'train_ce': 3.58657269573169,
+            'train_std': 0.019021312459555198,
+            'test_acc': 0.3125,
+            'test_ce': 3.6357981239189443,
+            'test_std': 0.03197221015541813
         },
         'redwine-projection-mae': {
-            'train_acc': 0.33611342785654713,
-            'train_ce': 3.993802275532073,
-            'train_std': 0.0038042624919110385,
-            'test_acc': 0.315,
-            'test_ce': 4.42828570095567,
-            'test_std': 0.02702879123371142
+            'train_acc': 0.3336113427856547,
+            'train_ce': 4.184030243971293,
+            'train_std': 0.005520080525900695,
+            'test_acc': 0.3075,
+            'test_ce': 4.347890388298079,
+            'test_std': 0.019075871903766
         },
         'redwine-projection-mse': {
-            'train_acc': 0.33527939949958296,
-            'train_ce': 3.5560477235702623,
-            'train_std': 0.0037428167967295677,
-            'test_acc': 0.305,
-            'test_ce': 3.92342123429749,
-            'test_std': 0.026483747636784502
+            'train_acc': 0.3311092577147623,
+            'train_ce': 3.716897066266321,
+            'train_std': 0.007558841325728395,
+            'test_acc': 0.2975,
+            'test_ce': 3.876185990303711,
+            'test_std': 0.018856180831641273
         },
         'whitewine-pretraining-ce': {
-            'train_acc': 0.1478355567655867,
-            'train_ce': 2.3447947135652956,
-            'train_std': 0.034437080184119756,
-            'test_acc': 0.1493877551020408,
-            'test_ce': 2.321415703511258,
-            'test_std': 0.03626128382267203
+            'train_acc': 0.15137489790362102,
+            'train_ce': 2.3531113849719727,
+            'train_std': 0.03246754397117152,
+            'test_acc': 0.15183673469387754,
+            'test_ce': 2.334037067457527,
+            'test_std': 0.03431346926013386
         },
         'whitewine-pretraining-hd': {
-            'train_acc': 0.27525183773482165,
-            'train_ce': 4.111642068175112,
-            'train_std': 0.017640498146354475,
-            'test_acc': 0.2857142857142857,
-            'test_ce': 4.0854369779642,
-            'test_std': 0.021969434134164745
+            'train_acc': 0.2638170432888647,
+            'train_ce': 4.884817982860021,
+            'train_std': 0.008204852845033599,
+            'test_acc': 0.26285714285714284,
+            'test_ce': 4.864481968993685,
+            'test_std': 0.013770812286064617
         },
         'whitewine-pretraining-mae': {
-            'train_acc': 0.267900898448135,
-            'train_ce': 4.873340702895356,
-            'train_std': 0.0043965546261984555,
-            'test_acc': 0.2693877551020408,
-            'test_ce': 5.068181626002113,
-            'test_std': 0.011047370106393044
+            'train_acc': 0.27007895453307923,
+            'train_ce': 4.9960941462946415,
+            'train_std': 0.0029742996062860536,
+            'test_acc': 0.26857142857142857,
+            'test_ce': 5.200245222727124,
+            'test_std': 0.010045413629088293
         },
         'whitewine-pretraining-mse': {
-            'train_acc': 0.25673836101279607,
-            'train_ce': 3.696626074171323,
-            'train_std': 0.00618057558491891,
-            'test_acc': 0.25795918367346937,
-            'test_ce': 3.7832073700057216,
-            'test_std': 0.013652784493441147
+            'train_acc': 0.25864416008712227,
+            'train_ce': 3.6553436900951355,
+            'train_std': 0.006603027234749522,
+            'test_acc': 0.2726530612244898,
+            'test_ce': 3.708985200097328,
+            'test_std': 0.011428571428571429
         },
         'whitewine-projection-ce': {
-            'train_acc': 0.21372175333514837,
-            'train_ce': 2.3140429396642217,
-            'train_std': 0.0376628736060425,
-            'test_acc': 0.2220408163265306,
-            'test_ce': 2.3150875907388735,
-            'test_std': 0.03215361474847683
+            'train_acc': 0.2188946365368908,
+            'train_ce': 2.2139058656115442,
+            'train_std': 0.035464161681708135,
+            'test_acc': 0.22612244897959183,
+            'test_ce': 2.2084853315746784,
+            'test_std': 0.033863849138209404
         },
         'whitewine-projection-hd': {
-            'train_acc': 0.2632725292676286,
-            'train_ce': 2.9219773151650075,
-            'train_std': 0.01574437618567817,
-            'test_acc': 0.2702040816326531,
-            'test_ce': 2.8524658540815455,
-            'test_std': 0.01700065972631316
+            'train_acc': 0.26463381432071875,
+            'train_ce': 3.3763283963593835,
+            'train_std': 0.015311341934975188,
+            'test_acc': 0.2612244897959184,
+            'test_ce': 3.332430672866433,
+            'test_std': 0.018378357567899156
         },
         'whitewine-projection-mae': {
-            'train_acc': 0.2640893002994827,
-            'train_ce': 4.798740235324526,
-            'train_std': 0.0026384832338138004,
-            'test_acc': 0.26285714285714284,
-            'test_ce': 4.741296865464816,
-            'test_std': 0.008594997444985783
+            'train_acc': 0.2657228423631908,
+            'train_ce': 4.582663693997462,
+            'train_std': 0.004649402513249154,
+            'test_acc': 0.2702040816326531,
+            'test_ce': 4.618747995649043,
+            'test_std': 0.00633827556464196
         },
         'whitewine-projection-mse': {
-            'train_acc': 0.25537707595970593,
-            'train_ce': 3.5806835953387157,
-            'train_std': 0.007821631371293398,
-            'test_acc': 0.2530612244897959,
-            'test_ce': 3.588362268141559,
-            'test_std': 0.010873658496503827
+            'train_acc': 0.2616389872039205,
+            'train_ce': 3.6552094005836353,
+            'train_std': 0.0055923363954231,
+            'test_acc': 0.26448979591836735,
+            'test_ce': 3.707547845789974,
+            'test_std': 0.008438508461866138
         }
     }
 
@@ -214,9 +214,6 @@ class TestBalancedCounts(TestExamples):
 
     def _metrics(self) -> List[Metric]:
         return [Accuracy(name='acc'), CrossEntropy(name='ce'), ClassFrequenciesStd(name='std')]
-
-    def _results(self, dataset: str, class_column: str, init_step: str, loss: str) -> Dict[str, float]:
-        return self.RESULTS[f'{dataset}-{init_step}-{loss}']
 
     def test_iris_pretraining_hd(self):
         self._test(dataset='iris', class_column='class', init_step='pretraining', loss='hd')

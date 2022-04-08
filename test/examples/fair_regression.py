@@ -9,7 +9,7 @@ from test.examples.abstract import TestExamples
 
 class TestFairRegression(TestExamples):
     RESULTS: Dict[str, Dict[str, float]] = {
-        'pretraining-mae': {
+        'communities-pretraining-mae': {
             'train_r2': 0.6672353190284235,
             'train_mse': 107593.96084721736,
             'train_didi': 0.20000363559036277,
@@ -17,7 +17,7 @@ class TestFairRegression(TestExamples):
             'test_mse': 103516.5196809794,
             'test_didi': 0.10413275407545175
         },
-        'pretraining-mse': {
+        'communities-pretraining-mse': {
             'train_r2': 0.6673377143367666,
             'train_mse': 107560.85301628818,
             'train_didi': 0.20042226004852792,
@@ -25,7 +25,7 @@ class TestFairRegression(TestExamples):
             'test_mse': 103521.43162941586,
             'test_didi': 0.10499622069848828
         },
-        'projection-mae': {
+        'communities-projection-mae': {
             'train_r2': 0.6672508880503402,
             'train_mse': 107588.92686124974,
             'train_didi': 0.20000957104672837,
@@ -33,7 +33,7 @@ class TestFairRegression(TestExamples):
             'test_mse': 103525.48405680954,
             'test_didi': 0.1042080601192551
         },
-        'projection-mse': {
+        'communities-projection-mse': {
             'train_r2': 0.6673360946440641,
             'train_mse': 107561.37671715903,
             'train_didi': 0.20040137356685922,
@@ -54,9 +54,6 @@ class TestFairRegression(TestExamples):
 
     def _metrics(self) -> List[Metric]:
         return [R2(name='r2'), MSE(name='mse'), DIDI(protected='race', classification=False, name='didi')]
-
-    def _results(self, dataset: str, class_column: str, init_step: str, loss: str) -> Dict[str, float]:
-        return self.RESULTS[f'{init_step}-{loss}']
 
     def test_pretraining_mae(self):
         self._test(dataset='communities', class_column='violentPerPop', init_step='pretraining', loss='mae')
