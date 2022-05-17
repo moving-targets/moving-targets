@@ -33,8 +33,8 @@ class TestTensorflowLearners(TestLearners):
         return learner.predict(x).squeeze()
 
     def test_regression_mlp(self):
-        from keras.models import Sequential
-        from keras.layers import Dense
+        from tensorflow.python.keras.models import Sequential
+        from tensorflow.python.keras.layers import Dense
 
         def ref():
             model = Sequential([Dense(self._UNITS, activation='relu'), Dense(1, activation=None)])
@@ -56,8 +56,8 @@ class TestTensorflowLearners(TestLearners):
         )
 
     def test_classification_mlp(self):
-        from keras.layers import Dense
-        from keras.models import Sequential
+        from tensorflow.python.keras.layers import Dense
+        from tensorflow.python.keras.models import Sequential
 
         def ref():
             model = Sequential([Dense(self._UNITS, activation='relu'), Dense(1, activation='sigmoid')])
