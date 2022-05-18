@@ -377,6 +377,9 @@ class ClassificationMaster(Master, ABC):
         # or a NxC matrix (in case of multiclass classification), therefore in this case we onehot encode the original
         # targets to match the shape, since onehot encoding a binary target vector will make no difference
         y = y if self.labelling else probabilities.get_onehot(y)
+        # due to numerical tolerances, targets may be returned as <z + eps>, therefore we round binary targets in order
+        # to remove these numerical errors and make sure that they will not cause problems to the learners
         z = super(ClassificationMaster, self).adjust_targets(x, y, p, sample_weight)
+        z = z.round() if self.binary else z
         # eventually, we return class/label targets if we are asked so, or class/label probabilities otherwise
         return probabilities.get_classes(z, labelling=self.labelling) if self.classes else z
