@@ -13,6 +13,7 @@ from moving_targets.masters.losses import MAE, MSE, Loss, HammingDistance
 from moving_targets.masters.optimizers import Constant, Optimizer
 from moving_targets.util import probabilities
 from moving_targets.util.errors import not_implemented_message
+from moving_targets.util.scalers import Scaler
 from moving_targets.util.typing import Dataset
 
 
@@ -27,7 +28,9 @@ class Master(StatsLogger):
                  backend: Union[str, Backend],
                  loss: Union[str, Loss],
                  alpha: Union[str, float, Optimizer],
-                 stats: Union[bool, List[str]]):
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
+                 stats: Union[bool, List[str]] = False):
         """
         :param backend:
             The `Backend` instance encapsulating the optimization solver.
@@ -38,6 +41,12 @@ class Master(StatsLogger):
         :param alpha:
             Either a floating point for a constant alpha value, a string representing an `Optimizer` alias,  or an
             actual `Optimizer` instance which implements the strategy to dynamically change the alpha value.
+
+        :param x_scaler:
+            The (optional) scaler for the input data, or a string representing the default scaling method.
+
+        :param y_scaler:
+            The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters in ['alpha',
@@ -60,6 +69,12 @@ class Master(StatsLogger):
 
         self.alpha: Optimizer = alpha
         """The alpha `Optimizer` instance."""
+
+        self.x_scaler: Optional[Scaler] = Scaler(default_method=x_scaler) if isinstance(x_scaler, str) else x_scaler
+        """The (optional) scaler for the input data."""
+
+        self.y_scaler: Optional[Scaler] = Scaler(default_method=y_scaler) if isinstance(y_scaler, str) else y_scaler
+        """The (optional) scaler for the output data."""
 
         self._macs: Optional = None
         """Reference to the MACS object encapsulating the `Master`."""
@@ -159,9 +174,15 @@ class Master(StatsLogger):
         :return:
             The vector of adjusted targets.
         """
-        self.backend.build()
-        # if no predictions are available due to the initial projection step we use the original targets instead
+        # use the original targets when no predictions are available due to the initial projection step
         p = y if p is None else p
+        # transform data if scalers are passed
+        x = x if self.x_scaler is None else self.x_scaler.fit_transform(data=x)
+        if self.y_scaler is not None:
+            y = self.y_scaler.fit_transform(data=y)
+            p = self.y_scaler.transform(data=p)
+        # build backend and model
+        self.backend.build()
         v = self.build(x=x, y=y, p=p)
         alpha = self.alpha(x=x, y=y, p=p)
         nabla_term, squared_term = self.loss(backend=self.backend,
@@ -181,7 +202,8 @@ class Master(StatsLogger):
             self._log_stats(alpha=alpha)
             adjusted = None
         self.backend.clear()
-        return adjusted
+        # invert transformation on output targets if scaler is passed
+        return adjusted if self.y_scaler is None else self.y_scaler.inverse_transform(adjusted)
 
 
 class RegressionMaster(Master, ABC):
@@ -192,6 +214,8 @@ class RegressionMaster(Master, ABC):
                  alpha: Union[str, float, Optimizer] = 'harmonic',
                  lb: float = -float('inf'),
                  ub: float = float('inf'),
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False):
         """
         :param backend:
@@ -210,11 +234,22 @@ class RegressionMaster(Master, ABC):
         :param ub:
             The model variables upper bounds.
 
+        :param x_scaler:
+            The (optional) scaler for the input data, or a string representing the default scaling method.
+
+        :param y_scaler:
+            The (optional) scaler for the output data, or a string representing the default scaling method.
+
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters in ['alpha',
             'nabla_term', 'squared_term', 'objective', 'elapsed_time'] whose statistics must be logged.
         """
-        super(RegressionMaster, self).__init__(backend=backend, loss=loss, alpha=alpha, stats=stats)
+        super(RegressionMaster, self).__init__(backend=backend,
+                                               loss=loss,
+                                               alpha=alpha,
+                                               x_scaler=x_scaler,
+                                               y_scaler=y_scaler,
+                                               stats=stats)
 
         self.lb = lb
         """The model variables lower bounds."""
@@ -241,6 +276,8 @@ class ClassificationMaster(Master, ABC):
                  alpha: Union[str, float, Optimizer] = 'harmonic',
                  labelling: bool = False,
                  types: str = 'auto',
+                 x_scaler: Union[None, Scaler, str] = None,
+                 y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False):
         """
         :param backend:
@@ -271,6 +308,12 @@ class ClassificationMaster(Master, ABC):
             passed, since in that case it will leverage the 'binary' field of the loss to choose the variables types
             while returning discrete adjustments.
 
+        :param x_scaler:
+            The (optional) scaler for the input data, or a string representing the default scaling method.
+
+        :param y_scaler:
+            The (optional) scaler for the output data, or a string representing the default scaling method.
+
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters in ['alpha',
            'nabla_term', 'squared_term', 'objective', 'elapsed_time'] whose statistics must be logged.
@@ -295,7 +338,12 @@ class ClassificationMaster(Master, ABC):
         self.labelling: bool = labelling
         """Whether this is a labelling or a classification task."""
 
-        super(ClassificationMaster, self).__init__(backend=backend, loss=loss, alpha=alpha, stats=stats)
+        super(ClassificationMaster, self).__init__(backend=backend,
+                                                   loss=loss,
+                                                   alpha=alpha,
+                                                   x_scaler=x_scaler,
+                                                   y_scaler=y_scaler,
+                                                   stats=stats)
 
     def _get_loss(self, loss: str) -> Loss:
         loss_class = losses.aliases.get(loss)
