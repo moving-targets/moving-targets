@@ -72,20 +72,22 @@ class NumpyBackend(Backend):
                                  name: Optional[str] = None) -> Any:
         raise BackendError(unsupported='no constraint can be added', message=self._ERROR_MESSAGE)
 
-    def is_greater(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def is_greater(self, a, b) -> np.ndarray:
+        a, b = np.atleast_1d(a), np.atleast_1d(b)
         return (a > b).astype(int)
 
-    def is_less(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def is_less(self, a, b) -> np.ndarray:
+        a, b = np.atleast_1d(a), np.atleast_1d(b)
         return (a < b).astype(int)
 
-    def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
-        return np.square(a)
+    def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
+        return np.atleast_1d(a) ** 2
 
     def sqrt(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
-        return np.sqrt(a)
+        return np.sqrt(np.atleast_1d(a))
 
     def abs(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
-        return np.abs(a)
+        return np.abs(np.atleast_1d(a))
 
     def log(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
         if self.clip is not None:
@@ -94,7 +96,7 @@ class NumpyBackend(Backend):
                 self._LOGGER.warning(f'Trying to compute logarithm of negative number, clipping to {self.clip}')
             elif a_min < self.clip:
                 self._LOGGER.info(f'Values in the interval [0, {self.clip}] will be clipped to {self.clip}')
-            a = a.clip(min=self.clip)
+            a = np.clip(a, a_min=self.clip, a_max=float('inf'))
         return np.log(a)
 
     def var(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:

@@ -115,19 +115,16 @@ class GurobiBackend(Backend):
         self.model.addConstr(constraint, **kwargs)
         return self
 
-    def add_indicator_constraint(self,
-                                 indicator: Any,
-                                 expression: Any,
-                                 value: int = 1,
-                                 name: Optional[str] = None) -> Any:
+    def add_indicator_constraint(self, indicator, expression, value: int = 1, name: Optional[str] = None) -> Any:
         # addGenConstrIndicator does not accept name=None as parameter
         kwargs = dict() if name is None else dict(name=name)
         self.model.addGenConstrIndicator(indicator, value, expression, **kwargs)
 
-    def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
         return self.aux(expressions=a ** 2, aux_vtype=aux)
 
-    def sqrt(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
+    def sqrt(self, a, aux: Optional[str] = 'continuous') -> np.ndarray:
+        a = np.atleast_1d(a)
         self._aux_warning(exp='continuous', aux=aux, msg='to compute square roots')
         # creating auxiliary variables is necessary since 'addGenConstrPow' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
@@ -137,6 +134,7 @@ class GurobiBackend(Backend):
         return sqrt_vector
 
     def abs(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
+        a = np.atleast_1d(a)
         self._aux_warning(exp='continuous', aux=aux, msg='to compute absolute values')
         # creating auxiliary variables is necessary since 'addGenConstrAbs' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
@@ -146,6 +144,7 @@ class GurobiBackend(Backend):
         return abs_vector
 
     def log(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
+        a = np.atleast_1d(a)
         self._aux_warning(exp='continuous', aux=aux, msg='to compute logarithms')
         # creating auxiliary variables is necessary since 'addGenConstrExp' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
@@ -162,6 +161,7 @@ class GurobiBackend(Backend):
             # in case the divisor is not an array of constants, we handle the case by adding N auxiliary variables z_i
             # so that a_i / b_i = z_i --> a_i = z_i * b_i
             self._aux_warning(exp='continuous', aux=aux, msg='to compute divisions with non-constant divisors')
+            a, b = np.atleast_1d(a), np.atleast_2d(b)
             z = self.add_continuous_variables(*a.shape)
             self.add_constraints([ai == zi * bi for ai, bi, zi in zip(a.flatten(), b.flatten(), z.flatten())])
             return z

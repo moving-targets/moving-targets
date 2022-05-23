@@ -166,7 +166,7 @@ class Backend:
         """
         raise NotImplementedError(not_implemented_message(name='get_objective'))
 
-    def get_values(self, expressions: np.ndarray) -> np.ndarray:
+    def get_values(self, expressions) -> np.ndarray:
         """Gets the values of an array of expressions as found in the model solution.
 
         :param expressions:
@@ -177,7 +177,7 @@ class Backend:
         """
         raise NotImplementedError(not_implemented_message(name='get_values'))
 
-    def get_value(self, expression: Any) -> float:
+    def get_value(self, expression) -> float:
         """Gets the value of an expressions as found in the model solution.
 
         :param expression:
@@ -301,7 +301,7 @@ class Backend:
         """
         return self.add_variable(vtype='continuous', name=name, lb=lb, ub=ub)
 
-    def add_constant(self, val: Any, vtype: str = 'continuous', name: Optional[str] = None) -> Any:
+    def add_constant(self, val, vtype: str = 'continuous', name: Optional[str] = None) -> Any:
         """Creates a model variable with a constant value.
 
         :param val:
@@ -318,7 +318,7 @@ class Backend:
         """
         return self.add_variable(vtype=vtype, lb=val, ub=val, name=name)
 
-    def add_constants(self, val: np.ndarray, vtype: str = 'continuous', name: Optional[str] = None) -> np.ndarray:
+    def add_constants(self, val, vtype: str = 'continuous', name: Optional[str] = None) -> np.ndarray:
         """Creates an array of model variables with constant values.
 
         :param val:
@@ -387,7 +387,7 @@ class Backend:
         return np.reshape([self.add_variable(vtype=vtype, lb=lb, ub=ub, name=n) for n in names], keys)
 
     def aux(self,
-            expressions: Any,
+            expressions,
             aux_vtype: Optional[str] = 'continuous',
             aux_lb: float = -float('inf'),
             aux_ub: float = float('inf'),
@@ -460,7 +460,7 @@ class Backend:
         raise NotImplementedError(not_implemented_message(name='add_constraint'))
 
     def add_indicator_constraints(self,
-                                  indicators: np.ndarray,
+                                  indicators: Union[List, np.ndarray],
                                   expressions: Union[List, np.ndarray],
                                   value: int = 1,
                                   name: Optional[str] = None) -> Any:
@@ -486,17 +486,13 @@ class Backend:
         :raise `BackendError`:
             If the backend cannot handle indicator variables.
         """
-        expressions = np.array(expressions)
+        indicators, expressions = np.array(indicators), np.array(expressions)
         names = np.array(self._nested_names(*expressions.shape, name=name))
         for i, e, n in zip(indicators.flatten(), expressions.flatten(), names.flatten()):
             self.add_indicator_constraint(indicator=i, expression=e, value=value, name=n)
         return self
 
-    def add_indicator_constraint(self,
-                                 indicator: Any,
-                                 expression: Any,
-                                 value: int = 1,
-                                 name: Optional[str] = None) -> Any:
+    def add_indicator_constraint(self, indicator, expression, value: int = 1, name: Optional[str] = None) -> Any:
         """Impose an indicator constraint over the given expression using the given binary indicator. The indicator
         is such that if indicator == value (with value either 0 or 1), then the expression holds, but in case
         indicator == not value, then there is no information about the expression.
@@ -521,14 +517,14 @@ class Backend:
         """
         raise BackendError(unsupported='indicator constraints')
 
-    def is_greater(self, a: np.ndarray, b: Union[float, np.ndarray]) -> np.ndarray:
+    def is_greater(self, a, b) -> np.ndarray:
         """Builds auxiliary binary indicator variables which take value one if the expressions in the first array are
          greater than the expressions in the second array. Please note that this is enforced via indicator constraints
          so that if z[i] == 1 -> a[i] >= b[i] and if z[i] == 0 -> a[i] <= b[i], thus in case a[i] is strictly equal to
          b[i] the indicator variable z[i] can assume both values.
 
         :param a:
-            The first array representing the left-hand sides.
+            The first array/value representing the left-hand sides.
 
         :param b:
             Either a single reference value or a second array of expressions representing the right-hand sides.
@@ -545,22 +541,23 @@ class Backend:
             rhs = lambda i: b[i]
         else:
             rhs = lambda i: b
+        a = np.atleast_1d(a)
         z = self.add_binary_variables(a.size)
         self.add_indicator_constraints(z, expressions=[lhs >= rhs(i) for i, lhs in enumerate(a.flatten())], value=1)
         self.add_indicator_constraints(z, expressions=[lhs <= rhs(i) for i, lhs in enumerate(a.flatten())], value=0)
         return z.reshape(a.shape)
 
-    def is_less(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def is_less(self, a, b) -> np.ndarray:
         """Builds auxiliary binary indicator variables which take value one if the expressions in the first array are
          lower than the expressions in the second array. Please note that this is enforced via indicator constraints
          so that if z[i] == 1 -> a[i] <= b[i] and if z[i] == 0 -> a[i] >= b[i], thus in case a[i] is strictly equal to
          b[i] the indicator variable z[i] can assume both values.
 
         :param a:
-            The first array.
+            The first array/value representing the left-hand sides.
 
         :param b:
-            The second array.
+            Either a single reference value or a second array of expressions representing the right-hand sides.
 
         :return:
             The array of binary indicator variables.
@@ -574,6 +571,7 @@ class Backend:
             rhs = lambda i: b[i]
         else:
             rhs = lambda i: b
+        a = np.atleast_1d(a)
         z = self.add_binary_variables(a.size)
         self.add_indicator_constraints(z, expressions=[lhs <= rhs(i) for i, lhs in enumerate(a.flatten())], value=1)
         self.add_indicator_constraints(z, expressions=[lhs >= rhs(i) for i, lhs in enumerate(a.flatten())], value=0)
@@ -626,11 +624,11 @@ class Backend:
             expressions = np.reshape(expressions, new_shape) if len(new_shape) > 0 or asarray else expressions[0]
         return self.aux(expressions, aux_vtype=aux)
 
-    def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
         """Computes the squared values over an array of variables.
 
         :param a:
-            An array of model variables.
+            Either a single model variable or an array of such.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -649,11 +647,11 @@ class Backend:
         """
         raise BackendError(unsupported='squared values')
 
-    def sqrt(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def sqrt(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
         """Computes the squared roots over an array of variables.
 
         :param a:
-            An array of model variables.
+            Either a single model variable or an array of such.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -669,11 +667,11 @@ class Backend:
         """
         raise BackendError(unsupported='squared roots')
 
-    def abs(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def abs(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
         """Computes the absolute values over an array of variables.
 
         :param a:
-            An array of model variables.
+            Either a single model variable or an array of such.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -692,11 +690,11 @@ class Backend:
         """
         raise BackendError(unsupported='absolute values')
 
-    def log(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def log(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
         """Computes the logarithms over an array of variables.
 
         :param a:
-            An array of model variables.
+            Either a single model variable or an array of such.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -777,11 +775,9 @@ class Backend:
         # of differences and shape it correctly, otherwise compute the means over the requested axis (which will be in
         # the form of an array), then compute the differences and eventually reshape them accordingly
         aux_mean, aux_squared = ('continuous', None) if aux == 'auto' else (aux, aux)
-        mean_expressions = self.mean(a, axis=axis, asarray=True, aux=aux_mean)
+        mean_expressions = self.mean(a, axis=axis, aux=aux_mean)
         if axis is None:
-            # we compute the array of differences element by element because of some problems that certain backends
-            # arise due to the impossibility to subtract a single variable (or expression) to an array of variables
-            diff_expressions = np.reshape([self.subtract(ai, mean_expressions) for ai in a.flatten()], a.shape)
+            diff_expressions = self.subtract(a, mean_expressions)
         else:
             # check that the axis is in bound and handle negative axis values
             assert axis in range(-a.ndim, a.ndim), f"Axis {axis} is out of bound for array with {a.ndim} dimensions"
@@ -790,7 +786,7 @@ class Backend:
             # each row in the given axis with respect to the mean of that axis, then transpose the axis from the front
             # back to its place since we want to match exactly the original shape
             a = a.transpose(self._transposed_axes(dim=a.ndim, index=axis, place=0))
-            diff_expressions = np.array([self.subtract(ai, mean_expressions) for ai in a])
+            diff_expressions = self.subtract(a, mean_expressions)
             diff_expressions = diff_expressions.transpose(self._transposed_axes(dim=a.ndim, index=0, place=axis))
         # we can finally build auxiliary variables for the differences (if needed), then square these differences and,
         # eventually, compute the mean of the squared differences over the given axis
@@ -798,14 +794,14 @@ class Backend:
         squared_expressions = self.square(diff_expressions, aux=aux_squared)
         return self.mean(squared_expressions, axis=axis, asarray=asarray, aux=aux)
 
-    def add(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
+    def add(self, a, b, aux: Optional[str] = 'auto'):
         """Performs the pairwise sum between two arrays.
 
         :param a:
-            The first array.
+            Either a single model variable or an array of such.
 
         :param b:
-            The second array.
+            Either a single model variable or an array of such.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -821,14 +817,14 @@ class Backend:
         """
         return self.aux(expressions=a + b, aux_vtype=aux)
 
-    def subtract(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
+    def subtract(self, a, b, aux: Optional[str] = 'auto'):
         """Performs the pairwise subtraction between two arrays.
 
         :param a:
-            The first array.
+            Either a single model variable or an array of such.
 
         :param b:
-            The second array.
+            Either a single model variable or an array of such.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -844,14 +840,14 @@ class Backend:
         """
         return self.aux(expressions=a - b, aux_vtype=aux)
 
-    def multiply(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
+    def multiply(self, a, b, aux: Optional[str] = 'auto'):
         """Performs the pairwise product between two arrays.
 
         :param a:
-            The first array.
+            Either a single model variable or an array of such.
 
         :param b:
-            The second array.
+            Either a single model variable or an array of such.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -867,14 +863,14 @@ class Backend:
         """
         return self.aux(expressions=a * b, aux_vtype=aux)
 
-    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
+    def divide(self, a, b, aux: Optional[str] = 'auto'):
         """Performs the pairwise division between two arrays.
 
         :param a:
-            The first array.
+            Either a single model variable or an array of such.
 
         :param b:
-            The second array.
+            Either a single model variable or an array of such.
 
         :param aux:
             The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
@@ -890,11 +886,39 @@ class Backend:
         """
         return self.aux(expressions=a / b, aux_vtype=aux)
 
-    def dot(self,
-            a: np.ndarray,
-            b: np.ndarray,
-            asarray: bool = False,
-            aux: Optional[str] = 'auto') -> Union[Any, np.ndarray]:
+    def cov(self, a: np.ndarray, b: np.ndarray, asarray: bool = False, aux: Optional[str] = 'auto'):
+        """Returns the covariance between the vectors a and b.
+
+        :param a:
+            The first (one-dimensional) array.
+
+        :param b:
+            The second (one-dimensional) array.
+
+        :param asarray:
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
+
+        :param aux:
+            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
+            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
+            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
+            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
+            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
+            huge datasets since they can considerably speedup the model formulation; still, imposing equality
+            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+
+        :return:
+            The covariance between a and b.
+        """
+        a_mean = self.mean(a, aux=aux)
+        b_mean = self.mean(b, aux=aux)
+        a_expression = self.subtract(a, a_mean, aux=aux)
+        b_expression = self.subtract(b, b_mean, aux=aux)
+        mul_expression = self.multiply(a_expression, b_expression, aux=aux)
+        return self.mean(mul_expression, asarray=asarray, aux=aux)
+
+    def dot(self, a, b, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         """Performs the dot product between two arrays.
 
         :param a:

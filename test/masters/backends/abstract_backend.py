@@ -99,7 +99,10 @@ class TestBackend(AbstractTest):
                 for i in range(self.NUM_TESTS):
                     # build random vector(s) of reference values and compute the operation result
                     ref_values = [np.random.random(size=self._SIZES[d]) for d in dims]
-                    ref_result = ref_operation(*ref_values, **op_args)
+                    if operation == 'cov':
+                        ref_result = np.cov(*ref_values, bias=True)[0, 1]
+                    else:
+                        ref_result = ref_operation(*ref_values, **op_args)
                     # build constant model variables vector(s) from values then obtain the operation result
                     backend.build()
                     mt_values = [backend.add_constants(v) for v in ref_values]
@@ -262,8 +265,8 @@ class TestBackend(AbstractTest):
         self._test_numeric_operation('3D', operation='var')
 
     def test_var_axis(self):
-        # self._test_numeric_operation('1D', operation='var', axis=-1)
-        # self._test_numeric_operation('1D', operation='var', axis=0)
+        self._test_numeric_operation('1D', operation='var', axis=-1)
+        self._test_numeric_operation('1D', operation='var', axis=0)
         self._test_numeric_operation('2D', operation='var', axis=-1)
         self._test_numeric_operation('2D', operation='var', axis=0)
         self._test_numeric_operation('2D', operation='var', axis=1)
@@ -293,6 +296,9 @@ class TestBackend(AbstractTest):
         self._test_numeric_operation('1D', '1D', operation='divide')
         self._test_numeric_operation('2D', '2D', operation='divide')
         self._test_numeric_operation('3D', '3D', operation='divide')
+
+    def test_cov(self):
+        self._test_numeric_operation('1D', '1D', operation='cov')
 
     def test_dot(self):
         self._test_numeric_operation('1D', '1D', operation='dot')

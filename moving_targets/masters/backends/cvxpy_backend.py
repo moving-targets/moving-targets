@@ -96,30 +96,49 @@ class CvxpyBackend(Backend):
 
     def add_constraint(self, constraint, name: Optional[str] = None) -> Any:
         if name is not None:
-            self._LOGGER.warning(f"name = '{name}' has no effect since cvxpy does not support constraint names")
+            self._LOGGER.warning(f"name='{name}' has no effect since cvxpy does not support constraint names")
         self.model += [constraint]
         return self
 
     def add_constraints(self, constraints: Union[List, np.ndarray], name: Optional[str] = None) -> Any:
         if name is not None:
-            self._LOGGER.warning(f"name = '{name}' has no effect since cvxpy does not support constraint names")
+            self._LOGGER.warning(f"name='{name}' has no effect since cvxpy does not support constraint names")
         self.model += constraints
         return self
 
-    def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
         return self.aux(expressions=a ** 2, aux_vtype=aux)
 
-    def abs(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def abs(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
+        a = np.atleast_1d(a)
         expressions = np.reshape([self._cp.abs(v) for v in a.flatten()], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)
 
     def log(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+        a = np.atleast_1d(a)
         expressions = np.reshape([self._cp.log(v) for v in a.flatten()], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)
 
     def var(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         raise BackendError(unsupported='variance due to numerical instability')
 
-    def multiply(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
-        expressions = np.reshape([self._cp.multiply(ai, bi) for ai, bi in zip(a.flatten(), b.flatten())], a.shape)
-        return self.aux(expressions=expressions, aux_vtype=aux)
+    def subtract(self, a, b, aux: Optional[str] = 'auto'):
+        if isinstance(b, np.ndarray) and b.size > 1:
+            # pairwise differences (a.size should be equal to b.size)
+            return super(CvxpyBackend, self).subtract(a, b, aux=aux)
+        else:
+            # all elements of a minus a single element (b)
+            a, b = np.atleast_1d(a), np.atleast_1d(b).flatten()[0]
+            expressions = [ai - b for ai in a.flatten()]
+            return self.aux(expressions=np.reshape(expressions, a.shape), aux_vtype=aux)
+
+    def multiply(self, a, b, aux: Optional[str] = 'auto'):
+        if isinstance(b, np.ndarray) and b.size > 1:
+            # pairwise differences (a.size should be equal to b.size)
+            expressions = [self._cp.multiply(ai, bi) for ai, bi in zip(a.flatten(), b.flatten())]
+            return self.aux(expressions=np.reshape(expressions, a.shape), aux_vtype=aux)
+        else:
+            # all elements of a multiplied by single element (b)
+            a, b = np.atleast_1d(a), np.atleast_1d(b).flatten()[0]
+            expressions = [self._cp.multiply(ai, b) for ai in a.flatten()]
+            return self.aux(expressions=np.reshape(expressions, a.shape), aux_vtype=aux)

@@ -109,26 +109,33 @@ class CplexBackend(Backend):
                                   expressions: Union[List, np.ndarray],
                                   value: int = 1,
                                   name: Optional[str] = None) -> Any:
-        binary_vars, cst = indicators.flatten(), np.array(expressions).flatten()
+        binary_vars, cst = np.array(indicators).flatten(), np.array(expressions).flatten()
         self.model.add_indicators(binary_vars=binary_vars, cts=cst, true_values=value, names=name)
         return self
 
-    def add_indicator_constraint(self,
-                                 indicator: Any,
-                                 expression: Any,
-                                 value: int = 1,
-                                 name: Optional[str] = None) -> Any:
+    def add_indicator_constraint(self, indicator, expression, value: int = 1, name: Optional[str] = None) -> Any:
         self.model.add_indicator(binary_var=indicator, linear_ct=expression, active_value=value, name=name)
 
-    def square(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
         self._aux_warning(exp=None, aux=aux, msg='cannot impose equality constraints on quadratic expressions')
         return a ** 2
 
-    def abs(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def abs(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
+        a = np.atleast_1d(a)
         expressions = np.reshape([self.model.abs(v) for v in a.flatten()], a.shape)
         return self.aux(expressions=expressions, aux_vtype=aux)
 
-    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
+    def subtract(self, a, b, aux: Optional[str] = 'auto'):
+        if isinstance(b, np.ndarray) and b.size > 1:
+            # pairwise differences (a.size should be equal to b.size)
+            return super(CplexBackend, self).subtract(a, b, aux=aux)
+        else:
+            # all elements of a minus a single element (b)
+            a, b = np.atleast_1d(a), np.atleast_1d(b).flatten()[0]
+            expressions = [ai - b for ai in a.flatten()]
+            return self.aux(expressions=np.reshape(expressions, a.shape), aux_vtype=aux)
+
+    def divide(self, a, b, aux: Optional[str] = 'auto'):
         try:
             return super(CplexBackend, self).divide(a, b, aux=aux)
         except self._cp.DOcplexException:
