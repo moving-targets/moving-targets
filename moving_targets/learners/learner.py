@@ -6,8 +6,9 @@ import numpy as np
 
 from moving_targets.callbacks import StatsLogger
 from moving_targets.util.errors import not_implemented_message
+from moving_targets.util.masking import mask_data, get_mask
 from moving_targets.util.scalers import Scaler
-from moving_targets.util.typing import Dataset
+from moving_targets.util.typing import Dataset, Mask
 
 
 class Learner(StatsLogger):
@@ -58,7 +59,7 @@ class Learner(StatsLogger):
         self._time = None
         self._macs = None
 
-    def fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> Any:
+    def fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None, mask: Optional[Mask] = None) -> Any:
         """Scales the (x, y) data and use it to fit the `Learner`.
 
         :param x:
@@ -70,9 +71,13 @@ class Learner(StatsLogger):
         :param sample_weight:
             The (optional) array of sample weights.
 
+        :param mask:
+            An (optional) masking value or an explicit masking vector for the targets.
+
         :return:
             The `Learner` itself.
         """
+        x, y = mask_data(x, y, mask=get_mask(y, mask))
         x = x if self.x_scaler is None else self.x_scaler.fit_transform(data=x)
         y = y if self.y_scaler is None else self.y_scaler.fit_transform(data=y)
         self._fit(x=x, y=y, sample_weight=sample_weight)

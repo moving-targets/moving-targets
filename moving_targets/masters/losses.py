@@ -6,6 +6,8 @@ import numpy as np
 from moving_targets.masters.backends import Backend
 from moving_targets.util import probabilities
 from moving_targets.util.errors import not_implemented_message
+from moving_targets.util.masking import mask_data, get_mask
+from moving_targets.util.typing import Mask
 
 
 class Loss:
@@ -52,7 +54,8 @@ class Loss:
                  variables: np.ndarray,
                  targets: np.ndarray,
                  predictions: np.ndarray,
-                 sample_weight: Optional[np.ndarray] = None) -> Tuple[Any, Any]:
+                 sample_weight: Optional[np.ndarray] = None,
+                 mask: Optional[Mask] = None) -> Tuple[Any, Any]:
         """Computes the two terms of the loss value, which are obtained by approximating the actual loss <L> to its
         first order taylor expansion L(z, y) in the point <p>, where <z> are the model variables, <y> the original
         targets, and <p> the learners predictions.
@@ -83,6 +86,9 @@ class Loss:
         :param sample_weight:
             The (optional) array of sample weights.
 
+        :param mask:
+            An (optional) masking value or an explicit masking vector for the original targets.
+
         :return:
             A tuple containing the nabla term nabla_L(p, y) @ (z - p)^T and the squared term (z - p) @ (z - p)^T.
         """
@@ -94,7 +100,9 @@ class Loss:
         sample_weight = np.ones(len(variables)) if sample_weight is None else sample_weight.flatten()
         sample_weight = len(sample_weight) * np.array(sample_weight) / np.sum(sample_weight)
         # compute the nabla term, which is a summation of the terms dL / dp_i * (z_i - p_i), with i in {1, ..., F}
-        nabla_term = self.nabla(targets=targets, predictions=predictions)
+        # also mask each vector using the target as reference
+        m_targets, m_predictions, m_variables = mask_data(targets, predictions, variables, mask=get_mask(targets, mask))
+        nabla_term = self.nabla(targets=m_targets, predictions=predictions)
         nabla_term = backend.sum(nabla_term * (variables - predictions), axis=1)
         nabla_term = backend.mean(sample_weight * nabla_term)
         # compute the squared term, which is the mean of the terms (z_i - p_i) ^ 2, with i in {1, ..., F}
@@ -191,7 +199,8 @@ class HammingDistance(Loss):
                  variables: np.ndarray,
                  targets: np.ndarray,
                  predictions: np.ndarray,
-                 sample_weight: Optional[np.ndarray] = None) -> Tuple[Any, Any]:
+                 sample_weight: Optional[np.ndarray] = None,
+                 mask: Optional[Mask] = None) -> Tuple[Any, Any]:
         assert np.all(targets == targets.astype(int)), f"HammingDistance can handle integer targets only, got {targets}"
         # since the hamming distance works on discrete targets only, we retrieve the class values from the predictions
         if self.labelling:
@@ -202,7 +211,7 @@ class HammingDistance(Loss):
             classes = 2 if targets.squeeze().ndim == 1 else targets.shape[1]
             predictions = probabilities.get_classes(prob=predictions, labelling=False)
             predictions = probabilities.get_onehot(vector=predictions, classes=classes)
-        return super(HammingDistance, self).__call__(backend, variables, targets, predictions, sample_weight)
+        return super(HammingDistance, self).__call__(backend, variables, targets, predictions, sample_weight, mask)
 
 
 class CrossEntropy(Loss):
@@ -234,14 +243,15 @@ class CrossEntropy(Loss):
                  variables: np.ndarray,
                  targets: np.ndarray,
                  predictions: np.ndarray,
-                 sample_weight: Optional[np.ndarray] = None) -> Tuple[Any, Any]:
+                 sample_weight: Optional[np.ndarray] = None,
+                 mask: Optional[Mask] = None) -> Tuple[Any, Any]:
         # in order to deal with both binary and categorical crossentropy, if the prediction array has either size (N,)
         # or (N, 1), we convert it (along with the targets and variables vectors) to the form [1 - a, a]
         if predictions.squeeze().ndim == 1:
             variables = np.concatenate([1 - variables.reshape((-1, 1)), variables.reshape((-1, 1))], axis=1)
             targets = np.concatenate([1 - targets.reshape((-1, 1)), targets.reshape((-1, 1))], axis=1)
             predictions = np.concatenate([1 - predictions.reshape((-1, 1)), predictions.reshape((-1, 1))], axis=1)
-        return super(CrossEntropy, self).__call__(backend, variables, targets, predictions, sample_weight)
+        return super(CrossEntropy, self).__call__(backend, variables, targets, predictions, sample_weight, mask)
 
 
 aliases: dict = {

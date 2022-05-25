@@ -13,8 +13,9 @@ from moving_targets.masters.losses import MAE, MSE, Loss, HammingDistance
 from moving_targets.masters.optimizers import Constant, Optimizer
 from moving_targets.util import probabilities
 from moving_targets.util.errors import not_implemented_message
+from moving_targets.util.masking import get_mask
 from moving_targets.util.scalers import Scaler
-from moving_targets.util.typing import Dataset
+from moving_targets.util.typing import Dataset, Mask
 
 
 class Master(StatsLogger):
@@ -156,7 +157,8 @@ class Master(StatsLogger):
                        x,
                        y: np.ndarray,
                        p: Optional[np.ndarray],
-                       sample_weight: Optional[np.ndarray] = None) -> np.ndarray:
+                       sample_weight: Optional[np.ndarray] = None,
+                       mask: Optional[Mask] = None) -> np.ndarray:
         """Core function of the `Master` object which builds the model and returns the adjusted targets.
 
         :param x:
@@ -171,6 +173,9 @@ class Master(StatsLogger):
         :param sample_weight:
             The (optional) vector of sample weights.
 
+        :param mask:
+            An (optional) masking value or an explicit masking vector for the original targets.
+
         :return:
             The vector of adjusted targets.
         """
@@ -179,7 +184,12 @@ class Master(StatsLogger):
         # transform data if scalers are passed
         x = x if self.x_scaler is None else self.x_scaler.fit_transform(data=x)
         if self.y_scaler is not None:
-            y = self.y_scaler.fit_transform(data=y)
+            # this is a sort of workaround: the masking of the vectors is delegated to the loss instance, thus there
+            # should be no need to mask the vector at this point, however, since here we want to scale the target data
+            # which might be masked later, we fit the scaler only on the masked data (this will avoid numerical errors
+            # in case of nan masking, or wrong scaling factors in case of value-based or vector-based masking)
+            self.y_scaler.fit(y[get_mask(y, mask)])
+            y = self.y_scaler.transform(data=y)
             p = self.y_scaler.transform(data=p)
         # build backend and model
         self.backend.build()
@@ -189,7 +199,8 @@ class Master(StatsLogger):
                                              variables=v,
                                              targets=y,
                                              predictions=p,
-                                             sample_weight=sample_weight)
+                                             sample_weight=sample_weight,
+                                             mask=mask)
         self.backend.minimize(cost=alpha * nabla_term + squared_term)
         # if the problem is infeasible return None, otherwise log stats and return the adjusted labels
         if self.backend.solve().solution is not None:
@@ -370,7 +381,8 @@ class ClassificationMaster(Master, ABC):
                        x,
                        y: np.ndarray,
                        p: Optional[np.ndarray],
-                       sample_weight: Optional[np.ndarray] = None) -> np.ndarray:
+                       sample_weight: Optional[np.ndarray] = None,
+                       mask: Optional[Mask] = None) -> np.ndarray:
         # when dealing with multilabel classification we expect the target to match the predictions shape since they
         # should both have shape (N, C), otherwise, in standard classification cases the original targets are expected
         # to be a N-sized vector while the predictions may be either a N-size vector (in case of binary classification)

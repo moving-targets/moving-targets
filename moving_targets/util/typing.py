@@ -1,11 +1,14 @@
 """Type aliases."""
 
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Union
 
 import numpy as np
 
 Dataset = Dict[str, Tuple[Any, np.ndarray]]
 """A dictionary where the key is string representing the name of the split, and the value is tuple (x, y)."""
+
+Mask = Union[float, np.ndarray]
+"""Either floating point value to mask a single value or an explicit masking vector."""
 
 
 def is_numeric(obj: Any) -> bool:

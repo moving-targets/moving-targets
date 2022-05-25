@@ -1,7 +1,7 @@
 """Core of the Moving Targets algorithm."""
 import time
 import warnings
-from typing import List, Dict, Callable, Union, Optional, Any, Set
+from typing import List, Dict, Callable, Union, Optional, Any, Set, Tuple
 
 import numpy as np
 
@@ -13,7 +13,7 @@ from moving_targets.callbacks.logger import Logger, StatsLogger
 from moving_targets.learners.learner import Learner
 from moving_targets.masters.masters import Master
 from moving_targets.metrics.metric import Metric
-from moving_targets.util.typing import Dataset, is_numeric
+from moving_targets.util.typing import Dataset, is_numeric, Mask
 
 
 class MACS(StatsLogger):
@@ -83,6 +83,7 @@ class MACS(StatsLogger):
             y: np.ndarray,
             iterations: int = 1,
             sample_weight: Optional[np.ndarray] = None,
+            mask: Union[None, Mask, Tuple[Mask, Mask]] = None,
             val_data: Optional[Dataset] = None,
             callbacks: List[Callback] = (),
             verbose: Union[int, bool] = 2) -> History:
@@ -99,6 +100,10 @@ class MACS(StatsLogger):
 
         :param sample_weight:
             The (optional) array of sample weights.
+
+        :param mask:
+            Either a single mask for both the learner and the master, a tuple of masks (the first one for the learner,
+            and the second one for the master), or None for no masking.
 
         :param val_data:
             A dictionary containing the validation data, indicated as a tuple (xv, yv).
@@ -128,6 +133,7 @@ class MACS(StatsLogger):
         assert self.init_step == 'pretraining' or iterations > 0, 'if projection, iterations cannot be zero'
         assert verbose in [True, False, 0, 1, 2], 'unknown verbosity'
         val_data = {} if val_data is None else (val_data if isinstance(val_data, dict) else {'val': val_data})
+        mask_lrn, mask_mst = mask if isinstance(mask, tuple) else (mask, mask)
 
         # handle callbacks and verbosity (check for type instance since 1 == True and vice versa)
         callbacks = list(callbacks)
@@ -143,7 +149,7 @@ class MACS(StatsLogger):
             self.iteration = 0
             self._update(callbacks, lambda c: c.on_pretraining_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
-            self.learner.fit(x=x, y=y, sample_weight=sample_weight)
+            self.learner.fit(x=x, y=y, sample_weight=sample_weight, mask=mask_lrn)
             self.fitted = True
             p = self.learner.predict(x)
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
@@ -154,7 +160,7 @@ class MACS(StatsLogger):
             self._update(callbacks, lambda c: c.on_iteration_start(macs=self, x=x, y=y, val_data=val_data))
             self._update(callbacks, lambda c: c.on_adjustment_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- MASTER  STEP ----------------------------------------------
-            z = self.master.adjust_targets(x=x, y=y, p=p)
+            z = self.master.adjust_targets(x=x, y=y, p=p, sample_weight=sample_weight, mask=mask_mst)
             if z is None:
                 # in case of no valid solution, raise a warning and stop the training loop
                 warnings.warn(f'No solution found at iteration {self.iteration}, stop training. ' +
@@ -164,7 +170,7 @@ class MACS(StatsLogger):
             self._update(callbacks, lambda c: c.on_adjustment_end(macs=self, x=x, y=y, z=z, val_data=val_data))
             self._update(callbacks, lambda c: c.on_training_start(macs=self, x=x, y=y, val_data=val_data))
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------
-            self.learner.fit(x=x, y=z, sample_weight=sample_weight)
+            self.learner.fit(x=x, y=z, sample_weight=sample_weight, mask=mask_lrn)
             self.fitted = True
             p = self.learner.predict(x)
             # ---------------------------------------------- LEARNER STEP ----------------------------------------------

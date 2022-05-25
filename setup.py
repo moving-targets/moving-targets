@@ -12,7 +12,7 @@ from setuptools import find_packages, setup
 with open('README.md', 'r') as readme:
     setup(
         name='moving-targets',
-        version='0.2.4',
+        version='0.2.5',
         maintainer='Luca Giuliani',
         maintainer_email='luca.giuliani13@unibo.it',
         author='University of Bologna - DISI',

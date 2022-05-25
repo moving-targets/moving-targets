@@ -23,13 +23,7 @@ class TestTensorflowLearners(TestLearners):
         tf.random.set_seed(0)
 
     def _reference(self, learner, x, y, sample_weight) -> np.ndarray:
-        learner.fit(x=x,
-                    y=y,
-                    sample_weight=sample_weight,
-                    epochs=self._EPOCHS,
-                    batch_size=self._BATCH_SIZE,
-                    shuffle=self._SHUFFLE,
-                    verbose=False)
+        learner.fit(x=x, y=y, sample_weight=sample_weight)
         return learner.predict(x).squeeze()
 
     def test_regression_mlp(self):
