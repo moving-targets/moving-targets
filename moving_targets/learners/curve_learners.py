@@ -14,6 +14,7 @@ class CurveLearner(Learner):
     def __init__(self,
                  curve: Callable,
                  method: Callable,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False):
@@ -25,6 +26,9 @@ class CurveLearner(Learner):
             An optimization routine m(f; x, y) -> p* which is fed with the curve function (f) and the training data
             (x, y), and eventually returns the optimal configuration for the parameters (p*).
 
+        :param mask:
+            The (optional) masking value used to mask the original targets.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -35,7 +39,7 @@ class CurveLearner(Learner):
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
             statistics must be logged.
         """
-        super(CurveLearner, self).__init__(x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
+        super(CurveLearner, self).__init__(mask=mask, x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
 
         self.curve: Callable = curve
         """The function to be learned."""
@@ -58,6 +62,7 @@ class CurveLearner(Learner):
 class ScipyCurveFit(CurveLearner):
     def __init__(self,
                  curve: Callable,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -65,6 +70,9 @@ class ScipyCurveFit(CurveLearner):
         """
         :param curve:
             A function f(x; p) -> y which is fed with an input vector (x) and the learnable parameters (p).
+
+        :param mask:
+            The (optional) masking value used to mask the original targets.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -80,7 +88,12 @@ class ScipyCurveFit(CurveLearner):
             Additional arguments to be passed to `scipy.optimize.curve_fit`.
         """
 
-        def mtd(f, x, y):
+        def method(f, x, y):
             return scipy.optimize.curve_fit(f=f, xdata=x, ydata=y, **method_kwargs)[0]
 
-        super(ScipyCurveFit, self).__init__(curve=curve, method=mtd, x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
+        super(ScipyCurveFit, self).__init__(curve=curve,
+                                            method=method,
+                                            mask=mask,
+                                            x_scaler=x_scaler,
+                                            y_scaler=y_scaler,
+                                            stats=stats)

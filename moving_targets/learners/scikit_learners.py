@@ -16,6 +16,7 @@ class ScikitLearner(Learner):
     def __init__(self,
                  model,
                  polynomial: Union[None, int, PolynomialFeatures] = None,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -28,6 +29,9 @@ class ScikitLearner(Learner):
             The polynomial feature preprocessor. It can be either None for no preprocessing, an actual scikit learn
             `PolynomialFeatures` instance, or an integer representing the degree used to generate polynomial features
              which will be used to create a `PolynomialFeatures` object with no bias and all interactions.
+
+        :param mask:
+            The (optional) masking value used to mask the original targets.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -42,7 +46,7 @@ class ScikitLearner(Learner):
         :param fit_kwargs:
             Custom arguments to be passed to the model '.fit()' method.
         """
-        super(ScikitLearner, self).__init__(x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
+        super(ScikitLearner, self).__init__(mask=mask, x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
 
         if isinstance(polynomial, int):
             polynomial = PolynomialFeatures(degree=polynomial, interaction_only=False, include_bias=False)
@@ -72,6 +76,7 @@ class ScikitClassifier(ScikitLearner):
                  model,
                  task: str = 'auto',
                  polynomial: Optional[int] = None,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -90,6 +95,9 @@ class ScikitClassifier(ScikitLearner):
             object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
             followed by the given model.
 
+        :param mask:
+            The (optional) masking value used to mask the original targets.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -105,6 +113,7 @@ class ScikitClassifier(ScikitLearner):
         """
         super(ScikitClassifier, self).__init__(model=model,
                                                polynomial=polynomial,
+                                               mask=mask,
                                                x_scaler=x_scaler,
                                                y_scaler=y_scaler,
                                                stats=stats,
@@ -131,6 +140,7 @@ class LinearRegression(ScikitLearner):
 
     def __init__(self,
                  polynomial: Optional[int] = None,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -140,6 +150,9 @@ class LinearRegression(ScikitLearner):
             The (optional) degree used to generate polynomial features. If not None, creates a scikit learn `Pipeline`
             object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
             followed by the given model.
+
+        :param mask:
+            The (optional) masking value used to mask the original targets.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -154,9 +167,9 @@ class LinearRegression(ScikitLearner):
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
             statistics must be logged.
         """
-        m = lm.LinearRegression(**model_kwargs)
-        super(LinearRegression, self).__init__(model=m,
+        super(LinearRegression, self).__init__(model=lm.LinearRegression(**model_kwargs),
                                                polynomial=polynomial,
+                                               mask=mask,
                                                x_scaler=x_scaler,
                                                y_scaler=y_scaler,
                                                stats=stats)
@@ -168,6 +181,7 @@ class LogisticRegression(ScikitClassifier):
     def __init__(self,
                  task: str = 'auto',
                  polynomial: Optional[int] = None,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -183,6 +197,9 @@ class LogisticRegression(ScikitClassifier):
             object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
             followed by the given model.
 
+        :param mask:
+            The (optional) masking value used to mask the original targets.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -196,10 +213,10 @@ class LogisticRegression(ScikitClassifier):
         :param model_kwargs:
             Custom arguments to be passed to a sklearn.linear_model.LogisticRegression instance.
         """
-        m = lm.LogisticRegression(**model_kwargs)
-        super(LogisticRegression, self).__init__(model=m,
+        super(LogisticRegression, self).__init__(model=lm.LogisticRegression(**model_kwargs),
                                                  task=task,
                                                  polynomial=polynomial,
+                                                 mask=mask,
                                                  x_scaler=x_scaler,
                                                  y_scaler=y_scaler,
                                                  stats=stats)
@@ -212,6 +229,7 @@ class RandomForestRegressor(ScikitLearner):
                  n_estimators: int = 100,
                  max_depth: Optional[int] = None,
                  polynomial: Optional[int] = None,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -228,6 +246,9 @@ class RandomForestRegressor(ScikitLearner):
             The (optional) degree used to generate polynomial features. If not None, creates a scikit learn `Pipeline`
             object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
             followed by the given model.
+
+        :param mask:
+            The (optional) masking value used to mask the original targets.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -245,6 +266,7 @@ class RandomForestRegressor(ScikitLearner):
         m = ens.RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, **model_kwargs)
         super(RandomForestRegressor, self).__init__(model=m,
                                                     polynomial=polynomial,
+                                                    mask=mask,
                                                     x_scaler=x_scaler,
                                                     y_scaler=y_scaler,
                                                     stats=stats)
@@ -258,6 +280,7 @@ class RandomForestClassifier(ScikitClassifier):
                  n_estimators: int = 100,
                  max_depth: Optional[int] = None,
                  polynomial: Optional[int] = None,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -274,6 +297,9 @@ class RandomForestClassifier(ScikitClassifier):
         :param max_depth:
             The maximum depth of the tree. If None, then nodes are expanded until all leaves are pure or until all
             leaves contain less than min_samples_split samples.
+
+        :param mask:
+            The (optional) masking value used to mask the original targets.
 
         :param polynomial:
             The (optional) degree used to generate polynomial features. If not None, creates a scikit learn `Pipeline`
@@ -297,6 +323,7 @@ class RandomForestClassifier(ScikitClassifier):
         super(RandomForestClassifier, self).__init__(model=m,
                                                      task=task,
                                                      polynomial=polynomial,
+                                                     mask=mask,
                                                      x_scaler=x_scaler,
                                                      y_scaler=y_scaler,
                                                      stats=stats)
@@ -309,6 +336,7 @@ class GradientBoostingRegressor(ScikitLearner):
                  n_estimators: int = 100,
                  min_samples_leaf: Union[int, float] = 1,
                  polynomial: Optional[int] = None,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -327,6 +355,9 @@ class GradientBoostingRegressor(ScikitLearner):
             object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
             followed by the given model.
 
+        :param mask:
+            The (optional) masking value used to mask the original targets.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -343,6 +374,7 @@ class GradientBoostingRegressor(ScikitLearner):
         m = ens.GradientBoostingRegressor(n_estimators=n_estimators, min_samples_leaf=min_samples_leaf, **model_kwargs)
         super(GradientBoostingRegressor, self).__init__(model=m,
                                                         polynomial=polynomial,
+                                                        mask=mask,
                                                         x_scaler=x_scaler,
                                                         y_scaler=y_scaler,
                                                         stats=stats)
@@ -356,6 +388,7 @@ class GradientBoostingClassifier(ScikitClassifier):
                  n_estimators: int = 100,
                  min_samples_leaf: Union[int, float] = 1,
                  polynomial: Optional[int] = None,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -379,6 +412,9 @@ class GradientBoostingClassifier(ScikitClassifier):
             object containing a `PolynomialFeatures` preprocessor (with given degree and no bias) at the beginning,
             followed by the given model.
 
+        :param mask:
+            The (optional) masking value used to mask the original targets.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -396,6 +432,7 @@ class GradientBoostingClassifier(ScikitClassifier):
         super(GradientBoostingClassifier, self).__init__(model=m,
                                                          task=task,
                                                          polynomial=polynomial,
+                                                         mask=mask,
                                                          x_scaler=x_scaler,
                                                          y_scaler=y_scaler,
                                                          stats=stats)

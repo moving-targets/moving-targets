@@ -1,4 +1,3 @@
-import numpy as np
 from sklearn.metrics import log_loss, precision_score, recall_score, f1_score, accuracy_score, roc_auc_score
 
 from moving_targets.metrics import CrossEntropy, Precision, Recall, F1, Accuracy, AUC

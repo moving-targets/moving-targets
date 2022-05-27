@@ -12,7 +12,7 @@ from test.abstract import AbstractTest
 class TestMasters(AbstractTest):
     class DummyLearner(Learner):
         def __init__(self, regression: bool):
-            super(TestMasters.DummyLearner, self).__init__(x_scaler=None, y_scaler=None, stats=False)
+            super(TestMasters.DummyLearner, self).__init__(mask=None, x_scaler=None, y_scaler=None, stats=False)
             self.regression: bool = regression
             self.p: Optional[np.ndarray] = None
 

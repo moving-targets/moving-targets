@@ -7,7 +7,6 @@ from moving_targets.masters.backends import Backend
 from moving_targets.util import probabilities
 from moving_targets.util.errors import not_implemented_message
 from moving_targets.util.masking import mask_data, get_mask
-from moving_targets.util.typing import Mask
 
 
 class Loss:
@@ -55,7 +54,7 @@ class Loss:
                  targets: np.ndarray,
                  predictions: np.ndarray,
                  sample_weight: Optional[np.ndarray] = None,
-                 mask: Optional[Mask] = None) -> Tuple[Any, Any]:
+                 mask: Optional[float] = None) -> Tuple[Any, Any]:
         """Computes the two terms of the loss value, which are obtained by approximating the actual loss <L> to its
         first order taylor expansion L(z, y) in the point <p>, where <z> are the model variables, <y> the original
         targets, and <p> the learners predictions.
@@ -87,7 +86,7 @@ class Loss:
             The (optional) array of sample weights.
 
         :param mask:
-            An (optional) masking value or an explicit masking vector for the original targets.
+            An (optional) masking value used to mask the original targets.
 
         :return:
             A tuple containing the nabla term nabla_L(p, y) @ (z - p)^T and the squared term (z - p) @ (z - p)^T.
@@ -200,7 +199,7 @@ class HammingDistance(Loss):
                  targets: np.ndarray,
                  predictions: np.ndarray,
                  sample_weight: Optional[np.ndarray] = None,
-                 mask: Optional[Mask] = None) -> Tuple[Any, Any]:
+                 mask: Optional[float] = None) -> Tuple[Any, Any]:
         assert np.all(targets == targets.astype(int)), f"HammingDistance can handle integer targets only, got {targets}"
         # since the hamming distance works on discrete targets only, we retrieve the class values from the predictions
         if self.labelling:
@@ -244,7 +243,7 @@ class CrossEntropy(Loss):
                  targets: np.ndarray,
                  predictions: np.ndarray,
                  sample_weight: Optional[np.ndarray] = None,
-                 mask: Optional[Mask] = None) -> Tuple[Any, Any]:
+                 mask: Optional[float] = None) -> Tuple[Any, Any]:
         # in order to deal with both binary and categorical crossentropy, if the prediction array has either size (N,)
         # or (N, 1), we convert it (along with the targets and variables vectors) to the form [1 - a, a]
         if predictions.squeeze().ndim == 1:

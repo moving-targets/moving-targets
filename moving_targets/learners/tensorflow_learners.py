@@ -19,6 +19,7 @@ class TensorflowLearner(Learner):
                  weighted_metrics: Optional[List] = None,
                  run_eagerly: bool = False,
                  warm_start: Union[bool, int] = False,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -50,6 +51,9 @@ class TensorflowLearner(Learner):
             the model is trained from scratch. If 1 (or True), only the optimized is reinitialized, while the weights
             are kept from the previous iteration. If 2, neither the weights nor the optimizer are reinitialized.
 
+        :param mask:
+            The (optional) masking value used to mask the original targets.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -63,7 +67,7 @@ class TensorflowLearner(Learner):
         :param fit_kwargs:
             Custom arguments to be passed to the model '.fit()' method.
         """
-        super(TensorflowLearner, self).__init__(x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
+        super(TensorflowLearner, self).__init__(mask=mask, x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
 
         self.model = model
         """The tensorflow/keras model structure."""
@@ -125,6 +129,7 @@ class TensorflowMLP(TensorflowLearner):
                  callbacks: Optional[List] = None,
                  verbose: Union[bool, str] = 'auto',
                  warm_start: Union[bool, int] = False,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False):
@@ -185,6 +190,9 @@ class TensorflowMLP(TensorflowLearner):
             the model is trained from scratch. If 1 (or True), only the optimized is reinitialized, while the weights
             are kept from the previous iteration. If 2, neither the weights nor the optimizer are reinitialized.
 
+        :param mask:
+            The (optional) masking value used to mask the original targets.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -221,6 +229,7 @@ class TensorflowMLP(TensorflowLearner):
                                             class_weight=class_weight,
                                             verbose=verbose,
                                             warm_start=warm_start,
+                                            mask=mask,
                                             x_scaler=x_scaler,
                                             y_scaler=y_scaler,
                                             stats=stats)

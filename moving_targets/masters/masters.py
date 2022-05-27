@@ -15,7 +15,7 @@ from moving_targets.util import probabilities
 from moving_targets.util.errors import not_implemented_message
 from moving_targets.util.masking import get_mask
 from moving_targets.util.scalers import Scaler
-from moving_targets.util.typing import Dataset, Mask
+from moving_targets.util.typing import Dataset
 
 
 class Master(StatsLogger):
@@ -29,6 +29,7 @@ class Master(StatsLogger):
                  backend: Union[str, Backend],
                  loss: Union[str, Loss],
                  alpha: Union[str, float, Optimizer],
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False):
@@ -42,6 +43,9 @@ class Master(StatsLogger):
         :param alpha:
             Either a floating point for a constant alpha value, a string representing an `Optimizer` alias,  or an
             actual `Optimizer` instance which implements the strategy to dynamically change the alpha value.
+
+        :param mask:
+            The (optional) masking value used to mask the original targets.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -70,6 +74,9 @@ class Master(StatsLogger):
 
         self.alpha: Optimizer = alpha
         """The alpha `Optimizer` instance."""
+
+        self.mask: Optional[float] = mask
+        """The (optional) masking value used to mask the original targets."""
 
         self.x_scaler: Optional[Scaler] = Scaler(default_method=x_scaler) if isinstance(x_scaler, str) else x_scaler
         """The (optional) scaler for the input data."""
@@ -157,8 +164,7 @@ class Master(StatsLogger):
                        x,
                        y: np.ndarray,
                        p: Optional[np.ndarray],
-                       sample_weight: Optional[np.ndarray] = None,
-                       mask: Optional[Mask] = None) -> np.ndarray:
+                       sample_weight: Optional[np.ndarray] = None) -> np.ndarray:
         """Core function of the `Master` object which builds the model and returns the adjusted targets.
 
         :param x:
@@ -173,9 +179,6 @@ class Master(StatsLogger):
         :param sample_weight:
             The (optional) vector of sample weights.
 
-        :param mask:
-            An (optional) masking value or an explicit masking vector for the original targets.
-
         :return:
             The vector of adjusted targets.
         """
@@ -188,7 +191,7 @@ class Master(StatsLogger):
             # should be no need to mask the vector at this point, however, since here we want to scale the target data
             # which might be masked later, we fit the scaler only on the masked data (this will avoid numerical errors
             # in case of nan masking, or wrong scaling factors in case of value-based or vector-based masking)
-            self.y_scaler.fit(y[get_mask(y, mask)])
+            self.y_scaler.fit(y[get_mask(y, self.mask)])
             y = self.y_scaler.transform(data=y)
             p = self.y_scaler.transform(data=p)
         # build backend and model
@@ -200,7 +203,7 @@ class Master(StatsLogger):
                                              targets=y,
                                              predictions=p,
                                              sample_weight=sample_weight,
-                                             mask=mask)
+                                             mask=self.mask)
         self.backend.minimize(cost=alpha * nabla_term + squared_term)
         # if the problem is infeasible return None, otherwise log stats and return the adjusted labels
         if self.backend.solve().solution is not None:
@@ -225,6 +228,7 @@ class RegressionMaster(Master, ABC):
                  alpha: Union[str, float, Optimizer] = 'harmonic',
                  lb: float = -float('inf'),
                  ub: float = float('inf'),
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False):
@@ -245,6 +249,9 @@ class RegressionMaster(Master, ABC):
         :param ub:
             The model variables upper bounds.
 
+        :param mask:
+            The (optional) masking value used to mask the original targets.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -258,6 +265,7 @@ class RegressionMaster(Master, ABC):
         super(RegressionMaster, self).__init__(backend=backend,
                                                loss=loss,
                                                alpha=alpha,
+                                               mask=mask,
                                                x_scaler=x_scaler,
                                                y_scaler=y_scaler,
                                                stats=stats)
@@ -287,6 +295,7 @@ class ClassificationMaster(Master, ABC):
                  alpha: Union[str, float, Optimizer] = 'harmonic',
                  labelling: bool = False,
                  types: str = 'auto',
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False):
@@ -318,6 +327,9 @@ class ClassificationMaster(Master, ABC):
             - if 'auto' is chosen, the model will go for the 'discrete' option unless an explicit loss instance is
             passed, since in that case it will leverage the 'binary' field of the loss to choose the variables types
             while returning discrete adjustments.
+
+        :param mask:
+            The (optional) masking value used to mask the original targets.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -352,6 +364,7 @@ class ClassificationMaster(Master, ABC):
         super(ClassificationMaster, self).__init__(backend=backend,
                                                    loss=loss,
                                                    alpha=alpha,
+                                                   mask=mask,
                                                    x_scaler=x_scaler,
                                                    y_scaler=y_scaler,
                                                    stats=stats)
@@ -381,8 +394,7 @@ class ClassificationMaster(Master, ABC):
                        x,
                        y: np.ndarray,
                        p: Optional[np.ndarray],
-                       sample_weight: Optional[np.ndarray] = None,
-                       mask: Optional[Mask] = None) -> np.ndarray:
+                       sample_weight: Optional[np.ndarray] = None) -> np.ndarray:
         # when dealing with multilabel classification we expect the target to match the predictions shape since they
         # should both have shape (N, C), otherwise, in standard classification cases the original targets are expected
         # to be a N-sized vector while the predictions may be either a N-size vector (in case of binary classification)

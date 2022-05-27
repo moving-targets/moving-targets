@@ -35,6 +35,7 @@ class TorchLearner(Learner):
                  batch_size: Optional[int] = 128,
                  num_workers: int = 0,
                  verbose: bool = True,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False,
@@ -67,6 +68,9 @@ class TorchLearner(Learner):
         :param verbose:
             Whether or not to print information during the neural network training.
 
+        :param mask:
+            The (optional) masking value used to mask the original targets.
+
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
 
@@ -85,7 +89,7 @@ class TorchLearner(Learner):
         except ModuleNotFoundError:
             raise MissingDependencyError(package='torch')
 
-        super(TorchLearner, self).__init__(x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
+        super(TorchLearner, self).__init__(mask=mask, x_scaler=x_scaler, y_scaler=y_scaler, stats=stats)
 
         # handle loss
         if isinstance(loss, str):
@@ -190,6 +194,7 @@ class TorchMLP(TorchLearner):
                  batch_size: Optional[int] = 128,
                  num_workers: int = 0,
                  verbose: bool = True,
+                 mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
                  stats: Union[bool, List[str]] = False):
@@ -229,6 +234,9 @@ class TorchMLP(TorchLearner):
 
         :param verbose:
             Whether or not to print information during the neural network training.
+
+        :param mask:
+            The (optional) masking value used to mask the original targets.
 
         :param x_scaler:
             The (optional) scaler for the input data, or a string representing the default scaling method.
@@ -275,6 +283,7 @@ class TorchMLP(TorchLearner):
                                        batch_size=batch_size,
                                        num_workers=num_workers,
                                        verbose=verbose,
+                                       mask=mask,
                                        x_scaler=x_scaler,
                                        y_scaler=y_scaler,
                                        stats=stats)

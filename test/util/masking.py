@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 
 from moving_targets.util.masking import get_mask, mask_data
-from moving_targets.util.typing import Mask
 from test.abstract import AbstractTest
 
 
@@ -12,7 +11,7 @@ class TestMasking(AbstractTest):
     REF = np.array([0, 1, 2, 3, 4, 5])
     MASK = np.array([True, True, False, True, False, False])
 
-    def _test_get(self, ref: np.ndarray, mask: Optional[Mask]):
+    def _test_get(self, ref: np.ndarray, mask: Optional[float]):
         ref_mask = [True] * len(self.MASK) if mask is None else list(self.MASK)
         act_mask = list(get_mask(reference=ref, mask=mask))
         self.assertListEqual(act_mask, ref_mask)
@@ -25,9 +24,6 @@ class TestMasking(AbstractTest):
 
     def test_get_val(self):
         self._test_get(ref=np.where(self.MASK, self.REF, -1), mask=-1)
-
-    def test_get_mask(self):
-        self._test_get(ref=self.REF, mask=self.MASK)
 
     def test_masking(self):
         masked = self.REF[self.MASK]
