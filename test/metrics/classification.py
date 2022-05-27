@@ -7,15 +7,15 @@ from test.metrics.abstract import TestMetrics
 
 class TestClassificationMetrics(TestMetrics):
     @staticmethod
-    def _binary_generator():
-        y = np.random.randint(0, 2, size=TestClassificationMetrics.NUM_SAMPLES)
-        p = np.random.random(size=TestClassificationMetrics.NUM_SAMPLES)
+    def _binary_generator(rng):
+        y = rng.integers(0, 2, size=TestClassificationMetrics.NUM_SAMPLES)
+        p = rng.random(size=TestClassificationMetrics.NUM_SAMPLES)
         return [], y, p
 
     @staticmethod
-    def _multi_generator():
-        y = np.random.randint(0, TestClassificationMetrics.NUM_CLASSES, size=TestClassificationMetrics.NUM_SAMPLES)
-        p = np.random.random(size=(TestClassificationMetrics.NUM_SAMPLES, TestClassificationMetrics.NUM_CLASSES))
+    def _multi_generator(rng):
+        y = rng.integers(0, TestClassificationMetrics.NUM_CLASSES, size=TestClassificationMetrics.NUM_SAMPLES)
+        p = rng.random(size=(TestClassificationMetrics.NUM_SAMPLES, TestClassificationMetrics.NUM_CLASSES))
         p = p / p.sum(axis=1, keepdims=1)
         return [], y, p
 

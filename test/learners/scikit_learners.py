@@ -27,10 +27,10 @@ class TestScikitLearners(TestLearners):
             ('model', model_class(**kwargs))
         ])
 
-    @staticmethod
-    def _random_state():
-        random.seed(0)
-        np.random.seed(0)
+    @classmethod
+    def _random_state(cls):
+        random.seed(cls.SEED)
+        np.random.seed(cls.SEED)
 
     def _reference(self, learner, x, y, sample_weight: np.ndarray) -> np.ndarray:
         if isinstance(learner, Pipeline):

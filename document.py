@@ -3,8 +3,8 @@
 #   > "python document.py clean" in order to clean previous builds without generating new documentation
 
 import os
-import sys
 import shutil
+import sys
 
 # clear previous documentation
 shutil.rmtree('docs/html', ignore_errors=True)

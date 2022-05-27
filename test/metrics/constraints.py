@@ -42,13 +42,13 @@ class TestConstraintsMetrics(TestMetrics):
     """Dictionary of results indexed by protected class type and target class type."""
 
     def test_class_frequencies_std(self):
-        def data_generator():
+        def data_generator(rng):
             # create a dictionary of data counts per class
-            counts = {c: 1 + np.random.randint(self.NUM_SAMPLES) for c in range(self.NUM_CLASSES)}
+            counts = {c: 1 + rng.integers(self.NUM_SAMPLES) for c in range(self.NUM_CLASSES)}
             values = np.array([v for v in counts.values()]) / np.sum([v for v in counts.values()])
             # create vector of classes and shuffle it, then obtain fake probabilities due to metric compatibility
             classes = np.concatenate([c * np.ones(n, dtype=int) for c, n in counts.items()])
-            np.random.shuffle(classes)
+            rng.shuffle(classes)
             # store the class value counts as y term to be used as ground truth
             return [], values, probabilities.get_onehot(vector=classes)
 
@@ -65,10 +65,10 @@ class TestConstraintsMetrics(TestMetrics):
             # we consider ascending order, thus the expected monotonicities are computed as the sign of the differences
             return np.sign(diff(v))
 
-        def data_generator():
+        def data_generator(rng):
             # no need for y data
-            x = np.random.random(self.NUM_SAMPLES)
-            p = np.random.random(self.NUM_SAMPLES)
+            x = rng.random(self.NUM_SAMPLES)
+            p = rng.random(self.NUM_SAMPLES)
             # violations are computed by getting only positive differences between pairwise predictions and then
             # masking the values having expected decreasing monotonicity (so that the increasing dual is not counted)
             violations = diff(p)[mono(x) == -1]

@@ -15,15 +15,21 @@ class TestTensorflowLearners(TestLearners):
     _OPTIMIZER: str = 'rmsprop'
     _SHUFFLE: bool = True
 
-    @staticmethod
-    def _random_state():
+    @classmethod
+    def _random_state(cls):
         import tensorflow as tf
-        random.seed(0)
-        np.random.seed(0)
-        tf.random.set_seed(0)
+        random.seed(cls.SEED)
+        np.random.seed(cls.SEED)
+        tf.random.set_seed(cls.SEED)
 
     def _reference(self, learner, x, y, sample_weight) -> np.ndarray:
-        learner.fit(x=x, y=y, sample_weight=sample_weight)
+        learner.fit(x=x,
+                    y=y,
+                    sample_weight=sample_weight,
+                    epochs=self._EPOCHS,
+                    batch_size=self._BATCH_SIZE,
+                    shuffle=self._SHUFFLE,
+                    verbose=False)
         return learner.predict(x).squeeze()
 
     def test_regression_mlp(self):

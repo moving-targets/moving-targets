@@ -24,8 +24,8 @@ class TestMasters(AbstractTest):
 
     def _test(self, task: Union[int, str], loss: str, types: Optional[str] = None):
         """Checks that the masters implementations behave correctly with respect to the given parameters."""
-        np.random.seed(0)
-        x = np.random.random((self.NUM_SAMPLES, self.NUM_FEATURES))
+        rng = np.random.default_rng(self.SEED)
+        x = rng.random((self.NUM_SAMPLES, self.NUM_FEATURES))
         # handle types
         if types == 'discrete':
             binary, classes = True, True
@@ -37,19 +37,19 @@ class TestMasters(AbstractTest):
             binary, classes = None, None
         # handle outputs
         if task == 'regression':
-            p = y = np.random.random(self.NUM_SAMPLES)
+            p = y = rng.random(self.NUM_SAMPLES)
             master = RegressionMaster(backend='gurobi', loss=loss)
         else:
             if task == 'binary':
-                y = np.random.random(self.NUM_SAMPLES).round().astype(int)
+                y = rng.random(self.NUM_SAMPLES).round().astype(int)
                 p = y if classes else y.astype(float)
                 master = ClassificationMaster(backend='gurobi', loss=loss, types=types)
             elif task == 'multiclass':
-                y = np.random.random((self.NUM_SAMPLES, self.NUM_CLASSES)).argmax(axis=1)
+                y = rng.random((self.NUM_SAMPLES, self.NUM_CLASSES)).argmax(axis=1)
                 p = y if classes else probabilities.get_onehot(y).astype(float)
                 master = ClassificationMaster(backend='gurobi', loss=loss, types=types)
             elif task == 'multilabel':
-                y = np.random.random((self.NUM_SAMPLES, self.NUM_CLASSES)).round().astype(int)
+                y = rng.random((self.NUM_SAMPLES, self.NUM_CLASSES)).round().astype(int)
                 p = y if classes else y.astype(float)
                 master = ClassificationMaster(backend='gurobi', loss=loss, types=types, labelling=True)
             else:

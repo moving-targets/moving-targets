@@ -55,30 +55,30 @@ class TestLosses(AbstractTest):
         squared_term = ls.MeanSquaredError().__call__(v, p, sample_weight=w)
         return nabla_term.numpy(), squared_term.numpy()
 
-    def _test(self, loss: str, task: str, classes: Optional[int], weights: bool, **loss_args):
+    def _test(self, loss: str, task: str, cls: Optional[int], weights: bool, **loss_args):
         """Checks that the given moving targets loss behaves as the reference one with respect to the given task (which
         is used to account for the postprocessing needed for the predictions), the given number of classes (in case of
         classification tasks), and the given vector of sample weights."""
         try:
-            np.random.seed(self.SEED)
+            rng = np.random.default_rng(self.SEED)
             backend = GurobiBackend()
-            size = (self.NUM_SAMPLES,) if classes is None or classes == 2 else (self.NUM_SAMPLES, classes)
+            size = (self.NUM_SAMPLES,) if cls is None or cls == 2 else (self.NUM_SAMPLES, cls)
             kind = 'binary' if task in ['indicator', 'probability'] else 'continuous'
             mt_loss = losses.aliases[loss](**loss_args)
             for i in range(self.NUM_TESTS):
                 backend.build()
                 # assign alpha, predictions, and sample weights
-                alpha = np.random.uniform(1, 0)
-                predictions = self._normalize(np.random.uniform(0, 1, size=size))
-                sample_weight = np.random.uniform(size=self.NUM_SAMPLES) if weights else None
+                alpha = rng.uniform(0, 1)
+                predictions = self._normalize(rng.uniform(0, 1, size=size))
+                sample_weight = rng.uniform(size=self.NUM_SAMPLES) if weights else None
                 if kind == 'binary':
                     # for binary reference values and targets, create a vector of classes and then binarize them
-                    values = probabilities.get_onehot(vector=np.random.choice(range(classes), size=self.NUM_SAMPLES))
-                    targets = probabilities.get_onehot(vector=np.random.choice(range(classes), size=self.NUM_SAMPLES))
+                    values = probabilities.get_onehot(vector=rng.integers(0, cls, size=self.NUM_SAMPLES), classes=cls)
+                    targets = probabilities.get_onehot(vector=rng.integers(0, cls, size=self.NUM_SAMPLES), classes=cls)
                 else:
                     # for continuous reference values and targets, create a vector of outputs and then normalize
-                    values = self._normalize(np.random.uniform(0, 1, size=size))
-                    targets = self._normalize(np.random.uniform(0, 1, size=size))
+                    values = self._normalize(rng.uniform(0, 1, size=size))
+                    targets = self._normalize(rng.uniform(0, 1, size=size))
                 # create constant model variables from values then compute the backend objective
                 variables = backend.add_constants(values, vtype=kind, name='var')
                 mt_nabla, mt_squared = mt_loss(
@@ -98,9 +98,9 @@ class TestLosses(AbstractTest):
                     targets = probabilities.get_classes(targets, labelling=labelling)
                     predictions = probabilities.get_classes(predictions, labelling=labelling)
                     if not labelling:
-                        values = probabilities.get_onehot(values, classes=classes)
-                        targets = probabilities.get_onehot(targets, classes=classes)
-                        predictions = probabilities.get_onehot(predictions, classes=classes)
+                        values = probabilities.get_onehot(values, classes=cls)
+                        targets = probabilities.get_onehot(targets, classes=cls)
+                        predictions = probabilities.get_onehot(predictions, classes=cls)
                 ref_nabla, ref_squared = self._ref_loss(
                     loss=loss,
                     values=values,
@@ -118,73 +118,73 @@ class TestLosses(AbstractTest):
             self.assertTrue(self.__class__.__name__ == 'TestBackend')
 
     def test_mae(self):
-        self._test(loss='mae', task='regression', classes=None, weights=False)
+        self._test(loss='mae', task='regression', cls=None, weights=False)
 
     def test_mae_weights(self):
-        self._test(loss='mae', task='regression', classes=None, weights=True)
+        self._test(loss='mae', task='regression', cls=None, weights=True)
 
     def test_binary_mae(self):
-        self._test(loss='mae', task='probability', classes=self.NUM_CLASSES, weights=False, binary=True)
+        self._test(loss='mae', task='probability', cls=self.NUM_CLASSES, weights=False, binary=True)
 
     def test_binary_mae_weights(self):
-        self._test(loss='mae', task='probability', classes=self.NUM_CLASSES, weights=True, binary=True)
+        self._test(loss='mae', task='probability', cls=self.NUM_CLASSES, weights=True, binary=True)
 
     def test_mse(self):
-        self._test(loss='mse', task='regression', classes=None, weights=False)
+        self._test(loss='mse', task='regression', cls=None, weights=False)
 
     def test_mse_weights(self):
-        self._test(loss='mse', task='regression', classes=None, weights=True)
+        self._test(loss='mse', task='regression', cls=None, weights=True)
 
     def test_binary_mse(self):
-        self._test(loss='mse', task='probability', classes=self.NUM_CLASSES, weights=False, binary=True)
+        self._test(loss='mse', task='probability', cls=self.NUM_CLASSES, weights=False, binary=True)
 
     def test_binary_mse_weights(self):
-        self._test(loss='mse', task='probability', classes=self.NUM_CLASSES, weights=True, binary=True)
+        self._test(loss='mse', task='probability', cls=self.NUM_CLASSES, weights=True, binary=True)
 
     def test_bh(self):
-        self._test(loss='bhd', task='indicator', classes=2, weights=False)
+        self._test(loss='bhd', task='indicator', cls=2, weights=False)
 
     def test_bh_weights(self):
-        self._test(loss='bhd', task='indicator', classes=2, weights=True)
+        self._test(loss='bhd', task='indicator', cls=2, weights=True)
 
     def test_labelling_bh(self):
-        self._test(loss='bhd', task='indicator', classes=2, weights=False, labelling=True)
+        self._test(loss='bhd', task='indicator', cls=2, weights=False, labelling=True)
 
     def test_labelling_bh_weights(self):
-        self._test(loss='bhd', task='indicator', classes=2, weights=True, labelling=True)
+        self._test(loss='bhd', task='indicator', cls=2, weights=True, labelling=True)
 
     def test_ch(self):
-        self._test(loss='chd', task='indicator', classes=self.NUM_CLASSES, weights=False)
+        self._test(loss='chd', task='indicator', cls=self.NUM_CLASSES, weights=False)
 
     def test_ch_weights(self):
-        self._test(loss='chd', task='indicator', classes=self.NUM_CLASSES, weights=True)
+        self._test(loss='chd', task='indicator', cls=self.NUM_CLASSES, weights=True)
 
     def test_labelling_ch(self):
-        self._test(loss='chd', task='indicator', classes=self.NUM_CLASSES, weights=False, labelling=True)
+        self._test(loss='chd', task='indicator', cls=self.NUM_CLASSES, weights=False, labelling=True)
 
     def test_labelling_ch_weights(self):
-        self._test(loss='chd', task='indicator', classes=self.NUM_CLASSES, weights=True, labelling=True)
+        self._test(loss='chd', task='indicator', cls=self.NUM_CLASSES, weights=True, labelling=True)
 
     def test_bce(self):
-        self._test(loss='bce', task='probability', classes=2, weights=False)
+        self._test(loss='bce', task='probability', cls=2, weights=False)
 
     def test_bce_weights(self):
-        self._test(loss='bce', task='probability', classes=2, weights=True)
+        self._test(loss='bce', task='probability', cls=2, weights=True)
 
     def test_binary_bce(self):
-        self._test(loss='bce', task='probability', classes=2, weights=False, binary=True)
+        self._test(loss='bce', task='probability', cls=2, weights=False, binary=True)
 
     def test_binary_bce_weights(self):
-        self._test(loss='bce', task='probability', classes=2, weights=True, binary=True)
+        self._test(loss='bce', task='probability', cls=2, weights=True, binary=True)
 
     def test_cce(self):
-        self._test(loss='cce', task='probability', classes=self.NUM_CLASSES, weights=False)
+        self._test(loss='cce', task='probability', cls=self.NUM_CLASSES, weights=False)
 
     def test_cce_weights(self):
-        self._test(loss='cce', task='probability', classes=self.NUM_CLASSES, weights=True)
+        self._test(loss='cce', task='probability', cls=self.NUM_CLASSES, weights=True)
 
     def test_binary_cce(self):
-        self._test(loss='cce', task='probability', classes=self.NUM_CLASSES, weights=False, binary=True)
+        self._test(loss='cce', task='probability', cls=self.NUM_CLASSES, weights=False, binary=True)
 
     def test_binary_cce_weights(self):
-        self._test(loss='cce', task='probability', classes=self.NUM_CLASSES, weights=True, binary=True)
+        self._test(loss='cce', task='probability', cls=self.NUM_CLASSES, weights=True, binary=True)

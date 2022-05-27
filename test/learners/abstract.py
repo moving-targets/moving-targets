@@ -8,8 +8,8 @@ from test.abstract import AbstractTest
 
 
 class TestLearners(AbstractTest):
-    @staticmethod
-    def _random_state():
+    @classmethod
+    def _random_state(cls):
         """Defines the random seeds to be fixed before calling the moving targets learner and the reference learner."""
         raise NotImplementedError(not_implemented_message(name='_random_state', static=True))
 
@@ -19,13 +19,13 @@ class TestLearners(AbstractTest):
 
     def _test(self, mt_learner: Callable, ref_learner: Callable, classification: bool):
         """Performs the tests on the given data and checks the correctness of the learner wrt to a reference learner."""
-        np.random.seed(self.SEED)
+        rng = np.random.default_rng(self.SEED)
         for weights in [True, False]:
             for i in range(self.NUM_TESTS):
                 # generate data
-                x = np.random.random((self.NUM_SAMPLES, self.NUM_FEATURES))
-                y = np.random.choice([0, 1], self.NUM_SAMPLES) if classification else np.random.random(self.NUM_SAMPLES)
-                sample_weight = np.random.random(self.NUM_SAMPLES) if weights else None
+                x = rng.random((self.NUM_SAMPLES, self.NUM_FEATURES))
+                y = rng.integers(0, 2, self.NUM_SAMPLES) if classification else rng.random(self.NUM_SAMPLES)
+                sample_weight = rng.random(self.NUM_SAMPLES) if weights else None
                 # fit and predict using the moving targets learner
                 self._random_state()
                 mt_pred = mt_learner().fit(x, y, sample_weight=sample_weight).predict(x)

@@ -44,7 +44,9 @@ class TestExamples(AbstractTest):
     def _test(self, dataset: str, class_column: str, init_step: str, loss: str):
         """Implements the testing strategy for a given dataset using a certain loss, a certain initial step, and
         having the given target label."""
-        np.random.seed(self.SEED)
+        # explicitly use np.random.seed(0) instead of default rng with self.SEED since the results have been computed
+        # on this specific configuration and any change to the random number generator will lead to a failure
+        np.random.seed(0)
         # load data
         with importlib.resources.path('res', f'{dataset}.csv') as filepath:
             df = pd.read_csv(filepath)

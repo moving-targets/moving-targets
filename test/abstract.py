@@ -4,7 +4,7 @@ import unittest
 
 
 class AbstractTest(unittest.TestCase):
-    SEED: int = 0
+    SEED: int = 42
     """The chosen random seed."""
 
     NUM_TESTS: int = 10

@@ -16,12 +16,12 @@ class TestTorchLearners(TestLearners):
     _OPTIMIZER: str = 'RMSprop'
     _SHUFFLE: bool = True
 
-    @staticmethod
-    def _random_state():
+    @classmethod
+    def _random_state(cls):
         import torch
-        random.seed(0)
-        np.random.seed(0)
-        torch.manual_seed(0)
+        random.seed(cls.SEED)
+        np.random.seed(cls.SEED)
+        torch.manual_seed(cls.SEED)
 
     def _reference(self, learner, x, y, sample_weight) -> np.ndarray:
         from moving_targets.learners import TorchLearner

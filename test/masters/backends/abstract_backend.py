@@ -48,7 +48,7 @@ class TestBackend(AbstractTest):
         """Checks the correctness, using an array of the given dimensions, of the given the backend indicator operation
         that is instantiated according to the additional parameters"""
         try:
-            np.random.seed(self.SEED)
+            rng = np.random.default_rng(self.SEED)
             backend = self._backend()
             sizes = (self._SIZES['1D'], 1) if dim == '0D' else (self._SIZES[dim], self._SIZES[dim])
             mt_operation = getattr(backend, operation)
@@ -56,7 +56,7 @@ class TestBackend(AbstractTest):
             if operation in self._unsupported():
                 backend.build()
                 with self.assertRaises(BackendError):
-                    a, b = [np.random.random(size=size) for size in sizes]
+                    a, b = [rng.random(size=size) for size in sizes]
                     a = backend.add_constants(a)
                     b = backend.add_constant(b[0]) if dim == '0D' else backend.add_constants(b)
                     mt_operation(a, b, **op_args)
@@ -64,7 +64,7 @@ class TestBackend(AbstractTest):
             else:
                 for i in range(self.NUM_TESTS):
                     # build random vectors of reference values and compute the operation result
-                    ref_a, ref_b = [np.random.random(size=size) for size in sizes]
+                    ref_a, ref_b = [rng.random(size=size) for size in sizes]
                     ref_result = ref_operation(ref_a, ref_b, **op_args)
                     # build constant model variables vector(s) from values then obtain the operation result
                     backend.build()
@@ -84,21 +84,21 @@ class TestBackend(AbstractTest):
         """Checks the correctness, using an array of the given dimensions, of the given the backend numeric operation
         that is instantiated according to the additional parameters (which must shared between the backend and numpy)"""
         try:
-            np.random.seed(self.SEED)
+            rng = np.random.default_rng(self.SEED)
             backend = self._backend()
             mt_operation = getattr(backend, operation)
             ref_operation = getattr(np, operation)
             if operation in self._unsupported():
                 backend.build()
                 with self.assertRaises(BackendError):
-                    values = [np.random.random(size=self._SIZES[d]) for d in dims]
+                    values = [rng.random(size=self._SIZES[d]) for d in dims]
                     values = [backend.add_constants(v) for v in values]
                     mt_operation(*values, **op_args)
                 backend.clear()
             else:
                 for i in range(self.NUM_TESTS):
                     # build random vector(s) of reference values and compute the operation result
-                    ref_values = [np.random.random(size=self._SIZES[d]) for d in dims]
+                    ref_values = [rng.random(size=self._SIZES[d]) for d in dims]
                     if operation == 'cov':
                         ref_result = np.cov(*ref_values, bias=True)[0, 1]
                     else:
