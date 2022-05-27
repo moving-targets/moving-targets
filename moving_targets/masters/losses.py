@@ -91,6 +91,7 @@ class Loss:
         :return:
             A tuple containing the nabla term nabla_L(p, y) @ (z - p)^T and the squared term (z - p) @ (z - p)^T.
         """
+        mask = get_mask(targets, mask)
         # reshape inputs in order to create a NxF matrix, where N is the number of samples and F the number of features
         variables = np.reshape(variables, (len(variables), -1))
         targets = np.reshape(targets, (len(targets), -1))
@@ -99,11 +100,11 @@ class Loss:
         sample_weight = np.ones(len(variables)) if sample_weight is None else sample_weight.flatten()
         sample_weight = len(sample_weight) * np.array(sample_weight) / np.sum(sample_weight)
         # compute the nabla term, which is a summation of the terms dL / dp_i * (z_i - p_i), with i in {1, ..., F}
-        # also mask each vector using the target as reference
-        m_targets, m_predictions, m_variables = mask_data(targets, predictions, variables, mask=get_mask(targets, mask))
-        nabla_term = self.nabla(targets=m_targets, predictions=predictions)
-        nabla_term = backend.sum(nabla_term * (variables - predictions), axis=1)
-        nabla_term = backend.mean(sample_weight * nabla_term)
+        # also mask each vector using the previously computed mask as reference
+        m_targ, m_pred, m_var, m_weights = mask_data(targets, predictions, variables, sample_weight, mask=mask)
+        nabla_term = self.nabla(targets=m_targ, predictions=m_pred)
+        nabla_term = backend.sum(nabla_term * (m_var - m_pred), axis=1)
+        nabla_term = backend.mean(m_weights * nabla_term)
         # compute the squared term, which is the mean of the terms (z_i - p_i) ^ 2, with i in {1, ..., F}
         squared_term = self.square(b=backend, v=variables, p=predictions)
         squared_term = backend.mean(squared_term, axis=1)
