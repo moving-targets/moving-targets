@@ -8,69 +8,72 @@ from test.abstract import AbstractTest
 
 
 class TestMasking(AbstractTest):
-    REF_1D = np.array([0, 1, 2, 3, 4, 5], dtype=float)
-    REF_2D = np.array([REF_1D] * AbstractTest.NUM_CLASSES).T
+    REF_1D = [0., 1., 2., 3., 4., 5.]
+    REF_2D = [[i] * AbstractTest.NUM_CLASSES for i in REF_1D]
     MASK = np.array([True, True, False, True, False, False])
 
-    def _test_get(self, ref: np.ndarray, mask: Optional[float], all_columns: bool):
+    def _test_get(self, ref: np.ndarray, mask: Optional[float], all_columns: bool, should_fail: bool):
         ref_mask = [True] * len(self.MASK) if mask is None else list(self.MASK)
         act_mask = list(get_mask(reference=ref, mask=mask, all_columns=all_columns))
-        self.assertListEqual(act_mask, ref_mask)
+        is_equal = np.equal(ref_mask, act_mask).all()
+        msg = f"\nMasks {ref_mask} and {act_mask} are "
+        if should_fail:
+            self.assertFalse(is_equal, msg=msg + "not expected to be equal, but they are.")
+        else:
+            self.assertTrue(is_equal, msg=msg + "expected to be equal, but they are not.")
 
     def test_get_none_1d(self):
-        self._test_get(ref=self.REF_1D, mask=None, all_columns=True)
-        self._test_get(ref=self.REF_1D, mask=None, all_columns=False)
+        self._test_get(ref=np.array(self.REF_1D), mask=None, all_columns=True, should_fail=False)
+        self._test_get(ref=np.array(self.REF_1D), mask=None, all_columns=False, should_fail=False)
 
     def test_get_nan_1d(self):
         ref = np.where(self.MASK, self.REF_1D, np.nan)
-        self._test_get(ref=ref, mask=np.nan, all_columns=True)
-        self._test_get(ref=ref, mask=np.nan, all_columns=False)
+        self._test_get(ref=ref, mask=np.nan, all_columns=True, should_fail=False)
+        self._test_get(ref=ref, mask=np.nan, all_columns=False, should_fail=False)
 
     def test_get_val_1d(self):
         ref = np.where(self.MASK, self.REF_1D, -1)
-        self._test_get(ref=ref, mask=-1, all_columns=True)
-        self._test_get(ref=ref, mask=-1, all_columns=True)
+        self._test_get(ref=ref, mask=-1, all_columns=True, should_fail=False)
+        self._test_get(ref=ref, mask=-1, all_columns=True, should_fail=False)
 
     def test_get_none_2d(self):
-        self._test_get(ref=self.REF_2D, mask=None, all_columns=True)
-        self._test_get(ref=self.REF_2D, mask=None, all_columns=False)
+        self._test_get(ref=np.array(self.REF_2D), mask=None, all_columns=True, should_fail=False)
+        self._test_get(ref=np.array(self.REF_2D), mask=None, all_columns=False, should_fail=False)
 
     def test_get_nan_all(self):
-        ref = self.REF_2D
+        ref = np.array(self.REF_2D)
         for index in np.arange(len(self.MASK))[~self.MASK]:
             ref[index, :] = np.nan
-        self._test_get(ref=ref, mask=np.nan, all_columns=True)
-        self._test_get(ref=ref, mask=np.nan, all_columns=False)
+        self._test_get(ref=ref, mask=np.nan, all_columns=True, should_fail=False)
+        self._test_get(ref=ref, mask=np.nan, all_columns=False, should_fail=False)
 
     def test_get_val_all(self):
-        ref = self.REF_2D
+        ref = np.array(self.REF_2D)
         for index in np.arange(len(self.MASK))[~self.MASK]:
             ref[index, :] = -1
-        self._test_get(ref=ref, mask=-1, all_columns=True)
-        self._test_get(ref=ref, mask=-1, all_columns=False)
+        self._test_get(ref=ref, mask=-1, all_columns=True, should_fail=False)
+        self._test_get(ref=ref, mask=-1, all_columns=False, should_fail=False)
 
     def test_get_nan_any(self):
         rng = np.random.default_rng(self.SEED)
-        ref = self.REF_2D
+        ref = np.array(self.REF_2D)
         for index in np.arange(len(self.MASK))[~self.MASK]:
             ref[index, rng.integers(0, self.NUM_CLASSES, size=1)] = np.nan
-        self._test_get(ref=ref, mask=np.nan, all_columns=False)
-        with self.assertRaises(AssertionError, msg="Mask test does not fail when using all_columns=True"):
-            self._test_get(ref=ref, mask=np.nan, all_columns=True)
+        self._test_get(ref=ref, mask=np.nan, all_columns=False, should_fail=False)
+        self._test_get(ref=ref, mask=np.nan, all_columns=True, should_fail=True)
 
     def test_get_val_any(self):
         rng = np.random.default_rng(self.SEED)
-        ref = self.REF_2D
+        ref = np.array(self.REF_2D)
         for index in np.arange(len(self.MASK))[~self.MASK]:
             ref[index, rng.integers(0, self.NUM_CLASSES, size=1)] = -1
-        self._test_get(ref=ref, mask=-1, all_columns=False)
-        with self.assertRaises(AssertionError, msg="Mask test does not fail when using all_columns=True"):
-            self._test_get(ref=ref, mask=-1, all_columns=True)
+        self._test_get(ref=ref, mask=-1, all_columns=False, should_fail=False)
+        self._test_get(ref=ref, mask=-1, all_columns=True, should_fail=True)
 
     def test_masking(self):
-        masked = self.REF_1D[self.MASK]
+        masked = np.array(self.REF_1D)[self.MASK]
         vectors = [
-            self.REF_1D,
+            np.array(self.REF_1D),
             pd.Series(self.REF_1D),
             pd.DataFrame(self.REF_1D),
             np.array([self.REF_1D] * self.NUM_FEATURES).T
