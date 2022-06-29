@@ -108,3 +108,10 @@ class NumpyBackend(Backend):
     def var(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         # use "None" as aux automatic value to avoid warnings
         return super(NumpyBackend, self).var(a, axis, asarray, aux=None if aux == 'auto' else aux)
+
+    def norm_0(self,
+               a: np.ndarray,
+               axis: Optional[int] = None,
+               asarray: bool = False,
+               aux: Optional[str] = 'auto') -> Any:
+        return np.count_nonzero(a, axis=axis)

@@ -11,7 +11,7 @@ class TestCplexBackend(TestBackend):
 
     @classmethod
     def _unsupported(cls) -> List[str]:
-        return ['log', 'min', 'max', 'sqrt', 'divide']
+        return ['log', 'min', 'max', 'sqrt', 'divide', 'norm_0', 'norm_inf']
 
     @classmethod
     def _get_name(cls, variable: Any) -> str:

@@ -187,3 +187,63 @@ class GurobiBackend(Backend):
             z = self.add_continuous_variables(*a.shape)
             self.add_constraints([ai == zi * bi for ai, bi, zi in zip(a.flatten(), b.flatten(), z.flatten())])
             return z
+
+    def norm_0(self,
+               a: np.ndarray,
+               axis: Optional[int] = None,
+               asarray: bool = False,
+               aux: Optional[str] = 'auto') -> Any:
+        def _norm(_array):
+            norm_val = self.add_continuous_variable(lb=-float('inf'), ub=float('inf'))
+            self.model.addGenConstrNorm(norm_val, list(_array), which=0)
+            return norm_val
+
+        self._aux_warning(exp='continuous', aux=aux, msg='to compute norm 1')
+        return self._handle_axes(a, operation=_norm, axis=axis, asarray=asarray)
+
+    def norm_1(self,
+               a: np.ndarray,
+               axis: Optional[int] = None,
+               asarray: bool = False,
+               aux: Optional[str] = 'auto') -> Any:
+        def _norm(_array):
+            norm_val = self.add_continuous_variable(lb=-float('inf'), ub=float('inf'))
+            self.model.addGenConstrNorm(norm_val, list(_array), which=1)
+            return norm_val
+
+        self._aux_warning(exp='continuous', aux=aux, msg='to compute norm 1')
+        return self._handle_axes(a, operation=_norm, axis=axis, asarray=asarray)
+
+    def norm_2(self,
+               a,
+               squared: bool = False,
+               axis: Optional[int] = None,
+               asarray: bool = False,
+               aux: Optional[str] = 'auto') -> Any:
+        if squared:
+            def _norm(_array):
+                norm_val = self.add_continuous_variable(lb=-float('inf'), ub=float('inf'))
+                self.model.addGenConstrNorm(norm_val, list(_array), which=2)
+                return self.square(norm_val)
+        else:
+            def _norm(_array):
+                norm_val = self.add_continuous_variable(lb=-float('inf'), ub=float('inf'))
+                self.model.addGenConstrNorm(norm_val, list(_array), which=2)
+                return norm_val
+
+        self._aux_warning(exp='continuous', aux=aux, msg='to compute norm 2')
+        return self._handle_axes(a, operation=_norm, axis=axis, asarray=asarray)
+
+    def norm_inf(self,
+                 a: np.ndarray,
+                 axis: Optional[int] = None,
+                 asarray: bool = False,
+                 aux: Optional[str] = 'auto') -> Any:
+        def _norm(_array):
+            from gurobipy import GRB
+            norm_val = self.add_continuous_variable(lb=-float('inf'), ub=float('inf'))
+            self.model.addGenConstrNorm(norm_val, list(_array), which=GRB.INFINITY)
+            return norm_val
+
+        self._aux_warning(exp='continuous', aux=aux, msg='to compute norm inf')
+        return self._handle_axes(a, operation=_norm, axis=axis, asarray=asarray)

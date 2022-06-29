@@ -116,6 +116,48 @@ class TestBackend(AbstractTest):
         except Exception as exception:
             self._check_exception(operation=operation, exception=exception)
 
+    def _test_norm_operation(self, dim: str, norm: Union[int, str], **op_args):
+        """Checks the correctness, using an array of the given dimensions, of the given the backend numeric operation
+        that is instantiated according to the additional parameters (which must shared between the backend and numpy)"""
+        try:
+            rng = np.random.default_rng(self.SEED)
+            backend = self._backend()
+            mt_operation = getattr(backend, f'norm_{norm}')
+            if f'norm_{norm}' in self._unsupported():
+                backend.build()
+                with self.assertRaises(BackendError):
+                    values = rng.random(size=self._SIZES[dim])
+                    values = backend.add_constants(values)
+                    mt_operation(values, **op_args)
+                backend.clear()
+            else:
+                for i in range(self.NUM_TESTS):
+                    # build random vector(s) of reference values and compute the operation result
+                    ref_values = rng.random(size=self._SIZES[dim])
+                    if norm == 0:
+                        ref_result = np.count_nonzero(ref_values, **op_args)
+                    elif norm == 1:
+                        ref_result = np.linalg.norm(ref_values, ord=1, **op_args)
+                    elif norm == 2:
+                        args = {k: v for k, v in op_args.items() if k != 'squared'}
+                        ref_result = np.linalg.norm(ref_values, ord=2, **args) ** 2
+                    elif norm == 'inf':
+                        ref_result = np.linalg.norm(ref_values, ord=np.inf, **op_args)
+                    else:
+                        raise AssertionError(f"Unexpected norm {norm}")
+                    # build constant model variables vector(s) from values then obtain the operation result
+                    backend.build()
+                    mt_values = backend.add_constants(ref_values)
+                    mt_result = mt_operation(mt_values, **op_args)
+                    backend.solve()
+                    mt_result = backend.get_value(mt_result)
+                    backend.clear()
+                    # compare the two results
+                    msg = f'Error at it. {i}, in norm_{norm}, with dim {dim}, {mt_result} != {ref_result}'
+                    self.assertTrue(np.allclose(mt_result, ref_result, atol=10 ** -self.PLACES), msg=msg)
+        except Exception as exception:
+            self._check_exception(operation=f'norm_{norm}', exception=exception)
+
     # TEST MODELLING OPERATIONS
 
     def test_model(self):
@@ -337,3 +379,51 @@ class TestBackend(AbstractTest):
         self._test_numeric_operation('1D', '2D', operation='dot')
         self._test_numeric_operation('2D', '1D inv', operation='dot')
         self._test_numeric_operation('2D', '2D inv', operation='dot')
+
+    def test_norm_0(self):
+        self._test_norm_operation('1D', norm=0)
+        self._test_norm_operation('1D', norm=0, axis=-1)
+        self._test_norm_operation('1D', norm=0, axis=0)
+        self._test_norm_operation('2D', norm=0, axis=-1)
+        self._test_norm_operation('2D', norm=0, axis=0)
+        self._test_norm_operation('2D', norm=0, axis=1)
+        self._test_norm_operation('3D', norm=0, axis=-1)
+        self._test_norm_operation('3D', norm=0, axis=0)
+        self._test_norm_operation('3D', norm=0, axis=1)
+        self._test_norm_operation('3D', norm=0, axis=2)
+
+    def test_norm_1(self):
+        self._test_norm_operation('1D', norm=1)
+        self._test_norm_operation('1D', norm=1, axis=-1)
+        self._test_norm_operation('1D', norm=1, axis=0)
+        self._test_norm_operation('2D', norm=1, axis=-1)
+        self._test_norm_operation('2D', norm=1, axis=0)
+        self._test_norm_operation('2D', norm=1, axis=1)
+        self._test_norm_operation('3D', norm=1, axis=-1)
+        self._test_norm_operation('3D', norm=1, axis=0)
+        self._test_norm_operation('3D', norm=1, axis=1)
+        self._test_norm_operation('3D', norm=1, axis=2)
+
+    def test_norm_2(self):
+        self._test_norm_operation('1D', norm=2, squared=True)
+        self._test_norm_operation('1D', norm=2, squared=True, axis=-1)
+        self._test_norm_operation('1D', norm=2, squared=True, axis=0)
+        self._test_norm_operation('2D', norm=2, squared=True, axis=-1)
+        self._test_norm_operation('2D', norm=2, squared=True, axis=0)
+        self._test_norm_operation('2D', norm=2, squared=True, axis=1)
+        self._test_norm_operation('3D', norm=2, squared=True, axis=-1)
+        self._test_norm_operation('3D', norm=2, squared=True, axis=0)
+        self._test_norm_operation('3D', norm=2, squared=True, axis=1)
+        self._test_norm_operation('3D', norm=2, squared=True, axis=2)
+
+    def test_norm_inf(self):
+        self._test_norm_operation('1D', norm='inf')
+        self._test_norm_operation('1D', norm='inf', axis=-1)
+        self._test_norm_operation('1D', norm='inf', axis=0)
+        self._test_norm_operation('2D', norm='inf', axis=-1)
+        self._test_norm_operation('2D', norm='inf', axis=0)
+        self._test_norm_operation('2D', norm='inf', axis=1)
+        self._test_norm_operation('3D', norm='inf', axis=-1)
+        self._test_norm_operation('3D', norm='inf', axis=0)
+        self._test_norm_operation('3D', norm='inf', axis=1)
+        self._test_norm_operation('3D', norm='inf', axis=2)

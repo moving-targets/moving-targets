@@ -1028,3 +1028,150 @@ class Backend:
         """
         dot_expression = self.aux(expressions=a @ b, aux_vtype=aux)
         return np.array(dot_expression) if asarray else dot_expression
+
+    def norm_0(self,
+               a: np.ndarray,
+               axis: Optional[int] = None,
+               asarray: bool = False,
+               aux: Optional[str] = 'auto') -> Any:
+        """Compute the norm 0 of an array.
+
+        :param a:
+            The first array (at most 1d if axis is None).
+
+        :param axis:
+            The dimension on which to aggregate or None to aggregate the whole data.
+
+        :param asarray:
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
+
+        :param aux:
+            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
+            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
+            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
+            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
+            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
+            huge datasets since they can considerably speedup the model formulation; still, imposing equality
+            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+
+        :return:
+            The norm 0 of the input array.
+
+        :raise `BackendError`:
+            If the backend cannot handle equalities.
+        """
+        raise BackendError(unsupported='equalities')
+
+    def norm_1(self,
+               a: np.ndarray,
+               axis: Optional[int] = None,
+               asarray: bool = False,
+               aux: Optional[str] = 'auto') -> Any:
+        """Compute the norm 1 of an array.
+
+        :param a:
+            The first array (at most 1d if axis is None).
+
+        :param axis:
+            The dimension on which to aggregate or None to aggregate the whole data.
+
+        :param asarray:
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
+
+        :param aux:
+            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
+            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
+            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
+            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
+            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
+            huge datasets since they can considerably speedup the model formulation; still, imposing equality
+            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+
+        :return:
+            The norm 1 of the input array.
+
+        :raise `BackendError`:
+            If the backend cannot handle absolute variables.
+        """
+        norm = self._handle_axes(a, operation=lambda v: self.sum(self.abs(v)), axis=axis, asarray=asarray)
+        return self.aux(expressions=norm, aux_vtype=aux)
+
+    def norm_2(self,
+               a: np.ndarray,
+               squared: bool = False,
+               axis: Optional[int] = None,
+               asarray: bool = False,
+               aux: Optional[str] = 'auto') -> Any:
+        """Compute the norm 2 of an array.
+
+        :param a:
+            The first array (at most 1d if axis is None).
+
+        :param squared:
+            Whether to return the squared norm 2, or the default norm 2 (which is under the square root).
+
+        :param axis:
+            The dimension on which to aggregate or None to aggregate the whole data.
+
+        :param asarray:
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
+
+        :param aux:
+            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
+            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
+            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
+            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
+            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
+            huge datasets since they can considerably speedup the model formulation; still, imposing equality
+            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+
+        :return:
+            The norm 2 of the input array.
+
+        :raise `BackendError`:
+            If the backend cannot handle squared values or square roots.
+        """
+        if squared:
+            operation = lambda v: self.dot(v, v)
+        else:
+            operation = lambda v: self.sqrt(self.dot(v, v))
+        norm = self._handle_axes(a, operation=operation, axis=axis, asarray=asarray)
+        return self.aux(expressions=norm, aux_vtype=aux)
+
+    def norm_inf(self,
+                 a: np.ndarray,
+                 axis: Optional[int] = None,
+                 asarray: bool = False,
+                 aux: Optional[str] = 'auto') -> Any:
+        """Compute the norm infinity of an array.
+
+        :param a:
+            The first array (at most 1d if axis is None).
+
+        :param axis:
+            The dimension on which to aggregate or None to aggregate the whole data.
+
+        :param asarray:
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
+
+        :param aux:
+            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
+            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
+            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
+            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
+            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
+            huge datasets since they can considerably speedup the model formulation; still, imposing equality
+            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+
+        :return:
+            The norm infinity of the input array.
+
+        :raise `BackendError`:
+            If the backend cannot handle absolute and maximum values.
+        """
+        norm = self._handle_axes(a, operation=lambda v: self.max(self.abs(v)), axis=axis, asarray=asarray)
+        return self.aux(expressions=norm, aux_vtype=aux)
