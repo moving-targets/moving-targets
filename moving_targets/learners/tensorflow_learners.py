@@ -12,8 +12,8 @@ class TensorflowLearner(Learner):
 
     def __init__(self,
                  model,
-                 loss: str,
-                 optimizer: str = 'adam',
+                 loss: Any,
+                 optimizer: Any = 'adam',
                  metrics: Optional[List] = None,
                  loss_weights: Union[None, List, Dict] = None,
                  weighted_metrics: Optional[List] = None,
@@ -29,10 +29,10 @@ class TensorflowLearner(Learner):
             The tensorflow/keras model structure.
 
         :param loss:
-            The neural network loss function.
+            The neural network loss function (either a string or a loss object).
 
         :param optimizer:
-            The neural network optimizer.
+            The neural network optimizer (either a string or an optimizer object).
 
         :param metrics:
             The list of tensorflow/keras metrics for the evaluation phase.
@@ -111,12 +111,12 @@ class TensorflowMLP(TensorflowLearner):
     """Tensorflow/Keras Dense Neural Network Wrapper"""
 
     def __init__(self,
-                 loss: str,
+                 loss: Any,
                  output_units: int = 1,
                  output_activation: Optional[str] = None,
                  hidden_units: List[int] = (128,),
                  hidden_activation: Optional[str] = 'relu',
-                 optimizer: str = 'adam',
+                 optimizer: Any = 'adam',
                  metrics: Optional[List] = None,
                  loss_weights: Union[None, List, Dict] = None,
                  weighted_metrics: Optional[List] = None,
@@ -132,10 +132,11 @@ class TensorflowMLP(TensorflowLearner):
                  mask: Optional[float] = None,
                  x_scaler: Union[None, Scaler, str] = None,
                  y_scaler: Union[None, Scaler, str] = None,
-                 stats: Union[bool, List[str]] = False):
+                 stats: Union[bool, List[str]] = False,
+                 **layer_kwargs: Any):
         """
         :param loss:
-            The neural network loss function.
+            The neural network loss function (either a string or a loss object).
 
         :param output_units:
             The neural network number of output units.
@@ -150,7 +151,7 @@ class TensorflowMLP(TensorflowLearner):
             The neural network hidden activations.
 
         :param optimizer:
-            The neural network optimizer.
+            The neural network optimizer (either a string or an optimizer object).
 
         :param metrics:
             The list of tensorflow/keras metrics for the evaluation phase.
@@ -202,6 +203,10 @@ class TensorflowMLP(TensorflowLearner):
         :param stats:
             Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
             statistics must be logged.
+
+        :param layer_kwargs:
+            Additional arguments to be passed to the layer instances, both hidden and output. Examples are: use_bias,
+            kernel_initializer, kernel_regularizer, kernel_constraint, etc.
         """
         try:
             from tensorflow.python.keras.layers import Dense
@@ -211,8 +216,8 @@ class TensorflowMLP(TensorflowLearner):
 
         network = Sequential()
         for units in hidden_units:
-            network.add(layer=Dense(units=units, activation=hidden_activation))
-        network.add(layer=Dense(units=output_units, activation=output_activation))
+            network.add(layer=Dense(units=units, activation=hidden_activation, **layer_kwargs))
+        network.add(layer=Dense(units=output_units, activation=output_activation, **layer_kwargs))
 
         super(TensorflowMLP, self).__init__(model=network,
                                             loss=loss,
