@@ -126,7 +126,7 @@ class GurobiBackend(Backend):
     def sqrt(self, a, aux: Optional[str] = 'continuous') -> np.ndarray:
         a = np.atleast_1d(a)
         self._aux_warning(exp='continuous', aux=aux, msg='to compute square roots')
-        # creating auxiliary variables is necessary since 'addGenConstrPow' does not accept expressions
+        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         sqrt_vector = self.add_continuous_variables(*a.shape, lb=0.0, ub=float('inf'))
         for aux_var, sqrt_var in zip(aux_vector.flatten(), sqrt_vector.flatten()):
@@ -136,7 +136,7 @@ class GurobiBackend(Backend):
     def abs(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
         a = np.atleast_1d(a)
         self._aux_warning(exp='continuous', aux=aux, msg='to compute absolute values')
-        # creating auxiliary variables is necessary since 'addGenConstrAbs' does not accept expressions
+        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         abs_vector = self.add_continuous_variables(*a.shape, lb=0.0, ub=float('inf'))
         for aux_var, abs_var in zip(aux_vector.flatten(), abs_vector.flatten()):
@@ -146,7 +146,7 @@ class GurobiBackend(Backend):
     def log(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
         a = np.atleast_1d(a)
         self._aux_warning(exp='continuous', aux=aux, msg='to compute logarithms')
-        # creating auxiliary variables is necessary since 'addGenConstrExp' does not accept expressions
+        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         log_vector = self.add_continuous_variables(*a.shape, lb=-float('inf'), ub=float('inf'))
         for aux_var, log_var in zip(aux_vector.flatten(), log_vector.flatten()):
@@ -154,6 +154,8 @@ class GurobiBackend(Backend):
         return log_vector
 
     def min(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
+        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         vtype = 'continuous' if aux == 'auto' else aux
         lb, ub = (0, 1) if aux == 'binary' else (-float('inf'), float('inf'))
 
@@ -162,9 +164,11 @@ class GurobiBackend(Backend):
             self.model.addGenConstrMin(min_val, list(_array), constant=float('inf'))
             return min_val
 
-        return self._handle_axes(a, operation=_min, axis=axis, asarray=asarray)
+        return self._handle_axes(aux_vector, operation=_min, axis=axis, asarray=asarray)
 
     def max(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
+        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         vtype = 'continuous' if aux == 'auto' else aux
         lb, ub = (0, 1) if aux == 'binary' else (-float('inf'), float('inf'))
 
@@ -173,7 +177,7 @@ class GurobiBackend(Backend):
             self.model.addGenConstrMax(max_val, list(_array), constant=-float('inf'))
             return max_val
 
-        return self._handle_axes(a, operation=_max, axis=axis, asarray=asarray)
+        return self._handle_axes(aux_vector, operation=_max, axis=axis, asarray=asarray)
 
     def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
         try:
@@ -198,8 +202,10 @@ class GurobiBackend(Backend):
             self.model.addGenConstrNorm(norm_val, list(_array), which=0)
             return norm_val
 
+        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
+        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         self._aux_warning(exp='continuous', aux=aux, msg='to compute norm 1')
-        return self._handle_axes(a, operation=_norm, axis=axis, asarray=asarray)
+        return self._handle_axes(aux_vector, operation=_norm, axis=axis, asarray=asarray)
 
     def norm_1(self,
                a: np.ndarray,
@@ -211,8 +217,10 @@ class GurobiBackend(Backend):
             self.model.addGenConstrNorm(norm_val, list(_array), which=1)
             return norm_val
 
+        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
+        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         self._aux_warning(exp='continuous', aux=aux, msg='to compute norm 1')
-        return self._handle_axes(a, operation=_norm, axis=axis, asarray=asarray)
+        return self._handle_axes(aux_vector, operation=_norm, axis=axis, asarray=asarray)
 
     def norm_2(self,
                a,
@@ -231,8 +239,10 @@ class GurobiBackend(Backend):
                 self.model.addGenConstrNorm(norm_val, list(_array), which=2)
                 return norm_val
 
+        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
+        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         self._aux_warning(exp='continuous', aux=aux, msg='to compute norm 2')
-        return self._handle_axes(a, operation=_norm, axis=axis, asarray=asarray)
+        return self._handle_axes(aux_vector, operation=_norm, axis=axis, asarray=asarray)
 
     def norm_inf(self,
                  a: np.ndarray,
@@ -245,5 +255,7 @@ class GurobiBackend(Backend):
             self.model.addGenConstrNorm(norm_val, list(_array), which=GRB.INFINITY)
             return norm_val
 
+        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
+        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         self._aux_warning(exp='continuous', aux=aux, msg='to compute norm inf')
-        return self._handle_axes(a, operation=_norm, axis=axis, asarray=asarray)
+        return self._handle_axes(aux_vector, operation=_norm, axis=axis, asarray=asarray)
