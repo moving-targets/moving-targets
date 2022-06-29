@@ -143,6 +143,23 @@ class Master(StatsLogger):
         self._time = None
         self._macs = None
 
+    def on_backend_solved(self, x, y: np.ndarray, p: np.ndarray, z: np.ndarray):
+        """Routine called after the master problem is solved and the adjusted targets are retrieved.
+
+        :param x:
+            The matrix/dataframe of training samples.
+
+        :param y:
+            The vector of training labels.
+
+        :param p:
+            The vector of learners predictions.
+
+        :param z:
+            The vector of adjusted labels.
+        """
+        pass
+
     def build(self, x, y: np.ndarray, p: np.ndarray) -> np.ndarray:
         """Creates the model variables and adds the problem constraints.
 
@@ -215,6 +232,7 @@ class Master(StatsLogger):
         else:
             self._log_stats(alpha=alpha)
             adjusted = None
+        self.on_backend_solved(x=x, y=y, p=p, z=adjusted)
         self.backend.clear()
         # invert transformation on output targets if scaler is passed
         return adjusted if self.y_scaler is None else self.y_scaler.inverse_transform(adjusted)
