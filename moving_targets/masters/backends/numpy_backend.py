@@ -99,6 +99,12 @@ class NumpyBackend(Backend):
             a = np.clip(a, a_min=self.clip, a_max=float('inf'))
         return np.log(a)
 
+    def min(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+        return np.min(a, axis=axis)
+
+    def max(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+        return np.max(a, axis=axis)
+
     def var(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         # use "None" as aux automatic value to avoid warnings
         return super(NumpyBackend, self).var(a, axis, asarray, aux=None if aux == 'auto' else aux)

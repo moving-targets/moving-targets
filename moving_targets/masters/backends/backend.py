@@ -38,6 +38,48 @@ class Backend:
         return axes
 
     @classmethod
+    def _handle_axes(cls, a: np.ndarray, operation: Callable, axis: Optional[int], asarray: bool):
+        """Handle a vector operation that must be carried out among a certain axis.
+
+        :param a:
+            An array of model variables.
+
+        :param operation:
+            The operation routine, i.e., a function of type f(array) -> value.
+
+        :param axis:
+            The dimension on which to aggregate or None to aggregate the whole data.
+
+        :param asarray:
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
+
+        :return:
+            Either a single variable or a vector of variables with the results of the axis-wise operation.
+        """
+        # if no axis is specified, simply leverage the given operation to get a single expression
+        # otherwise perform the operation over the requested axis and then reshape the output array accordingly
+        if axis is None:
+            results = operation(np.reshape(a, -1))
+            results = np.reshape(results, ()) if asarray else results
+        else:
+            # check that the axis is in bound and handle negative axis values
+            assert axis in range(-a.ndim, a.ndim), f"Axis {axis} is out of bound for array with {a.ndim} dimensions"
+            axis = axis % a.ndim
+            # transpose the array in order to bring the axis-th dimension to the back, then reshape it into a matrix so
+            # that we can aggregate only on the last dimension, which is the one representing the chosen axis
+            axes = cls._transposed_axes(dim=a.ndim, index=axis, place=a.ndim - 1)
+            results = a.transpose(axes).reshape((-1, a.shape[axis]))
+            results = [operation(row) for row in results]
+            # at this point, the "expressions" list will have size a.size / a.shape[axis], thus we need to reshape it
+            # accordingly to the input shape by popping out the axis-th dimension, which is now one due to the sum
+            # (also, take care that the output is at least one-dimensional, otherwise return a single expression)
+            new_shape = list(a.shape)
+            new_shape.pop(axis)
+            results = np.reshape(results, new_shape) if len(new_shape) > 0 or asarray else results[0]
+        return results
+
+    @classmethod
     def _nested_names(cls, *keys: int, name: Optional[str]) -> List:
         """Generates an keys-dimensional list of nested lists containing the correct variables names when an array of
         variables is wanted instead of a single one by appending the variable position in the keys-dimensional tensor.
@@ -602,26 +644,7 @@ class Backend:
         :return:
             The variables sum.
         """
-        # if no axis is specified, simply leverage the internal sum function to get a single expression, otherwise
-        # compute the sum over the requested axis and then reshape the output array accordingly
-        if axis is None:
-            expressions = self._sum_fn(a)
-            expressions = np.reshape(expressions, ()) if asarray else expressions
-        else:
-            # check that the axis is in bound and handle negative axis values
-            assert axis in range(-a.ndim, a.ndim), f"Axis {axis} is out of bound for array with {a.ndim} dimensions"
-            axis = axis % a.ndim
-            # transpose the array in order to bring the axis-th dimension to the back, then reshape it into a matrix so
-            # that we can aggregate only on the last dimension, which is the one representing the chosen axis
-            axes = self._transposed_axes(dim=a.ndim, index=axis, place=a.ndim - 1)
-            expressions = a.transpose(axes).reshape((-1, a.shape[axis]))
-            expressions = [np.sum(row) for row in expressions]
-            # at this point, the "expressions" list will have size a.size / a.shape[axis], thus we need to reshape it
-            # accordingly to the input shape by popping out the axis-th dimension, which is now one due to the sum
-            # (also, take care that the output is at least one-dimensional, otherwise return a single expression)
-            new_shape = list(a.shape)
-            new_shape.pop(axis)
-            expressions = np.reshape(expressions, new_shape) if len(new_shape) > 0 or asarray else expressions[0]
+        expressions = self._handle_axes(a, operation=self._sum_fn, axis=axis, asarray=asarray)
         return self.aux(expressions, aux_vtype=aux)
 
     def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
@@ -712,6 +735,66 @@ class Backend:
             If the backend cannot handle logarithms.
         """
         raise BackendError(unsupported='logarithms')
+
+    def min(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+        """Returns the minimum over an array of variables.
+
+        :param a:
+            Either a single model variable or an array of such.
+
+        :param axis:
+            The dimension on which to aggregate or None to aggregate the whole data.
+
+        :param asarray:
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
+
+        :param aux:
+            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
+            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
+            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
+            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
+            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
+            huge datasets since they can considerably speedup the model formulation; still, imposing equality
+            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+
+        :return:
+            The array minimum.
+
+        :raise `BackendError`:
+            If the backend cannot handle min values.
+        """
+        raise BackendError(unsupported='min values')
+
+    def max(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+        """Returns the maximum over an array of variables.
+
+        :param a:
+            Either a single model variable or an array of such.
+
+        :param axis:
+            The dimension on which to aggregate or None to aggregate the whole data.
+
+        :param asarray:
+            In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
+            or as the expression itself.
+
+        :param aux:
+            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
+            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
+            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
+            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
+            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
+            huge datasets since they can considerably speedup the model formulation; still, imposing equality
+            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+
+        :return:
+            The array minimum.
+
+        :raise `BackendError`:
+            If the backend cannot handle max values.
+        """
+        raise BackendError(unsupported='max values')
 
     def mean(self,
              a: np.ndarray,

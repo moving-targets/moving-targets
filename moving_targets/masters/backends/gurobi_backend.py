@@ -153,6 +153,28 @@ class GurobiBackend(Backend):
             self.model.addGenConstrExp(log_var, aux_var)
         return log_vector
 
+    def min(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+        vtype = 'continuous' if aux == 'auto' else aux
+        lb, ub = (0, 1) if aux == 'binary' else (-float('inf'), float('inf'))
+
+        def _min(_array):
+            min_val = self.add_variable(vtype=vtype, lb=lb, ub=ub)
+            self.model.addGenConstrMin(min_val, list(_array), constant=float('inf'))
+            return min_val
+
+        return self._handle_axes(a, operation=_min, axis=axis, asarray=asarray)
+
+    def max(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+        vtype = 'continuous' if aux == 'auto' else aux
+        lb, ub = (0, 1) if aux == 'binary' else (-float('inf'), float('inf'))
+
+        def _max(_array):
+            max_val = self.add_variable(vtype=vtype, lb=lb, ub=ub)
+            self.model.addGenConstrMax(max_val, list(_array), constant=-float('inf'))
+            return max_val
+
+        return self._handle_axes(a, operation=_max, axis=axis, asarray=asarray)
+
     def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
         try:
             return super(GurobiBackend, self).divide(a, b, aux=aux)

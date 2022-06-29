@@ -243,6 +243,38 @@ class TestBackend(AbstractTest):
         self._test_numeric_operation('2D', operation='log')
         self._test_numeric_operation('3D', operation='log')
 
+    def test_min(self):
+        self._test_numeric_operation('1D', operation='min')
+        self._test_numeric_operation('2D', operation='min')
+        self._test_numeric_operation('3D', operation='min')
+
+    def test_min_axis(self):
+        self._test_numeric_operation('1D', operation='min', axis=-1)
+        self._test_numeric_operation('1D', operation='min', axis=0)
+        self._test_numeric_operation('2D', operation='min', axis=-1)
+        self._test_numeric_operation('2D', operation='min', axis=0)
+        self._test_numeric_operation('2D', operation='min', axis=1)
+        self._test_numeric_operation('3D', operation='min', axis=-1)
+        self._test_numeric_operation('3D', operation='min', axis=0)
+        self._test_numeric_operation('3D', operation='min', axis=1)
+        self._test_numeric_operation('3D', operation='min', axis=2)
+
+    def test_max(self):
+        self._test_numeric_operation('1D', operation='max')
+        self._test_numeric_operation('2D', operation='max')
+        self._test_numeric_operation('3D', operation='max')
+
+    def test_max_axis(self):
+        self._test_numeric_operation('1D', operation='max', axis=-1)
+        self._test_numeric_operation('1D', operation='max', axis=0)
+        self._test_numeric_operation('2D', operation='max', axis=-1)
+        self._test_numeric_operation('2D', operation='max', axis=0)
+        self._test_numeric_operation('2D', operation='max', axis=1)
+        self._test_numeric_operation('3D', operation='max', axis=-1)
+        self._test_numeric_operation('3D', operation='max', axis=0)
+        self._test_numeric_operation('3D', operation='max', axis=1)
+        self._test_numeric_operation('3D', operation='max', axis=2)
+
     def test_mean(self):
         self._test_numeric_operation('1D', operation='mean')
         self._test_numeric_operation('2D', operation='mean')
