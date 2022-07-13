@@ -1,5 +1,5 @@
 """Sklearn-based Learners."""
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Any
 
 import numpy as np
 import sklearn.ensemble as ens
@@ -60,12 +60,18 @@ class ScikitLearner(Learner):
         self.fit_kwargs = fit_kwargs
         """Custom arguments to be passed to the model '.fit()' method."""
 
-    def _fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None):
+    def fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> Any:
         x = x if self.polynomial is None else self.polynomial.fit_transform(x)
+        return super(ScikitLearner, self).fit(x=x, y=y, sample_weight=sample_weight)
+
+    def predict(self, x) -> np.ndarray:
+        x = x if self.polynomial is None else self.polynomial.transform(x)
+        return super(ScikitLearner, self).predict(x=x)
+
+    def _fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None):
         self.model.fit(x, y, sample_weight=sample_weight)
 
     def _predict(self, x) -> np.ndarray:
-        x = x if self.polynomial is None else self.polynomial.transform(x)
         return self.model.predict(x)
 
 
@@ -125,7 +131,6 @@ class ScikitClassifier(ScikitLearner):
         """The kind of classification task."""
 
     def _predict(self, x) -> np.ndarray:
-        x = x if self.polynomial is None else self.polynomial.transform(x)
         probabilities = self.model.predict_proba(x)
         if self.task == 'multiclass' or probabilities.shape[1] > 2:
             # return probabilities matrix if the task is explicitly multiclass or if the number of classes is > 2

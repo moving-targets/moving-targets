@@ -22,8 +22,8 @@ class TestScikitLearners(TestLearners):
     @staticmethod
     def _custom_pipeline(model_class: Callable, **kwargs) -> Pipeline:
         return Pipeline([
-            ('std', StandardScaler()),
             ('poly', PolynomialFeatures(degree=3, interaction_only=False, include_bias=False)),
+            ('std', StandardScaler()),
             ('model', model_class(**kwargs))
         ])
 
