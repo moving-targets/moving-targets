@@ -24,6 +24,11 @@ class AbstractTest(unittest.TestCase):
 
     @staticmethod
     def get_relative_path(*path: str) -> str:
-        # when running in debug mode, the root path is in third position
-        root = sys.path[1] if 'Moving Targets' in sys.path[1] else sys.path[2]
+        # paths may have different positions based on the environment in which the function is called
+        # we look for the path of the project, i.e., the one that ends with the project name
+        root = None
+        for p in sys.path:
+            if p.endswith('Moving Targets'):
+                root = p
+                break
         return os.sep.join((root,) + path)
