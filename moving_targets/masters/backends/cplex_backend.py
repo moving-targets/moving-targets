@@ -54,6 +54,54 @@ class CplexBackend(Backend):
     def get_values(self, expressions: np.ndarray) -> np.ndarray:
         return np.reshape([v.solution_value for v in expressions.flatten()], expressions.shape)
 
+    def add_constant(self, val, vtype: str = 'continuous', name: Optional[str] = None) -> Any:
+        """Creates a model variable with a constant value.
+
+        :param val:
+            The numerical value of the constant.
+
+        :param vtype:
+            The constant type, by default this is 'continuous'.
+
+        :param name:
+            The constant name.
+
+        :return:
+            A model variable with value fixed to the given one via a constraint.
+        """
+        if vtype == 'binary':
+            var = self.add_binary_variable(name=name)
+            self.add_constraint(var == val)
+        else:
+            var = self.add_variable(vtype=vtype, lb=val, ub=val, name=name)
+        return var
+
+    def add_constants(self, val, vtype: str = 'continuous', name: Optional[str] = None) -> np.ndarray:
+        """Creates an array of model variables with constant values.
+
+        :param val:
+            The array of numerical values of the constants.
+
+        :param vtype:
+            The constants type, by default this is 'continuous'.
+
+        :param name:
+            The constants name.
+
+        :return:
+            An array of model variables with value fixed to the given ones via a set of constraints.
+        """
+        # a default strategy to create an array of constants is to compute their names leveraging the utility function,
+        # creating a mono-dimensional list of variables with correct names and fixed lower/upper bounds to the given
+        # values then, eventually, reshaping then into the correct shape
+        names = np.array(self._nested_names(*val.shape, name=name)).flatten()
+        if vtype == 'binary':
+            var = [self.add_binary_variable(name=n) for v, n in zip(val.flatten(), names)]
+            self.add_constraints([vr == vl for vr, vl in zip(var, val.flatten())])
+        else:
+            var = [self.add_variable(vtype=vtype, lb=v, ub=v, name=n) for v, n in zip(val.flatten(), names)]
+        return np.reshape(var, val.shape)
+
     def add_variable(self, vtype: str, lb: float, ub: float, name: Optional[str] = None) -> Any:
         # handle variable type and bounds
         if vtype == 'binary':
