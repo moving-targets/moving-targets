@@ -806,7 +806,8 @@ class Backend:
                 a_squared = self.square(a)
                 mean_squared = self.mean(a_squared, axis=axis, aux=aux)
                 squared_mean = self.square(a_mean)
-                return self.subtract(mean_squared, squared_mean)
+                var_expression = self.subtract(mean_squared, squared_mean)
+                return np.array(var_expression) if asarray else var_expression
 
     def cov(self, a: np.ndarray, b: np.ndarray, definition: bool = False, asarray: bool = False, aux: bool = False):
         """Returns the covariance between the vectors a and b.
@@ -842,7 +843,8 @@ class Backend:
             ab = self.multiply(a, b)
             ab_mean = self.mean(ab, aux=aux)
             mul_means = self.multiply(a_mean, b_mean)
-            return self.subtract(ab_mean, mul_means)
+            cov_expression = self.subtract(ab_mean, mul_means)
+            return np.array(cov_expression) if asarray else cov_expression
 
     # noinspection PyMethodMayBeStatic
     def add(self, a, b):

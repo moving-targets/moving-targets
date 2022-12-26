@@ -149,7 +149,9 @@ class CplexBackend(Backend):
         return np.reshape([self.model.abs(v) for v in a.flatten()], a.shape)
 
     def subtract(self, a, b):
-        if isinstance(b, np.ndarray) and b.size > 1:
+        if not isinstance(a, np.ndarray) and not isinstance(b, np.ndarray):
+            return super(CplexBackend, self).subtract(a, b)
+        elif isinstance(b, np.ndarray) and b.size > 1:
             # pairwise differences (a.size should be equal to b.size)
             return super(CplexBackend, self).subtract(a, b)
         else:
