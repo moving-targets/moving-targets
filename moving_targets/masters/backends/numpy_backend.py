@@ -59,7 +59,6 @@ class NumpyBackend(Backend):
             aux_lb: float = -float('inf'),
             aux_ub: float = float('inf'),
             aux_name: Optional[str] = None) -> Any:
-        self._aux_warning(exp=None, aux=aux_vtype, msg='to compute any value')
         return expressions
 
     def add_constraint(self, constraint, name: Optional[str] = None) -> Any:
@@ -80,16 +79,13 @@ class NumpyBackend(Backend):
         a, b = np.atleast_1d(a), np.atleast_1d(b)
         return (a < b).astype(int)
 
-    def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
-        return np.atleast_1d(a) ** 2
-
-    def sqrt(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def sqrt(self, a) -> np.ndarray:
         return np.sqrt(np.atleast_1d(a))
 
-    def abs(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def abs(self, a) -> np.ndarray:
         return np.abs(np.atleast_1d(a))
 
-    def log(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def log(self, a) -> np.ndarray:
         if self.clip is not None:
             a_min = np.min(a)
             if a_min < 0:
@@ -99,19 +95,25 @@ class NumpyBackend(Backend):
             a = np.clip(a, a_min=self.clip, a_max=float('inf'))
         return np.log(a)
 
-    def min(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+    def square(self, a) -> np.ndarray:
+        return np.atleast_1d(a) ** 2
+
+    def min(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         return np.min(a, axis=axis)
 
-    def max(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+    def max(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         return np.max(a, axis=axis)
 
-    def var(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
-        # use "None" as aux automatic value to avoid warnings
-        return super(NumpyBackend, self).var(a, axis, asarray, aux=None if aux == 'auto' else aux)
+    def var(self,
+            a: np.ndarray,
+            axis: Optional[int] = None,
+            definition: bool = False,
+            asarray: bool = False,
+            aux: bool = False) -> Any:
+        return np.var(a, axis=axis)
 
-    def norm_0(self,
-               a: np.ndarray,
-               axis: Optional[int] = None,
-               asarray: bool = False,
-               aux: Optional[str] = 'auto') -> Any:
+    def cov(self, a: np.ndarray, b: np.ndarray, definition: bool = True, asarray: bool = False, aux: bool = False):
+        return np.cov(a, b, bias=True)[0, 1]
+
+    def norm_0(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         return np.count_nonzero(a, axis=axis)

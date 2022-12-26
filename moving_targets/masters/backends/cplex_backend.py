@@ -9,10 +9,13 @@ from moving_targets.util.errors import MissingDependencyError, BackendError
 class CplexBackend(Backend):
     """`Backend` implementation for the Cplex Solver."""
 
-    def __init__(self, time_limit: Optional[float] = None):
+    def __init__(self, time_limit: Optional[float] = None, verbose: bool = False):
         """
         :param time_limit:
             The solver time limit.
+
+        :param verbose:
+            Whether or not to print information at the end of the optimization process.
         """
         super(CplexBackend, self).__init__(sum_fn=lambda v: self.model.sum(v))
 
@@ -26,6 +29,9 @@ class CplexBackend(Backend):
         self.time_limit: Optional[float] = time_limit
         """The solver time limit."""
 
+        self.verbose: bool = verbose
+        """Whether or not to print information at the end of the optimization process."""
+
     def _build_model(self) -> Any:
         model = self._cp.Model(name='model')
         if self.time_limit is not None:
@@ -34,6 +40,8 @@ class CplexBackend(Backend):
 
     def _solve_model(self) -> Optional:
         solution = self.model.solve()
+        if self.verbose:
+            print(solution.solve_details)
         return solution
 
     def clear(self) -> Any:
@@ -164,30 +172,25 @@ class CplexBackend(Backend):
     def add_indicator_constraint(self, indicator, expression, value: int = 1, name: Optional[str] = None) -> Any:
         self.model.add_indicator(binary_var=indicator, linear_ct=expression, active_value=value, name=name)
 
-    def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
-        self._aux_warning(exp=None, aux=aux, msg='cannot impose equality constraints on quadratic expressions')
-        return a ** 2
-
-    def abs(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
+    def abs(self, a) -> np.ndarray:
         a = np.atleast_1d(a)
-        expressions = np.reshape([self.model.abs(v) for v in a.flatten()], a.shape)
-        return self.aux(expressions=expressions, aux_vtype=aux)
+        return np.reshape([self.model.abs(v) for v in a.flatten()], a.shape)
 
-    def subtract(self, a, b, aux: Optional[str] = 'auto'):
+    def subtract(self, a, b):
         if isinstance(b, np.ndarray) and b.size > 1:
             # pairwise differences (a.size should be equal to b.size)
-            return super(CplexBackend, self).subtract(a, b, aux=aux)
+            return super(CplexBackend, self).subtract(a, b)
         else:
             # all elements of a minus a single element (b)
             a, b = np.atleast_1d(a), np.atleast_1d(b).flatten()[0]
             expressions = [ai - b for ai in a.flatten()]
-            return self.aux(expressions=np.reshape(expressions, a.shape), aux_vtype=aux)
+            return np.reshape(expressions, a.shape)
 
-    def divide(self, a, b, aux: Optional[str] = 'auto'):
+    def divide(self, a, b):
         try:
-            return super(CplexBackend, self).divide(a, b, aux=aux)
+            return super(CplexBackend, self).divide(a, b)
         except self._cp.DOcplexException:
-            # docplex.mp.utils.DOcplexException: x1 / x11 : operation not supported, only numbers can be denominators
+            # docplex.mp.utils.DOcplexException: operation not supported, only numbers can be denominators
             # in case the divisor is not an array of constants, we cannot handle the case by adding the auxiliary
             # variables as in the gurobi backend because cplex cannot handle quadratic constraints
             raise BackendError(unsupported='divisions having variables in the denominator')

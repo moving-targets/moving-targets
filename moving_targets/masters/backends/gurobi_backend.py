@@ -120,12 +120,8 @@ class GurobiBackend(Backend):
         kwargs = dict() if name is None else dict(name=name)
         self.model.addGenConstrIndicator(indicator, value, expression, **kwargs)
 
-    def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
-        return self.aux(expressions=a ** 2, aux_vtype=aux)
-
-    def sqrt(self, a, aux: Optional[str] = 'continuous') -> np.ndarray:
+    def sqrt(self, a) -> np.ndarray:
         a = np.atleast_1d(a)
-        self._aux_warning(exp='continuous', aux=aux, msg='to compute square roots')
         # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         sqrt_vector = self.add_continuous_variables(*a.shape, lb=0.0, ub=float('inf'))
@@ -133,9 +129,8 @@ class GurobiBackend(Backend):
             self.model.addGenConstrPow(sqrt_var, aux_var, 2)
         return sqrt_vector
 
-    def abs(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
+    def abs(self, a) -> np.ndarray:
         a = np.atleast_1d(a)
-        self._aux_warning(exp='continuous', aux=aux, msg='to compute absolute values')
         # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         abs_vector = self.add_continuous_variables(*a.shape, lb=0.0, ub=float('inf'))
@@ -143,9 +138,8 @@ class GurobiBackend(Backend):
             self.model.addGenConstrAbs(abs_var, aux_var)
         return abs_vector
 
-    def log(self, a: np.ndarray, aux: Optional[str] = 'continuous') -> np.ndarray:
+    def log(self, a) -> np.ndarray:
         a = np.atleast_1d(a)
-        self._aux_warning(exp='continuous', aux=aux, msg='to compute logarithms')
         # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         log_vector = self.add_continuous_variables(*a.shape, lb=-float('inf'), ub=float('inf'))
@@ -153,50 +147,52 @@ class GurobiBackend(Backend):
             self.model.addGenConstrExp(log_var, aux_var)
         return log_vector
 
-    def min(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
-        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
-        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
-        vtype = 'continuous' if aux == 'auto' else aux
-        lb, ub = (0, 1) if aux == 'binary' else (-float('inf'), float('inf'))
-
+    def min(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         def _min(_array):
-            min_val = self.add_variable(vtype=vtype, lb=lb, ub=ub)
+            min_val = self.add_continuous_variable()
             self.model.addGenConstrMin(min_val, list(_array), constant=float('inf'))
             return min_val
 
-        return self._handle_axes(aux_vector, operation=_min, axis=axis, asarray=asarray)
-
-    def max(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
         # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
-        vtype = 'continuous' if aux == 'auto' else aux
-        lb, ub = (0, 1) if aux == 'binary' else (-float('inf'), float('inf'))
+        return self._handle_axes(aux_vector, operation=_min, axis=axis, asarray=asarray)
 
+    def max(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         def _max(_array):
-            max_val = self.add_variable(vtype=vtype, lb=lb, ub=ub)
+            max_val = self.add_continuous_variable()
             self.model.addGenConstrMax(max_val, list(_array), constant=-float('inf'))
             return max_val
 
+        # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
+        aux_vector = self.aux(expressions=a, aux_vtype='continuous')
         return self._handle_axes(aux_vector, operation=_max, axis=axis, asarray=asarray)
 
-    def divide(self, a: np.ndarray, b: np.ndarray, aux: Optional[str] = 'auto'):
+    # set aux True by default since Gurobi can handle quadratic constraints and this speeds up the computation a lot
+    def var(self,
+            a: np.ndarray,
+            axis: Optional[int] = None,
+            definition: bool = False,
+            asarray: bool = False,
+            aux: bool = True) -> Any:
+        return super(GurobiBackend, self).var(a, axis=axis, definition=definition, asarray=asarray, aux=aux)
+
+    # set aux True by default since Gurobi can handle quadratic constraints and this speeds up the computation a lot
+    def cov(self, a: np.ndarray, b: np.ndarray, definition: bool = False, asarray: bool = False, aux: bool = True):
+        return super(GurobiBackend, self).cov(a, b, definition=definition, asarray=asarray, aux=aux)
+
+    def divide(self, a, b):
         try:
-            return super(GurobiBackend, self).divide(a, b, aux=aux)
+            return super(GurobiBackend, self).divide(a, b)
         except self._gp.GurobiError:
             # gurobipy.GurobiError: Divisor must be a constant
             # in case the divisor is not an array of constants, we handle the case by adding N auxiliary variables z_i
             # so that a_i / b_i = z_i --> a_i = z_i * b_i
-            self._aux_warning(exp='continuous', aux=aux, msg='to compute divisions with non-constant divisors')
             a, b = np.atleast_1d(a), np.atleast_2d(b)
             z = self.add_continuous_variables(*a.shape)
             self.add_constraints([ai == zi * bi for ai, bi, zi in zip(a.flatten(), b.flatten(), z.flatten())])
             return z
 
-    def norm_0(self,
-               a: np.ndarray,
-               axis: Optional[int] = None,
-               asarray: bool = False,
-               aux: Optional[str] = 'auto') -> Any:
+    def norm_0(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         def _norm(_array):
             norm_val = self.add_continuous_variable(lb=-float('inf'), ub=float('inf'))
             self.model.addGenConstrNorm(norm_val, list(_array), which=0)
@@ -204,14 +200,9 @@ class GurobiBackend(Backend):
 
         # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
-        self._aux_warning(exp='continuous', aux=aux, msg='to compute norm 1')
         return self._handle_axes(aux_vector, operation=_norm, axis=axis, asarray=asarray)
 
-    def norm_1(self,
-               a: np.ndarray,
-               axis: Optional[int] = None,
-               asarray: bool = False,
-               aux: Optional[str] = 'auto') -> Any:
+    def norm_1(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         def _norm(_array):
             norm_val = self.add_continuous_variable(lb=-float('inf'), ub=float('inf'))
             self.model.addGenConstrNorm(norm_val, list(_array), which=1)
@@ -219,15 +210,14 @@ class GurobiBackend(Backend):
 
         # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
-        self._aux_warning(exp='continuous', aux=aux, msg='to compute norm 1')
         return self._handle_axes(aux_vector, operation=_norm, axis=axis, asarray=asarray)
 
     def norm_2(self,
-               a,
-               squared: bool = False,
+               a: np.ndarray,
+               squared: bool = True,
                axis: Optional[int] = None,
                asarray: bool = False,
-               aux: Optional[str] = 'auto') -> Any:
+               aux: bool = False) -> Any:
         if squared:
             def _norm(_array):
                 norm_val = self.add_continuous_variable(lb=-float('inf'), ub=float('inf'))
@@ -241,14 +231,9 @@ class GurobiBackend(Backend):
 
         # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
-        self._aux_warning(exp='continuous', aux=aux, msg='to compute norm 2')
         return self._handle_axes(aux_vector, operation=_norm, axis=axis, asarray=asarray)
 
-    def norm_inf(self,
-                 a: np.ndarray,
-                 axis: Optional[int] = None,
-                 asarray: bool = False,
-                 aux: Optional[str] = 'auto') -> Any:
+    def norm_inf(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         def _norm(_array):
             from gurobipy import GRB
             norm_val = self.add_continuous_variable(lb=-float('inf'), ub=float('inf'))
@@ -257,5 +242,4 @@ class GurobiBackend(Backend):
 
         # creating auxiliary variables is necessary since 'addGenConstr' does not accept expressions
         aux_vector = self.aux(expressions=a, aux_vtype='continuous')
-        self._aux_warning(exp='continuous', aux=aux, msg='to compute norm inf')
         return self._handle_axes(aux_vector, operation=_norm, axis=axis, asarray=asarray)

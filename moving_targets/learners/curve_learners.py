@@ -2,7 +2,7 @@
 from typing import Optional, Union, List, Callable
 
 import numpy as np
-import scipy.optimize
+from scipy.optimize import curve_fit
 
 from moving_targets.learners.learner import Learner
 from moving_targets.util.scalers import Scaler
@@ -89,7 +89,7 @@ class ScipyCurveFit(CurveLearner):
         """
 
         def method(f, x, y):
-            return scipy.optimize.curve_fit(f=f, xdata=x, ydata=y, **method_kwargs)[0]
+            return curve_fit(f=f, xdata=x, ydata=y, **method_kwargs)[0]
 
         super(ScipyCurveFit, self).__init__(curve=curve,
                                             method=method,

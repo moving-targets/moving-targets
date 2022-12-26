@@ -106,39 +106,42 @@ class CvxpyBackend(Backend):
         self.model += constraints
         return self
 
-    def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
-        return self.aux(expressions=a ** 2, aux_vtype=aux)
-
-    def abs(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
+    def abs(self, a) -> np.ndarray:
         a = np.atleast_1d(a)
-        expressions = np.reshape([self._cp.abs(v) for v in a.flatten()], a.shape)
-        return self.aux(expressions=expressions, aux_vtype=aux)
+        return np.reshape([self._cp.abs(v) for v in a.flatten()], a.shape)
 
-    def log(self, a: np.ndarray, aux: Optional[str] = 'auto') -> np.ndarray:
+    def log(self, a) -> np.ndarray:
         a = np.atleast_1d(a)
-        expressions = np.reshape([self._cp.log(v) for v in a.flatten()], a.shape)
-        return self.aux(expressions=expressions, aux_vtype=aux)
+        return np.reshape([self._cp.log(v) for v in a.flatten()], a.shape)
 
-    def var(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+    def var(self,
+            a: np.ndarray,
+            axis: Optional[int] = None,
+            definition: bool = False,
+            asarray: bool = False,
+            aux: bool = False) -> Any:
         raise BackendError(unsupported='variance due to numerical instability')
 
-    def subtract(self, a, b, aux: Optional[str] = 'auto'):
+    def cov(self, a: np.ndarray, b: np.ndarray, definition: bool = True, asarray: bool = False, aux: bool = False):
+        raise BackendError(unsupported='covariance due to numerical instability')
+
+    def subtract(self, a, b):
         if isinstance(b, np.ndarray) and b.size > 1:
             # pairwise differences (a.size should be equal to b.size)
-            return super(CvxpyBackend, self).subtract(a, b, aux=aux)
+            return super(CvxpyBackend, self).subtract(a, b)
         else:
             # all elements of a minus a single element (b)
             a, b = np.atleast_1d(a), np.atleast_1d(b).flatten()[0]
             expressions = [ai - b for ai in a.flatten()]
-            return self.aux(expressions=np.reshape(expressions, a.shape), aux_vtype=aux)
+            return np.reshape(expressions, a.shape)
 
-    def multiply(self, a, b, aux: Optional[str] = 'auto'):
+    def multiply(self, a, b):
         if isinstance(b, np.ndarray) and b.size > 1:
             # pairwise differences (a.size should be equal to b.size)
             expressions = [self._cp.multiply(ai, bi) for ai, bi in zip(a.flatten(), b.flatten())]
-            return self.aux(expressions=np.reshape(expressions, a.shape), aux_vtype=aux)
+            return np.reshape(expressions, a.shape)
         else:
             # all elements of a multiplied by single element (b)
             a, b = np.atleast_1d(a), np.atleast_1d(b).flatten()[0]
             expressions = [self._cp.multiply(ai, b) for ai in a.flatten()]
-            return self.aux(expressions=np.reshape(expressions, a.shape), aux_vtype=aux)
+            return np.reshape(expressions, a.shape)

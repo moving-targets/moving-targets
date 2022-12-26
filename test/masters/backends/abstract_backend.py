@@ -101,6 +101,9 @@ class TestBackend(AbstractTest):
                     ref_values = [rng.random(size=self._SIZES[d]) for d in dims]
                     if operation == 'cov':
                         ref_result = np.cov(*ref_values, bias=True)[0, 1]
+                    elif operation == 'var':
+                        args = {k: v for k, v in op_args.items() if k != 'definition'}
+                        ref_result = np.var(*ref_values, **args)
                     else:
                         ref_result = ref_operation(*ref_values, **op_args)
                     # build constant model variables vector(s) from values then obtain the operation result
@@ -265,11 +268,6 @@ class TestBackend(AbstractTest):
         self._test_numeric_operation('3D', operation='sum', axis=1)
         self._test_numeric_operation('3D', operation='sum', axis=2)
 
-    def test_square(self):
-        self._test_numeric_operation('1D', operation='square')
-        self._test_numeric_operation('2D', operation='square')
-        self._test_numeric_operation('3D', operation='square')
-
     def test_sqrt(self):
         self._test_numeric_operation('1D', operation='sqrt')
         self._test_numeric_operation('2D', operation='sqrt')
@@ -284,6 +282,11 @@ class TestBackend(AbstractTest):
         self._test_numeric_operation('1D', operation='log')
         self._test_numeric_operation('2D', operation='log')
         self._test_numeric_operation('3D', operation='log')
+
+    def test_square(self):
+        self._test_numeric_operation('1D', operation='square')
+        self._test_numeric_operation('2D', operation='square')
+        self._test_numeric_operation('3D', operation='square')
 
     def test_min(self):
         self._test_numeric_operation('1D', operation='min')
@@ -334,22 +337,38 @@ class TestBackend(AbstractTest):
         self._test_numeric_operation('3D', operation='mean', axis=2)
 
     def test_var(self):
-        self._test_numeric_operation('1D', operation='var')
-        self._test_numeric_operation('2D', operation='var')
-        self._test_numeric_operation('3D', operation='var')
+        self._test_numeric_operation('1D', operation='var', definition=True)
+        self._test_numeric_operation('1D', operation='var', definition=False)
+        self._test_numeric_operation('2D', operation='var', definition=True)
+        self._test_numeric_operation('2D', operation='var', definition=False)
+        self._test_numeric_operation('3D', operation='var', definition=True)
+        self._test_numeric_operation('3D', operation='var', definition=False)
 
     def test_var_axis(self):
-        self._test_numeric_operation('1D', operation='var', axis=-1)
-        self._test_numeric_operation('1D', operation='var', axis=0)
-        self._test_numeric_operation('2D', operation='var', axis=-1)
-        self._test_numeric_operation('2D', operation='var', axis=0)
-        self._test_numeric_operation('2D', operation='var', axis=1)
-        self._test_numeric_operation('3D', operation='var', axis=-1)
-        self._test_numeric_operation('3D', operation='var', axis=0)
-        self._test_numeric_operation('3D', operation='var', axis=1)
-        self._test_numeric_operation('3D', operation='var', axis=2)
+        self._test_numeric_operation('1D', operation='var', axis=-1, definition=True)
+        self._test_numeric_operation('1D', operation='var', axis=-1, definition=False)
+        self._test_numeric_operation('1D', operation='var', axis=0, definition=True)
+        self._test_numeric_operation('1D', operation='var', axis=0, definition=False)
+        self._test_numeric_operation('2D', operation='var', axis=-1, definition=True)
+        self._test_numeric_operation('2D', operation='var', axis=-1, definition=False)
+        self._test_numeric_operation('2D', operation='var', axis=0, definition=True)
+        self._test_numeric_operation('2D', operation='var', axis=0, definition=False)
+        self._test_numeric_operation('2D', operation='var', axis=1, definition=True)
+        self._test_numeric_operation('2D', operation='var', axis=1, definition=False)
+        self._test_numeric_operation('3D', operation='var', axis=-1, definition=True)
+        self._test_numeric_operation('3D', operation='var', axis=-1, definition=False)
+        self._test_numeric_operation('3D', operation='var', axis=0, definition=True)
+        self._test_numeric_operation('3D', operation='var', axis=0, definition=False)
+        self._test_numeric_operation('3D', operation='var', axis=1, definition=True)
+        self._test_numeric_operation('3D', operation='var', axis=1, definition=False)
+        self._test_numeric_operation('3D', operation='var', axis=2, definition=True)
+        self._test_numeric_operation('3D', operation='var', axis=2, definition=False)
 
     # BINARY NUMERIC OPERATIONS
+
+    def test_cov(self):
+        self._test_numeric_operation('1D', '1D', operation='cov', definition=True)
+        self._test_numeric_operation('1D', '1D', operation='cov', definition=False)
 
     def test_add(self):
         self._test_numeric_operation('1D', '1D', operation='add')
@@ -370,9 +389,6 @@ class TestBackend(AbstractTest):
         self._test_numeric_operation('1D', '1D', operation='divide')
         self._test_numeric_operation('2D', '2D', operation='divide')
         self._test_numeric_operation('3D', '3D', operation='divide')
-
-    def test_cov(self):
-        self._test_numeric_operation('1D', '1D', operation='cov')
 
     def test_dot(self):
         self._test_numeric_operation('1D', '1D', operation='dot')

@@ -98,22 +98,6 @@ class Backend:
         else:
             return [cls._nested_names(*keys[1:], name=None if name is None else f'{name}_{i}') for i in range(keys[0])]
 
-    @classmethod
-    def _aux_warning(cls, exp: Optional[str], aux: Optional[str], msg: str):
-        """Logs a warning on the Backend Logger when the 'aux' parameter is not used correctly.
-
-        :param exp:
-            The expected value of the aux parameter.
-
-        :param aux:
-            The actual value of the aux parameter.
-
-        :param msg:
-            The warning explanation.
-        """
-        if aux != 'auto' and exp != aux:
-            cls._LOGGER.warning(f"'aux={aux}' has no effect since the solver needs {exp} auxiliary variables to {msg}.")
-
     def __init__(self, sum_fn: Callable = lambda v: np.sum(v)):
         """
         :param sum_fn:
@@ -444,7 +428,7 @@ class Backend:
             Either a single expression or a array of expressions.
 
         :param aux_vtype:
-            Either None (or 'auto') or the auxiliary variables type, usually 'binary', 'integer', or 'continuous'.
+            Either None or the auxiliary variables type, usually 'binary', 'integer', or 'continuous'.
 
         :param aux_lb:
             The auxiliary variables lower bound.
@@ -458,7 +442,7 @@ class Backend:
         :return:
             Either a single auxiliary variable or the array of auxiliary variables.
         """
-        if aux_vtype is None or aux_vtype == 'auto':
+        if aux_vtype is None:
             return expressions
         else:
             if isinstance(expressions, np.ndarray):
@@ -619,7 +603,7 @@ class Backend:
         self.add_indicator_constraints(z, expressions=[lhs >= rhs(i) for i, lhs in enumerate(a.flatten())], value=0)
         return z.reshape(a.shape)
 
-    def sum(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+    def sum(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         """Computes the sum of an array of variables.
 
         :param a:
@@ -633,77 +617,30 @@ class Backend:
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The variables sum.
         """
         expressions = self._handle_axes(a, operation=self._sum_fn, axis=axis, asarray=asarray)
-        return self.aux(expressions, aux_vtype=aux)
+        return self.aux(expressions, aux_vtype='continuous' if aux else None)
 
-    def square(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
-        """Computes the squared values over an array of variables.
-
-        :param a:
-            Either a single model variable or an array of such.
-
-        :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
-
-        :return:
-            The array of squared values.
-
-        :raise `BackendError`:
-            If the backend cannot handle squared values.
-        """
-        raise BackendError(unsupported='squared values')
-
-    def sqrt(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
+    def sqrt(self, a) -> np.ndarray:
         """Computes the squared roots over an array of variables.
 
         :param a:
             Either a single model variable or an array of such.
-
-        :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :return:
             The array of squared roots.
         """
         raise BackendError(unsupported='squared roots')
 
-    def abs(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
+    def abs(self, a) -> np.ndarray:
         """Computes the absolute values over an array of variables.
 
         :param a:
             Either a single model variable or an array of such.
-
-        :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :return:
             The array of absolute values.
@@ -713,20 +650,11 @@ class Backend:
         """
         raise BackendError(unsupported='absolute values')
 
-    def log(self, a, aux: Optional[str] = 'auto') -> np.ndarray:
+    def log(self, a) -> np.ndarray:
         """Computes the logarithms over an array of variables.
 
         :param a:
             Either a single model variable or an array of such.
-
-        :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
 
         :return:
             The array of logarithms.
@@ -736,7 +664,21 @@ class Backend:
         """
         raise BackendError(unsupported='logarithms')
 
-    def min(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+    def square(self, a) -> np.ndarray:
+        """Computes the squared values over an array of variables.
+
+        :param a:
+            Either a single model variable or an array of such.
+
+        :return:
+            The array of squared values.
+
+        :raise `BackendError`:
+            If the backend cannot handle squared values.
+        """
+        return a ** 2
+
+    def min(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         """Returns the minimum over an array of variables.
 
         :param a:
@@ -750,13 +692,7 @@ class Backend:
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The array minimum.
@@ -766,7 +702,7 @@ class Backend:
         """
         raise BackendError(unsupported='min values')
 
-    def max(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+    def max(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         """Returns the maximum over an array of variables.
 
         :param a:
@@ -780,13 +716,7 @@ class Backend:
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The array minimum.
@@ -800,7 +730,7 @@ class Backend:
              a: np.ndarray,
              axis: Optional[int] = None,
              asarray: bool = False,
-             aux: Optional[str] = 'auto') -> Any:
+             aux: bool = False) -> Any:
         """Computes the mean of an array of variables.
 
         :param a:
@@ -814,22 +744,21 @@ class Backend:
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The variables mean.
         """
         sum_expression = self.sum(a, axis=axis, asarray=asarray, aux=aux)
         num_aggregated = a.size if axis is None else a.shape[axis]
-        return self.aux(sum_expression / num_aggregated, aux_vtype=aux)
+        return self.aux(sum_expression / num_aggregated, aux_vtype=None)
 
-    def var(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+    def var(self,
+            a: np.ndarray,
+            axis: Optional[int] = None,
+            definition: bool = False,
+            asarray: bool = False,
+            aux: bool = False) -> Any:
         """Computes the variance of an array of variables.
 
         :param a:
@@ -838,18 +767,16 @@ class Backend:
         :param axis:
             The dimension on which to aggregate or None to aggregate the whole data.
 
+        :param definition:
+            If True, computes the covariance as in the definition, i.e., var(a) = E[(a - E[a]) ^ 2].
+            Otherwise, computes it as the difference of expected values, i.e., var(a, b) = E[a ^ 2] - E[a] ^ 2.
+
         :param asarray:
             In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The variables variance.
@@ -857,119 +784,31 @@ class Backend:
         # if no axis is specified, simply compute the mean (which will be a single expression), then compute the array
         # of differences and shape it correctly, otherwise compute the means over the requested axis (which will be in
         # the form of an array), then compute the differences and eventually reshape them accordingly
-        aux_mean, aux_squared = ('continuous', None) if aux == 'auto' else (aux, aux)
-        mean_expressions = self.mean(a, axis=axis, aux=aux_mean)
         if axis is None:
-            diff_expressions = self.subtract(a, mean_expressions)
+            return self.cov(a, a, definition=definition, asarray=asarray, aux=aux)
         else:
             # check that the axis is in bound and handle negative axis values
             assert axis in range(-a.ndim, a.ndim), f"Axis {axis} is out of bound for array with {a.ndim} dimensions"
             axis = axis % a.ndim
+            # compute partial means
+            a_mean = self.mean(a, axis=axis, aux=aux)
             # transpose the array in order to bring the axis-th dimension to the front so to compute the differences of
             # each row in the given axis with respect to the mean of that axis, then transpose the axis from the front
             # back to its place since we want to match exactly the original shape
-            a = a.transpose(self._transposed_axes(dim=a.ndim, index=axis, place=0))
-            diff_expressions = self.subtract(a, mean_expressions)
-            diff_expressions = diff_expressions.transpose(self._transposed_axes(dim=a.ndim, index=0, place=axis))
-        # we can finally build auxiliary variables for the differences (if needed), then square these differences and,
-        # eventually, compute the mean of the squared differences over the given axis
-        diff_expressions = self.aux(expressions=diff_expressions, aux_vtype=aux)
-        squared_expressions = self.square(diff_expressions, aux=aux_squared)
-        return self.mean(squared_expressions, axis=axis, asarray=asarray, aux=aux)
+            if definition:
+                a = a.transpose(self._transposed_axes(dim=a.ndim, index=axis, place=0))
+                a_residuals = self.subtract(a, a_mean)
+                a_residuals = a_residuals.transpose(self._transposed_axes(dim=a.ndim, index=0, place=axis))
+                # we can finally compute the mean of the squared differences over the given axis
+                squared_residuals = self.square(a_residuals)
+                return self.mean(squared_residuals, axis=axis, asarray=asarray, aux=aux)
+            else:
+                a_squared = self.square(a)
+                mean_squared = self.mean(a_squared, axis=axis, aux=aux)
+                squared_mean = self.square(a_mean)
+                return self.subtract(mean_squared, squared_mean)
 
-    def add(self, a, b, aux: Optional[str] = 'auto'):
-        """Performs the pairwise sum between two arrays.
-
-        :param a:
-            Either a single model variable or an array of such.
-
-        :param b:
-            Either a single model variable or an array of such.
-
-        :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
-
-        :return:
-            The array of pairwise sums between a and b.
-        """
-        return self.aux(expressions=a + b, aux_vtype=aux)
-
-    def subtract(self, a, b, aux: Optional[str] = 'auto'):
-        """Performs the pairwise subtraction between two arrays.
-
-        :param a:
-            Either a single model variable or an array of such.
-
-        :param b:
-            Either a single model variable or an array of such.
-
-        :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
-
-        :return:
-            The array of pairwise differences between a and b.
-        """
-        return self.aux(expressions=a - b, aux_vtype=aux)
-
-    def multiply(self, a, b, aux: Optional[str] = 'auto'):
-        """Performs the pairwise product between two arrays.
-
-        :param a:
-            Either a single model variable or an array of such.
-
-        :param b:
-            Either a single model variable or an array of such.
-
-        :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
-
-        :return:
-            The array of pairwise products between a and b.
-        """
-        return self.aux(expressions=a * b, aux_vtype=aux)
-
-    def divide(self, a, b, aux: Optional[str] = 'auto'):
-        """Performs the pairwise division between two arrays.
-
-        :param a:
-            Either a single model variable or an array of such.
-
-        :param b:
-            Either a single model variable or an array of such.
-
-        :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
-
-        :return:
-            The array of pairwise divisions between a and b.
-        """
-        return self.aux(expressions=a / b, aux_vtype=aux)
-
-    def cov(self, a: np.ndarray, b: np.ndarray, asarray: bool = False, aux: Optional[str] = 'auto'):
+    def cov(self, a: np.ndarray, b: np.ndarray, definition: bool = False, asarray: bool = False, aux: bool = False):
         """Returns the covariance between the vectors a and b.
 
         :param a:
@@ -978,30 +817,91 @@ class Backend:
         :param b:
             The second (one-dimensional) array.
 
+        :param definition:
+            If True, computes the covariance as in the definition, i.e., cov(a, b) = E[(a - E[a]) * (b - E[b])].
+            Otherwise, computes it as the difference of expected values, i.e., cov(a, b) = E[a * b] - E[a] * E[b].
+
         :param asarray:
             In case the aggregation returns a single expression, whether to return it as a zero-dimensional numpy array
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The covariance between a and b.
         """
         a_mean = self.mean(a, aux=aux)
         b_mean = self.mean(b, aux=aux)
-        a_expression = self.subtract(a, a_mean, aux=aux)
-        b_expression = self.subtract(b, b_mean, aux=aux)
-        mul_expression = self.multiply(a_expression, b_expression, aux=aux)
-        return self.mean(mul_expression, asarray=asarray, aux=aux)
+        if definition:
+            a_residuals = self.subtract(a, a_mean)
+            b_residuals = self.subtract(b, b_mean)
+            mul_residuals = self.multiply(a_residuals, b_residuals)
+            return self.mean(mul_residuals, asarray=asarray, aux=aux)
+        else:
+            ab = self.multiply(a, b)
+            ab_mean = self.mean(ab, aux=aux)
+            mul_means = self.multiply(a_mean, b_mean)
+            return self.subtract(ab_mean, mul_means)
 
-    def dot(self, a, b, asarray: bool = False, aux: Optional[str] = 'auto') -> Any:
+    # noinspection PyMethodMayBeStatic
+    def add(self, a, b):
+        """Performs the pairwise sum between two arrays.
+
+        :param a:
+            Either a single model variable or an array of such.
+
+        :param b:
+            Either a single model variable or an array of such.
+
+        :return:
+            The array of pairwise sums between a and b.
+        """
+        return a + b
+
+    def subtract(self, a, b):
+        """Performs the pairwise subtraction between two arrays.
+
+        :param a:
+            Either a single model variable or an array of such.
+
+        :param b:
+            Either a single model variable or an array of such.
+
+        :return:
+            The array of pairwise differences between a and b.
+        """
+        return a - b
+
+    def multiply(self, a, b):
+        """Performs the pairwise product between two arrays.
+
+        :param a:
+            Either a single model variable or an array of such.
+
+        :param b:
+            Either a single model variable or an array of such.
+
+        :return:
+            The array of pairwise products between a and b.
+        """
+        return a * b
+
+    def divide(self, a, b):
+        """Performs the pairwise division between two arrays.
+
+        :param a:
+            Either a single model variable or an array of such.
+
+        :param b:
+            Either a single model variable or an array of such.
+
+        :return:
+            The array of pairwise divisions between a and b.
+        """
+        return a / b
+
+    def dot(self, a, b, asarray: bool = False, aux: bool = False) -> Any:
         """Performs the dot product between two arrays.
 
         :param a:
@@ -1015,25 +915,15 @@ class Backend:
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The dot product between a and b.
         """
-        dot_expression = self.aux(expressions=a @ b, aux_vtype=aux)
+        dot_expression = self.aux(expressions=a @ b, aux_vtype='continuous' if aux else None)
         return np.array(dot_expression) if asarray else dot_expression
 
-    def norm_0(self,
-               a: np.ndarray,
-               axis: Optional[int] = None,
-               asarray: bool = False,
-               aux: Optional[str] = 'auto') -> Any:
+    def norm_0(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         """Compute the norm 0 of an array.
 
         :param a:
@@ -1047,13 +937,7 @@ class Backend:
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The norm 0 of the input array.
@@ -1063,11 +947,7 @@ class Backend:
         """
         raise BackendError(unsupported='equalities')
 
-    def norm_1(self,
-               a: np.ndarray,
-               axis: Optional[int] = None,
-               asarray: bool = False,
-               aux: Optional[str] = 'auto') -> Any:
+    def norm_1(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         """Compute the norm 1 of an array.
 
         :param a:
@@ -1081,13 +961,7 @@ class Backend:
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The norm 1 of the input array.
@@ -1096,14 +970,14 @@ class Backend:
             If the backend cannot handle absolute variables.
         """
         norm = self._handle_axes(a, operation=lambda v: self.sum(self.abs(v)), axis=axis, asarray=asarray)
-        return self.aux(expressions=norm, aux_vtype=aux)
+        return self.aux(expressions=norm, aux_vtype='continuous' if aux else None)
 
     def norm_2(self,
                a: np.ndarray,
-               squared: bool = False,
+               squared: bool = True,
                axis: Optional[int] = None,
                asarray: bool = False,
-               aux: Optional[str] = 'auto') -> Any:
+               aux: bool = False) -> Any:
         """Compute the norm 2 of an array.
 
         :param a:
@@ -1120,13 +994,7 @@ class Backend:
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The norm 2 of the input array.
@@ -1139,13 +1007,9 @@ class Backend:
         else:
             operation = lambda v: self.sqrt(self.dot(v, v))
         norm = self._handle_axes(a, operation=operation, axis=axis, asarray=asarray)
-        return self.aux(expressions=norm, aux_vtype=aux)
+        return self.aux(expressions=norm, aux_vtype='continuous' if aux else None)
 
-    def norm_inf(self,
-                 a: np.ndarray,
-                 axis: Optional[int] = None,
-                 asarray: bool = False,
-                 aux: Optional[str] = 'auto') -> Any:
+    def norm_inf(self, a: np.ndarray, axis: Optional[int] = None, asarray: bool = False, aux: bool = False) -> Any:
         """Compute the norm infinity of an array.
 
         :param a:
@@ -1159,13 +1023,7 @@ class Backend:
             or as the expression itself.
 
         :param aux:
-            The vtype of the auxiliary variables which may be added the represent the results values and, optionally,
-            the partial results obtained in the computation. If 'auto' is passed, it automatically decides how to deal
-            with auxiliary variables in order to maximize the computational gain without introducing formulation issues;
-            if None is passed, it returns the result in the form of an expression, otherwise it builds an auxiliary
-            variable bounded to the expression value. Using auxiliary variables may come in handy when dealing with
-            huge datasets since they can considerably speedup the model formulation; still, imposing equality
-            constraints on certain expressions may lead to solving errors due to broken model assumptions.
+            Whether to create continuous auxiliary variables for aggregated results or not.
 
         :return:
             The norm infinity of the input array.
@@ -1174,4 +1032,4 @@ class Backend:
             If the backend cannot handle absolute and maximum values.
         """
         norm = self._handle_axes(a, operation=lambda v: self.max(self.abs(v)), axis=axis, asarray=asarray)
-        return self.aux(expressions=norm, aux_vtype=aux)
+        return self.aux(expressions=norm, aux_vtype='continuous' if aux else None)

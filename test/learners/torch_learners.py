@@ -53,7 +53,7 @@ class TestTorchLearners(TestLearners):
                 loss(pred, out).backward()
                 optimizer.step()
         learner.eval()
-        return learner(torch.tensor(x, dtype=torch.float32)).detach().numpy().squeeze()
+        return learner(torch.tensor(np.array(x), dtype=torch.float32)).detach().numpy().squeeze()
 
     def test_regression_mlp(self):
         self._test(

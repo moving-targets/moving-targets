@@ -1,7 +1,7 @@
 import random
 
 import numpy as np
-import scipy.optimize
+from scipy.optimize import curve_fit
 
 from moving_targets.learners import ScipyCurveFit
 from test.learners.abstract import TestLearners
@@ -19,7 +19,7 @@ class TestCurveLearners(TestLearners):
 
     def _reference(self, learner, x, y, sample_weight: np.ndarray) -> np.ndarray:
         if learner == 'scipy_curve_fit':
-            a, b = scipy.optimize.curve_fit(f=self._curve, xdata=x, ydata=y)[0]
+            a, b = curve_fit(f=self._curve, xdata=x, ydata=y)[0]
             return self._curve(x=x, a=a, b=b)
         else:
             raise AssertionError(f"Unknown reference learner '{learner}'")

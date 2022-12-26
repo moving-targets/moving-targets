@@ -16,7 +16,7 @@ class TorchLearner(Learner):
         def __init__(self, x, y):
             import torch
             assert len(x) == len(y), f"Data should have the same length, but len(x) = {len(x)} and len(y) = {len(y)} "
-            self.x = torch.tensor(x, dtype=torch.float32)
+            self.x = torch.tensor(np.array(x), dtype=torch.float32)
             self.y = torch.tensor(np.expand_dims(y, axis=-1), dtype=torch.float32)
 
         def __len__(self):
@@ -175,7 +175,7 @@ class TorchLearner(Learner):
 
     def _predict(self, x) -> np.ndarray:
         import torch
-        return self.model(torch.tensor(x, dtype=torch.float32)).detach().numpy().squeeze()
+        return self.model(torch.tensor(np.array(x), dtype=torch.float32)).detach().numpy().squeeze()
 
 
 class TorchMLP(TorchLearner):
