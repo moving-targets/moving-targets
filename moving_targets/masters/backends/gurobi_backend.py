@@ -9,18 +9,8 @@ from moving_targets.util.errors import MissingDependencyError, BackendError
 class GurobiBackend(Backend):
     """`Backend` implementation for the Gurobi Solver."""
 
-    def __init__(self,
-                 time_limit: Optional[float] = None,
-                 solution_limit: Optional[float] = None,
-                 verbose: bool = False,
-                 **solver_args):
+    def __init__(self, verbose: bool = False, **solver_args):
         """
-        :param time_limit:
-            The solver time limit.
-
-        :param solution_limit:
-            The solver solution limit.
-
         :param verbose:
             Whether or not to print information during the optimization process.
 
@@ -44,13 +34,6 @@ class GurobiBackend(Backend):
 
         self._env: Optional = None
         """The gurobi environment instance."""
-
-        if time_limit is not None and 'TimeLimit' not in self.solver_args:
-            assert time_limit > 0, f"the time limit must be positive, got {time_limit}"
-            self.solver_args['TimeLimit'] = time_limit
-        if solution_limit is not None and 'SolutionLimit' not in self.solver_args:
-            assert solution_limit > 0, f"the solution limit must be positive, got {solution_limit}"
-            self.solver_args['SolutionLimit'] = solution_limit
 
     def _build_model(self) -> Any:
         self._env = self._gp.Env(empty=True)
