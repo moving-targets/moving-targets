@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 
 from moving_targets.util.errors import not_implemented_message
-from test.abstract import AbstractTest
+from test.test_abstract import TestAbstract
 
 
-class TestLearners(AbstractTest):
+class TestLearners(TestAbstract):
     @classmethod
     def _random_state(cls):
         """Defines the random seeds to be fixed before calling the moving targets learner and the reference learner."""

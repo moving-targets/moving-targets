@@ -5,12 +5,12 @@ import numpy as np
 from moving_targets.masters import losses
 from moving_targets.masters.backends import GurobiBackend
 from moving_targets.util import probabilities
-from test.abstract import AbstractTest
+from test.test_abstract import TestAbstract
 
 
 # TENSORFLOW IS IMPORTED LAZILY TO AVOID CONFLICTS WITH DEPENDENCIES TESTS
 
-class TestLosses(AbstractTest):
+class TestLosses(TestAbstract):
     @staticmethod
     def _normalize(array: np.ndarray) -> np.ndarray:
         """Normalizes the values of an array so that each of its rows sum up to one."""

@@ -1,7 +1,7 @@
 from typing import List, Any
 
 from moving_targets.masters.backends import Backend, CvxpyBackend
-from test.masters.backends.abstract_backend import TestBackend
+from test.masters.backends.test_backend import TestBackend
 
 
 class TestCvxpyBackend(TestBackend):

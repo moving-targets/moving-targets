@@ -9,10 +9,10 @@ from moving_targets.masters.losses import Loss
 from moving_targets.masters.optimizers import Optimizer
 from moving_targets.metrics import Metric
 from moving_targets.util.scalers import Scaler
-from test.abstract import AbstractTest
+from test.test_abstract import TestAbstract
 
 
-class TestSignatures(AbstractTest):
+class TestSignatures(TestAbstract):
     MACS_SIGNATURE: Dict[str, Any] = {
         'master': Master,
         'learner': Learner,

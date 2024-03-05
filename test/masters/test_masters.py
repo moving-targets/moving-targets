@@ -6,10 +6,10 @@ from moving_targets import MACS
 from moving_targets.learners import Learner
 from moving_targets.masters import ClassificationMaster, RegressionMaster
 from moving_targets.util import probabilities
-from test.abstract import AbstractTest
+from test.test_abstract import TestAbstract
 
 
-class TestMasters(AbstractTest):
+class TestMasters(TestAbstract):
     class DummyLearner(Learner):
         def __init__(self, regression: bool):
             super(TestMasters.DummyLearner, self).__init__(mask=None, x_scaler=None, y_scaler=None, stats=False)

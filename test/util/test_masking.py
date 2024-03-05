@@ -4,12 +4,12 @@ import numpy as np
 import pandas as pd
 
 from moving_targets.util.masking import get_mask, mask_data
-from test.abstract import AbstractTest
+from test.test_abstract import TestAbstract
 
 
-class TestMasking(AbstractTest):
+class TestMasking(TestAbstract):
     REF_1D = [0., 1., 2., 3., 4., 5.]
-    REF_2D = [[i] * AbstractTest.NUM_CLASSES for i in REF_1D]
+    REF_2D = [[i] * TestAbstract.NUM_CLASSES for i in REF_1D]
     MASK = np.array([True, True, False, True, False, False])
 
     def _test_get(self, ref: np.ndarray, mask: Optional[float], all_columns: bool, should_fail: bool):

@@ -3,7 +3,7 @@ import sys
 import unittest
 
 
-class AbstractTest(unittest.TestCase):
+class TestAbstract(unittest.TestCase):
     SEED: int = 42
     """The chosen random seed."""
 

@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from moving_targets.learners import TorchMLP
-from test.learners.abstract import TestLearners
+from test.learners.test_learners import TestLearners
 
 
 # TORCH IS IMPORTED LAZILY TO AVOID CONFLICTS WITH DEPENDENCIES TESTS

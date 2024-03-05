@@ -10,7 +10,7 @@ from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 from moving_targets.learners import Learner
 from moving_targets.learners.scikit_learners import LinearRegression, LogisticRegression, RandomForestRegressor, \
     RandomForestClassifier, GradientBoostingRegressor, GradientBoostingClassifier
-from test.learners.abstract import TestLearners
+from test.learners.test_learners import TestLearners
 
 
 class TestScikitLearners(TestLearners):

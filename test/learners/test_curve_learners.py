@@ -4,7 +4,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 from moving_targets.learners import ScipyCurveFit
-from test.learners.abstract import TestLearners
+from test.learners.test_learners import TestLearners
 
 
 class TestCurveLearners(TestLearners):

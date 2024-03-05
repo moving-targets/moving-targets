@@ -4,16 +4,16 @@ import numpy as np
 
 from moving_targets.masters.backends import Backend
 from moving_targets.util.errors import BackendError, not_implemented_message
-from test.abstract import AbstractTest
+from test.test_abstract import TestAbstract
 
 
-class TestBackend(AbstractTest):
+class TestBackend(TestAbstract):
     _SIZES: Dict[str, List[int]] = {
-        '1D': [AbstractTest.NUM_SAMPLES],
-        '1D inv': [AbstractTest.NUM_CLASSES],
-        '2D': [AbstractTest.NUM_SAMPLES, AbstractTest.NUM_CLASSES],
-        '2D inv': [AbstractTest.NUM_CLASSES, AbstractTest.NUM_SAMPLES],
-        '3D': [AbstractTest.NUM_SAMPLES, AbstractTest.NUM_CLASSES, AbstractTest.NUM_FEATURES],
+        '1D': [TestAbstract.NUM_SAMPLES],
+        '1D inv': [TestAbstract.NUM_CLASSES],
+        '2D': [TestAbstract.NUM_SAMPLES, TestAbstract.NUM_CLASSES],
+        '2D inv': [TestAbstract.NUM_CLASSES, TestAbstract.NUM_SAMPLES],
+        '3D': [TestAbstract.NUM_SAMPLES, TestAbstract.NUM_CLASSES, TestAbstract.NUM_FEATURES],
     }
     """A dictionary which associates to each vector dimension a list representing the vector shape."""
 

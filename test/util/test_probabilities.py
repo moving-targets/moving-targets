@@ -4,10 +4,10 @@ import numpy as np
 from sklearn.preprocessing import LabelBinarizer
 
 from moving_targets.util.probabilities import get_classes, get_onehot
-from test.abstract import AbstractTest
+from test.test_abstract import TestAbstract
 
 
-class TestProbabilities(AbstractTest):
+class TestProbabilities(TestAbstract):
     BINARY_PROBABILITIES = np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
     BINARY_CLASSES = BINARY_PROBABILITIES.round().astype(int)
     BINARY_ONEHOT = np.transpose([1 - BINARY_CLASSES, BINARY_CLASSES])

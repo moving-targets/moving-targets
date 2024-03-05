@@ -1,7 +1,7 @@
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 from moving_targets.metrics import MSE, MAE, R2
-from test.metrics.abstract import TestMetrics
+from test.metrics.test_metrics import TestMetrics
 
 
 class TestRegressionMetrics(TestMetrics):

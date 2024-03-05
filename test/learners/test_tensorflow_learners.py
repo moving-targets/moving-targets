@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 from moving_targets.learners import TensorflowMLP
-from test.learners.abstract import TestLearners
+from test.learners.test_learners import TestLearners
 
 
 # TENSORFLOW IS IMPORTED LAZILY TO AVOID CONFLICTS WITH DEPENDENCIES TESTS

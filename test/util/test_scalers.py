@@ -5,21 +5,21 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder
 
 from moving_targets.util.scalers import Scaler
-from test.abstract import AbstractTest
+from test.test_abstract import TestAbstract
 
 
-class TestScalers(AbstractTest):
+class TestScalers(TestAbstract):
     """Tests the correctness of the `Scaler` class."""
 
     FLOAT_DTYPE = np.zeros(1, dtype='float64').dtype
 
-    RNG = np.random.default_rng(seed=AbstractTest.SEED)
+    RNG = np.random.default_rng(seed=TestAbstract.SEED)
 
     DATA = pd.DataFrame.from_dict({
-        '(0, 1)': RNG.random(AbstractTest.NUM_SAMPLES),
-        '(-1, 1)': 2 * RNG.random(AbstractTest.NUM_SAMPLES) - 1,
-        '{0, 2}': RNG.choice([0, 1, 2], AbstractTest.NUM_SAMPLES),
-        '{M, F}': RNG.choice(['M', 'F'], AbstractTest.NUM_SAMPLES)
+        '(0, 1)': RNG.random(TestAbstract.NUM_SAMPLES),
+        '(-1, 1)': 2 * RNG.random(TestAbstract.NUM_SAMPLES) - 1,
+        '{0, 2}': RNG.choice([0, 1, 2], TestAbstract.NUM_SAMPLES),
+        '{M, F}': RNG.choice(['M', 'F'], TestAbstract.NUM_SAMPLES)
     })
 
     SCALED = {

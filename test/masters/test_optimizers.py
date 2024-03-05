@@ -3,10 +3,10 @@ from typing import Callable
 import numpy as np
 
 from moving_targets.masters import optimizers
-from test.abstract import AbstractTest
+from test.test_abstract import TestAbstract
 
 
-class TestOptimizers(AbstractTest):
+class TestOptimizers(TestAbstract):
 
     def _test(self, policy: Callable, optimizer: str, **opt_args):
         """Checks whether the optimizer, if instantiated with the given parameters, behaves as the reference policy."""

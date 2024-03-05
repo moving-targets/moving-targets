@@ -5,7 +5,7 @@ import pandas as pd
 
 from moving_targets.metrics import ClassFrequenciesStd, MonotonicViolation, DIDI
 from moving_targets.util import probabilities
-from test.metrics.abstract import TestMetrics
+from test.metrics.test_metrics import TestMetrics
 
 
 class TestConstraintsMetrics(TestMetrics):
