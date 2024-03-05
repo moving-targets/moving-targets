@@ -24,8 +24,8 @@ class TestScalers(TestAbstract):
     })
 
     # decide name of 'sparse' parameter based on scikit version ('sparse' if <= 1.1, 'sparse_output' if >= 1.2)
-    major, minor, _ = sklearn.__version__.split('.')
-    kwargs = dict(sparse=False) if int(major) <= 1 and int(minor) <= 1 else dict(sparse_output=False)
+    version = sklearn.__version__.split('.')
+    kwargs = dict(sparse=False) if int(version[0]) <= 1 and int(version[1]) <= 1 else dict(sparse_output=False)
 
     SCALED = {
         'none': pd.DataFrame(DATA),

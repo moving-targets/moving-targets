@@ -1,14 +1,18 @@
+import os
 from typing import Union, Optional
 
 import numpy as np
+import pytest
 
 from moving_targets import MACS
 from moving_targets.learners import Learner
 from moving_targets.masters import ClassificationMaster, RegressionMaster
+from moving_targets.masters.backends import GurobiBackend
 from moving_targets.util import probabilities
 from test.test_abstract import TestAbstract
 
 
+@pytest.mark.skipif(os.getenv('GITHUB_ACTIONS') == 'true', reason='No solver in Github Actions')
 class TestMasters(TestAbstract):
     class DummyLearner(Learner):
         def __init__(self, regression: bool):
@@ -38,20 +42,20 @@ class TestMasters(TestAbstract):
         # handle outputs
         if task == 'regression':
             p = y = rng.random(self.NUM_SAMPLES)
-            master = RegressionMaster(backend='cvxpy', loss=loss)
+            master = RegressionMaster(backend=GurobiBackend(), loss=loss)
         else:
             if task == 'binary':
                 y = rng.random(self.NUM_SAMPLES).round().astype(int)
                 p = y if classes else y.astype(float)
-                master = ClassificationMaster(backend='cvxpy', loss=loss, types=types)
+                master = ClassificationMaster(backend=GurobiBackend(), loss=loss, types=types)
             elif task == 'multiclass':
                 y = rng.random((self.NUM_SAMPLES, self.NUM_CLASSES)).argmax(axis=1)
                 p = y if classes else probabilities.get_onehot(y).astype(float)
-                master = ClassificationMaster(backend='cvxpy', loss=loss, types=types)
+                master = ClassificationMaster(backend=GurobiBackend(), loss=loss, types=types)
             elif task == 'multilabel':
                 y = rng.random((self.NUM_SAMPLES, self.NUM_CLASSES)).round().astype(int)
                 p = y if classes else y.astype(float)
-                master = ClassificationMaster(backend='cvxpy', loss=loss, types=types, labelling=True)
+                master = ClassificationMaster(backend=GurobiBackend(), loss=loss, types=types, labelling=True)
             else:
                 raise AssertionError(f"Unsupported task '{task}'")
             self.assertEqual(master.binary, binary)

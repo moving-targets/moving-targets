@@ -1,15 +1,16 @@
+import os
 from typing import Optional, Tuple
 
 import numpy as np
+import pytest
 
 from moving_targets.masters import losses
-from moving_targets.masters.backends import CvxpyBackend
+from moving_targets.masters.backends import GurobiBackend
 from moving_targets.util import probabilities
 from test.test_abstract import TestAbstract
 
 
-# TENSORFLOW IS IMPORTED LAZILY TO AVOID CONFLICTS WITH DEPENDENCIES TESTS
-
+@pytest.mark.skipif(os.getenv('GITHUB_ACTIONS') == 'true', reason='No solver in Github Actions')
 class TestLosses(TestAbstract):
     @staticmethod
     def _normalize(array: np.ndarray) -> np.ndarray:
@@ -24,6 +25,7 @@ class TestLosses(TestAbstract):
                   weights: Optional[np.ndarray] = None) -> Tuple[float, float]:
         """Implements the correct loss definition based on the derivative of the given reference loss."""
         import tensorflow as tf
+        # noinspection PyUnresolvedReferences
         import tensorflow.python.keras.losses as ls
         # handle inputs
         v = tf.constant(values.reshape((len(values), -1)), dtype=tf.float32)
@@ -61,7 +63,7 @@ class TestLosses(TestAbstract):
         classification tasks), and the given vector of sample weights."""
         try:
             rng = np.random.default_rng(self.SEED)
-            backend = CvxpyBackend()
+            backend = GurobiBackend()
             size = (self.NUM_SAMPLES,) if cls is None or cls == 2 else (self.NUM_SAMPLES, cls)
             kind = 'binary' if task in ['indicator', 'probability'] else 'continuous'
             mt_loss = losses.aliases[loss](**loss_args)
