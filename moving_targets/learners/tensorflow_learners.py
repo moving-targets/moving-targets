@@ -96,7 +96,7 @@ class TensorflowLearner(Learner):
     def _fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None):
         if self.warm_start == 0:
             # leverage the 'clone_model' utility to create a copy of the model structure with uninitialized weights
-            from tensorflow.python.keras.models import clone_model
+            from tensorflow.keras.models import clone_model
             self.model = clone_model(self.model)
             self.model.compile(**self.compile_kwargs)
         elif self.warm_start == 1:
@@ -209,8 +209,8 @@ class TensorflowMLP(TensorflowLearner):
             kernel_initializer, kernel_regularizer, kernel_constraint, etc.
         """
         try:
-            from tensorflow.python.keras.layers import Dense
-            from tensorflow.python.keras.models import Sequential
+            from tensorflow.keras.layers import Dense
+            from tensorflow.keras.models import Sequential
         except ModuleNotFoundError:
             raise MissingDependencyError(package='tensorflow')
 
