@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from moving_targets.masters import losses
-from moving_targets.masters.backends import GurobiBackend
+from moving_targets.masters.backends import CvxpyBackend
 from moving_targets.util import probabilities
 from test.test_abstract import TestAbstract
 
@@ -61,7 +61,7 @@ class TestLosses(TestAbstract):
         classification tasks), and the given vector of sample weights."""
         try:
             rng = np.random.default_rng(self.SEED)
-            backend = GurobiBackend()
+            backend = CvxpyBackend()
             size = (self.NUM_SAMPLES,) if cls is None or cls == 2 else (self.NUM_SAMPLES, cls)
             kind = 'binary' if task in ['indicator', 'probability'] else 'continuous'
             mt_loss = losses.aliases[loss](**loss_args)

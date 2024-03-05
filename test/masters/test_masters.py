@@ -38,20 +38,20 @@ class TestMasters(TestAbstract):
         # handle outputs
         if task == 'regression':
             p = y = rng.random(self.NUM_SAMPLES)
-            master = RegressionMaster(backend='gurobi', loss=loss)
+            master = RegressionMaster(backend='cvxpy', loss=loss)
         else:
             if task == 'binary':
                 y = rng.random(self.NUM_SAMPLES).round().astype(int)
                 p = y if classes else y.astype(float)
-                master = ClassificationMaster(backend='gurobi', loss=loss, types=types)
+                master = ClassificationMaster(backend='cvxpy', loss=loss, types=types)
             elif task == 'multiclass':
                 y = rng.random((self.NUM_SAMPLES, self.NUM_CLASSES)).argmax(axis=1)
                 p = y if classes else probabilities.get_onehot(y).astype(float)
-                master = ClassificationMaster(backend='gurobi', loss=loss, types=types)
+                master = ClassificationMaster(backend='cvxpy', loss=loss, types=types)
             elif task == 'multilabel':
                 y = rng.random((self.NUM_SAMPLES, self.NUM_CLASSES)).round().astype(int)
                 p = y if classes else y.astype(float)
-                master = ClassificationMaster(backend='gurobi', loss=loss, types=types, labelling=True)
+                master = ClassificationMaster(backend='cvxpy', loss=loss, types=types, labelling=True)
             else:
                 raise AssertionError(f"Unsupported task '{task}'")
             self.assertEqual(master.binary, binary)

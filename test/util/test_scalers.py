@@ -2,6 +2,7 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
+import sklearn
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder
 
 from moving_targets.util.scalers import Scaler
@@ -22,6 +23,10 @@ class TestScalers(TestAbstract):
         '{M, F}': RNG.choice(['M', 'F'], TestAbstract.NUM_SAMPLES)
     })
 
+    # decide name of 'sparse' parameter based on scikit version ('sparse' if <= 1.1, 'sparse_output' if >= 1.2)
+    major, minor, _ = sklearn.__version__.split('.')
+    kwargs = dict(sparse=False) if int(major) <= 1 and int(minor) <= 1 else dict(sparse_output=False)
+
     SCALED = {
         'none': pd.DataFrame(DATA),
         'norm': pd.DataFrame(
@@ -33,7 +38,7 @@ class TestScalers(TestAbstract):
             columns=['(0, 1)', '(-1, 1)', '{0, 2}']
         ),
         'onehot': pd.DataFrame(
-            data=OneHotEncoder(sparse=False, drop='if_binary').fit_transform(DATA[['{0, 2}', '{M, F}']]),
+            data=OneHotEncoder(drop='if_binary', **kwargs).fit_transform(DATA[['{0, 2}', '{M, F}']]),
             columns=['{0, 2}_0', '{0, 2}_1', '{0, 2}_2', '{M, F}_M']
         )
     }
