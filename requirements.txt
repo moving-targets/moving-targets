@@ -1,6 +1,6 @@
 cplex==22.1.0
 cvxpy==1.2.0
-docplex==2.23.221
+docplex==2.23
 gurobipy==9.5.0
 hatch==1.9.3
 matplotlib==3.5.0

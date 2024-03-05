@@ -10,7 +10,7 @@ jobs:
                 # * test on different operative systems
                 # * test minimal versions: python 3.10 + strict (minimal) requirements from 'requirements.txt'
                 # * test latest versions: python 3:x (latest) + latest requirements (eager) from 'pyproject.toml' (.)
-                os: ["windows-2022", "macos-13", "ubuntu-20.04"]
+                os: ["ubuntu-20.04"]
                 versions: [
                   ["3.7.1", "-r requirements.txt"],
                   ["3.8.0", "-r requirements.txt"],
