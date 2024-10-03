@@ -49,6 +49,7 @@ class TestTensorflowLearners(TestLearners):
                 epochs=self._EPOCHS,
                 batch_size=self._BATCH_SIZE,
                 shuffle=self._SHUFFLE,
+                warm_start=1,  # set this to avoid call to clone_model() which messes up the random state
                 verbose=False
             ),
             ref_learner=ref,
@@ -73,6 +74,7 @@ class TestTensorflowLearners(TestLearners):
                 epochs=self._EPOCHS,
                 batch_size=self._BATCH_SIZE,
                 shuffle=self._SHUFFLE,
+                warm_start=1,  # set this to avoid call to clone_model() which messes up the random state
                 verbose=False
             ),
             ref_learner=ref,
