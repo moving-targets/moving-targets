@@ -28,12 +28,31 @@ maintainers = [
 license = { file = "LICENSE" }
 
 [project.optional-dependencies]
+cvxpy = [
+    'cvxpy>=1.2',
+]
+cplex = [
+    'docplex>=2.23',
+]
+gurobi = [
+   'gurobipy>=9.5',
+]
+tensorflow = [
+    'tensorflow>=2.9',
+    'wandb>=0.13'
+]
+torch = [
+    'torch>=1.12',
+    'tqdm>=4.7.0',
+    'wandb>=0.13'
+]
 full = [
     'cvxpy>=1.2',
     'docplex>=2.23',
     'gurobipy>=9.5',
-    'torch>=1.12',
     'tensorflow>=2.9',
+    'torch>=1.12',
+    'tqdm>=4.7.0',
     'wandb>=0.13'
 ]
 

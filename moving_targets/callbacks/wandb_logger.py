@@ -24,7 +24,7 @@ class WandBLogger(Logger):
             Weights&Biases run name.
 
         :param log_vectors:
-            Whether or not to store the whole predictions and the adjustment targets at the end of every iteration.
+            Whether to store the whole predictions and the adjustment targets at the end of every iteration.
 
         :param wandb_kwargs:
             Weights&Biases run configuration.
@@ -48,7 +48,7 @@ class WandBLogger(Logger):
         """The Weights&Biases run name."""
 
         self._log_vectors: bool = log_vectors
-        """Whether or not to store the whole predictions and the adjustment targets at the end of every iteration."""
+        """Whether to store the whole predictions and the adjustment targets at the end of every iteration."""
 
         self.config: Dict = wandb_kwargs
         """The Weights&Biases run configuration."""

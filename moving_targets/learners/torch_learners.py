@@ -1,7 +1,6 @@
 from typing import Optional, List, Union, Dict, Any, Tuple
 
 import numpy as np
-import tqdm
 
 from moving_targets.learners import Learner
 from moving_targets.util.errors import MissingDependencyError
@@ -141,6 +140,7 @@ class TorchLearner(Learner):
 
     # noinspection PyTypeChecker
     def _fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None):
+        import tqdm
         from torch.utils.data import DataLoader
 
         if sample_weight is not None:
@@ -239,7 +239,7 @@ class TorchMLP(TorchLearner):
             Defines how many subprocesses to use for data loading ('0' to load data in the main process).
 
         :param verbose:
-            Whether or not to print information during the neural network training.
+            Whether to print information during the neural network training.
 
         :param mask:
             The (optional) masking value used to mask the original targets.
