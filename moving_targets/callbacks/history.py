@@ -23,7 +23,7 @@ class History(Logger):
 
     def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         # Creates a dataframe from the cached items and appends them to a list indexed by iteration.
-        self._history.append(pd.DataFrame([self._cache.values()], columns=self._cache.keys()))
+        self._history.append(pd.DataFrame([self._cache.values()], columns=list(self._cache.keys())))
         self._cache = {}
 
     def on_process_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):

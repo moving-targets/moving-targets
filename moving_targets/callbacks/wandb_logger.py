@@ -12,7 +12,7 @@ from moving_targets.util.typing import Dataset
 class WandBLogger(Logger):
     """Logs the training information on a Weights&Biases instance."""
 
-    def __init__(self, project: str, entity: str, run_name: str, **wandb_kwargs):
+    def __init__(self, project: str, entity: str, run_name: str, log_vectors: bool = True, **wandb_kwargs):
         """
         :param project:
             Weights&Biases project name.
@@ -22,6 +22,9 @@ class WandBLogger(Logger):
 
         :param run_name:
             Weights&Biases run name.
+
+        :param log_vectors:
+            Whether or not to store the whole predictions and the adjustment targets at the end of every iteration.
 
         :param wandb_kwargs:
             Weights&Biases run configuration.
@@ -44,6 +47,9 @@ class WandBLogger(Logger):
         self._run_name: str = run_name
         """The Weights&Biases run name."""
 
+        self._log_vectors: bool = log_vectors
+        """Whether or not to store the whole predictions and the adjustment targets at the end of every iteration."""
+
         self.config: Dict = wandb_kwargs
         """The Weights&Biases run configuration."""
 
@@ -53,6 +59,14 @@ class WandBLogger(Logger):
     def on_iteration_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._wandb.log({k: self._cache[k] for k in sorted(self._cache)})
         self._cache = {}
+
+    def on_training_end(self, macs, x, y: np.ndarray, p: np.ndarray, val_data: Optional[Dataset]):
+        if self._log_vectors:
+            self._wandb.log({'predictions': list(p)})
+
+    def on_adjustment_end(self, macs, x, y: np.ndarray, z: np.ndarray, val_data: Optional[Dataset]):
+        if self._log_vectors:
+            self._wandb.log({'adjusted': list(z)})
 
     def on_process_end(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._wandb.finish()

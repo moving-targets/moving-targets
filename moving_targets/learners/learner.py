@@ -34,8 +34,8 @@ class Learner(StatsLogger):
             The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
-            Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
-            statistics must be logged.
+            Either a boolean value indicating whether to log statistics, or a list of parameters whose statistics
+            must be logged.
         """
         super(Learner, self).__init__(stats=stats, name='Learner')
 
@@ -55,7 +55,8 @@ class Learner(StatsLogger):
         """An auxiliary variable to keep track of the elapsed time between iterations."""
 
     def log(self, **cache):
-        self._macs.log(**cache)
+        if self._macs is not None:
+            self._macs.log(**cache)
 
     def on_training_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._macs = macs

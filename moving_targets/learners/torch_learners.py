@@ -1,6 +1,7 @@
 from typing import Optional, List, Union, Dict, Any, Tuple
 
 import numpy as np
+import tqdm
 
 from moving_targets.learners import Learner
 from moving_targets.util.errors import MissingDependencyError
@@ -29,7 +30,8 @@ class TorchLearner(Learner):
                  model,
                  loss,
                  optimizer='Adam',
-                 epochs: int = 1,
+                 iterations: int = 1,
+                 use_steps: bool = False,
                  shuffle: bool = True,
                  validation_split: float = 0.,
                  batch_size: Optional[int] = 128,
@@ -50,8 +52,11 @@ class TorchLearner(Learner):
         :param optimizer:
             Either the neural network optimizer or its name to retrieve it from `torch.optim`.
 
-        :param epochs:
-            The number of training epochs.
+        :param iterations:
+            The number of training iterations (steps if 'use_steps' is True, epochs otherwise).
+
+        :param use_steps:
+            Whether to consider the number of steps or epochs when counting the iterations.
 
         :param shuffle:
             Whether or not to shuffle the dataset when training.
@@ -110,8 +115,11 @@ class TorchLearner(Learner):
         self.optimizer: optim.Optimizer = optimizer
         """The neural network optimizer."""
 
-        self.epochs: int = epochs
-        """The number of training epochs."""
+        self.iterations: int = iterations
+        """The number of training iterations (steps if 'use_steps' is True, epochs otherwise)."""
+
+        self.use_steps: bool = use_steps
+        """Whether to consider the number of steps or epochs when counting the iterations."""
 
         self.shuffle: bool = shuffle
         """Whether or not to shuffle the dataset when training."""
@@ -131,24 +139,6 @@ class TorchLearner(Learner):
         self.fit_kwargs: Dict[str, Any] = fit_kwargs
         """Custom arguments to be passed to the model '.fit()' method."""
 
-    def _print(self, epoch: int, loss: float, batch: Optional[Tuple[int, int]] = None):
-        if not self.verbose:
-            return
-
-        # carriage return to write in the same line
-        print(f'\r', end='')
-        # print the epoch number with trailing spaces on the left to match the maximum epoch
-        print(f'Epoch {epoch:{len(str(self.epochs))}}', end=' ')
-        # print the loss value (either loss for this single batch or for the whole epoch)
-        print(f'- loss = {loss:.4f}', end='')
-        # check whether this is the information of a single batch or of the whole epoch and for the latter case (batch
-        # is None) print a new line, while for the former (batch is a tuple) print the batch number and no new line
-        if batch is None:
-            print()
-        else:
-            batch, batches = batch
-            print(f' (batch {batch:{len(str(batches))}} of {batches})', end='')
-
     # noinspection PyTypeChecker
     def _fit(self, x, y: np.ndarray, sample_weight: Optional[np.ndarray] = None):
         from torch.utils.data import DataLoader
@@ -160,7 +150,11 @@ class TorchLearner(Learner):
         loader = DataLoader(dataset=ds, batch_size=self.batch_size, shuffle=self.shuffle, num_workers=self.num_workers)
         batches = np.ceil(len(ds) / self.batch_size).astype(int)
         self.model.train()
-        for epoch in np.arange(self.epochs) + 1:
+        iterations = 0
+        epoch = 0
+        if self.verbose:
+            progress = tqdm.tqdm(total=self.iterations, desc='Training', unit=' step' if self.use_steps else ' epoch')
+        while iterations < self.iterations:
             epoch_loss = 0.0
             for batch, (inp, out) in enumerate(loader):
                 self.optimizer.zero_grad()
@@ -169,8 +163,16 @@ class TorchLearner(Learner):
                 loss.backward()
                 self.optimizer.step()
                 epoch_loss += loss.item() * inp.size(0)
-                self._print(epoch=epoch, loss=loss.item(), batch=(batch + 1, batches))
-            self._print(epoch=epoch, loss=epoch_loss / len(ds))
+                # if use_steps is True, add one iteration at every batch
+                if self.use_steps:
+                    iterations += 1
+                    if self.verbose:
+                        progress.update(1)
+            # if use_steps is False, add one iteration at every epoch
+            if not self.use_steps:
+                iterations += 1
+                if self.verbose:
+                    progress.update(1)
         self.model.eval()
 
     def _predict(self, x) -> np.ndarray:
@@ -189,9 +191,10 @@ class TorchMLP(TorchLearner):
                  hidden_units: List[int] = (128,),
                  hidden_activation: Optional = 'ReLU',
                  optimizer: str = 'Adam',
-                 epochs: int = 1,
+                 iterations: int = 1,
+                 use_steps: bool = False,
                  shuffle: bool = True,
-                 batch_size: Optional[int] = 128,
+                 batch_size: int = 128,
                  num_workers: int = 0,
                  verbose: bool = True,
                  mask: Optional[float] = None,
@@ -220,8 +223,11 @@ class TorchMLP(TorchLearner):
         :param optimizer:
             The name of the neural network optimizer to retrieve it from `torch.optim`.
 
-        :param epochs:
-            The number of training epochs.
+        :param iterations:
+            The number of training iterations (steps if 'use_steps' is True, epochs otherwise).
+
+        :param use_steps:
+            Whether to consider the number of steps or epochs when counting the iterations.
 
         :param shuffle:
             Whether or not to shuffle the dataset when training.
@@ -278,7 +284,8 @@ class TorchMLP(TorchLearner):
         super(TorchMLP, self).__init__(model=network,
                                        loss=loss,
                                        optimizer=optimizer,
-                                       epochs=epochs,
+                                       iterations=iterations,
+                                       use_steps=use_steps,
                                        shuffle=shuffle,
                                        batch_size=batch_size,
                                        num_workers=num_workers,

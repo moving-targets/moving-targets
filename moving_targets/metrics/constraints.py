@@ -37,14 +37,14 @@ class DIDI(Metric):
     """Disparate Impact Discrimination Index."""
 
     @staticmethod
-    def get_indicator_matrix(x: pd.DataFrame, protected: str) -> np.array:
+    def get_indicator_matrix(x: pd.DataFrame, protected: Union[str, List[str]]) -> np.array:
         """Computes the indicator matrix given the input data and a protected feature.
 
         :param x:
             The input data (it must be a pandas dataframe because features are searched by column name).
 
         :param protected:
-            The name of the protected feature.
+            The name(s) of the protected feature(s).
 
             During the solving process, the algorithm checks inside the data for column names starting with the given
             feature name: if a single column is found this is assumed to be a categorical column (thus, the number of
@@ -59,7 +59,10 @@ class DIDI(Metric):
         :raise `AssertionError`:
             If there is no column name starting with the `protected` string.
         """
-        features = [c for c in x.columns if c.startswith(protected)]
+        if isinstance(protected, list):
+            features = protected
+        else:
+            features = [c for c in x.columns if c.startswith(protected)]
         assert len(features) > 0, f"No column starting with the given protected feature '{protected}'"
         matrix = x[features].values.astype(int).squeeze()
         # if a single protected column is found out, this is interpreted as a categorical column thus is onehot encoded,
@@ -125,7 +128,7 @@ class DIDI(Metric):
             Whether the task is a classification (True) or a regression (False) task.
 
         :param protected:
-            The name of the protected feature.
+            The name(s) of the protected feature(s).
 
             During the solving process, the algorithm checks inside the data for column names starting with the given
             feature name: if a single column is found this is assumed to be a categorical column (thus, the number of
@@ -144,7 +147,7 @@ class DIDI(Metric):
         self.classification: bool = classification
         """Whether the task is a classification (True) or a regression (False) task."""
 
-        self.protected: str = protected
+        self.protected: Union[str, List[str]] = protected
         """The name of the protected feature."""
 
         self.percentage: bool = percentage

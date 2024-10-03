@@ -48,6 +48,7 @@ class ClassificationMetric(Metric):
         """Custom arguments to be passed to the metric function."""
 
     def __call__(self, x, y: np.ndarray, p: np.ndarray) -> float:
+        p = p.astype(float)
         if not self.use_prob:
             # if the metric does not use probabilities, convert the probabilities into class targets
             p = probabilities.get_classes(prob=p)

@@ -132,7 +132,8 @@ class Master(StatsLogger):
         return optimizer_class(base=1)
 
     def log(self, **cache):
-        self._macs.log(**cache)
+        if self._macs is not None:
+            self._macs.log(**cache)
 
     def on_adjustment_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         self._macs = macs

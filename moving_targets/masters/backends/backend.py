@@ -664,6 +664,7 @@ class Backend:
         """
         raise BackendError(unsupported='logarithms')
 
+    # noinspection PyMethodMayBeStatic
     def square(self, a) -> np.ndarray:
         """Computes the squared values over an array of variables.
 
@@ -861,6 +862,7 @@ class Backend:
         """
         return a + b
 
+    # noinspection PyMethodMayBeStatic
     def subtract(self, a, b):
         """Performs the pairwise subtraction between two arrays.
 
@@ -875,6 +877,7 @@ class Backend:
         """
         return a - b
 
+    # noinspection PyMethodMayBeStatic
     def multiply(self, a, b):
         """Performs the pairwise product between two arrays.
 

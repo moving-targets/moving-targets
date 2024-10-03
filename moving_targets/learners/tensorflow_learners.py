@@ -44,7 +44,7 @@ class TensorflowLearner(Learner):
             List of metrics to be evaluated and weighted by `sample_weight` or `class_weight`.
 
         :param run_eagerly:
-            Whether or not to run tensorflow in eager mode.
+            Whether to run tensorflow in eager mode.
 
         :param warm_start:
             Handles the warming start policy after each iteration. If 0 (or False), the weights are reinitialized and
@@ -61,7 +61,7 @@ class TensorflowLearner(Learner):
             The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
-            Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
+            Either a boolean value indicating whether to log statistics, or a list of parameters whose
             statistics must be logged.
 
         :param fit_kwargs:
@@ -163,13 +163,13 @@ class TensorflowMLP(TensorflowLearner):
             List of metrics to be evaluated and weighted by `sample_weight` or `class_weight`.
 
         :param run_eagerly:
-            Whether or not to run tensorflow in eager mode.
+            Whether to run tensorflow in eager mode.
 
         :param epochs:
             The number of training epochs.
 
         :param shuffle:
-            Whether or not to shuffle the dataset when training.
+            Whether to shuffle the dataset when training.
 
         :param validation_split:
             The validation split for neural network training.
@@ -184,7 +184,7 @@ class TensorflowMLP(TensorflowLearner):
             The list of tensorflow/keras callbacks for the training phase.
 
         :param verbose:
-            Whether or not to print information during the neural network training.
+            Whether to print information during the neural network training.
 
         :param warm_start:
             Handles the warming start policy after each iteration. If 0 (or False), the weights are reinitialized and
@@ -201,7 +201,7 @@ class TensorflowMLP(TensorflowLearner):
             The (optional) scaler for the output data, or a string representing the default scaling method.
 
         :param stats:
-            Either a boolean value indicating whether or not to log statistics, or a list of parameters whose
+            Either a boolean value indicating whether to log statistics, or a list of parameters whose
             statistics must be logged.
 
         :param layer_kwargs:

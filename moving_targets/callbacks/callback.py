@@ -10,10 +10,6 @@ from moving_targets.util.typing import Dataset
 class Callback:
     """Basic interface for a Moving Targets callback."""
 
-    def __init__(self):
-        """"""
-        super(Callback, self).__init__()
-
     def on_process_start(self, macs, x, y: np.ndarray, val_data: Optional[Dataset]):
         """Routine called at the end of the `MACS` fitting process.
 
