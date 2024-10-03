@@ -62,7 +62,7 @@ class TestTorchLearners(TestLearners):
                 optimizer=self._OPTIMIZER,
                 input_units=self.NUM_FEATURES,
                 hidden_units=[self._UNITS],
-                epochs=self._EPOCHS,
+                iterations=self._EPOCHS,
                 batch_size=self._BATCH_SIZE,
                 shuffle=self._SHUFFLE,
                 verbose=False
@@ -78,7 +78,7 @@ class TestTorchLearners(TestLearners):
                 optimizer=self._OPTIMIZER,
                 input_units=self.NUM_FEATURES,
                 hidden_units=[self._UNITS],
-                epochs=self._EPOCHS,
+                iterations=self._EPOCHS,
                 batch_size=self._BATCH_SIZE,
                 shuffle=self._SHUFFLE,
                 verbose=False
